@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import numpy as np
 from typing import ClassVar
 
@@ -14,7 +14,7 @@ class Metadata:
     seriesName: str
     dimensionality: int
     pulseSequenceName: str
-    totalDuration_s: float
+    duration_s: float
 
     matrixShape: tuple[int, int, int]
     resolution_mm: tuple[float, float, float]
@@ -22,23 +22,28 @@ class Metadata:
     echoTrainLength: int
     echoTime_ms: float
     repetitionTime_ms: float
-    centerFrequency_MHz: float
+    centerFrequency_Hz: float
     pixelBandwidth_Hz: float
-    phaseEncodingDirection: int
+    readoutDirection: int
 
     containsMetal: bool
+
+    def __post_init__(self):
+        resolution_rounded = np.round(self.resolution_mm, decimals=1)
+        self.isotropic = np.all(resolution_rounded == resolution_rounded[0])
+        self.readoutBandwidth_kHz = np.round(self.pixelBandwidth_Hz * self.matrixShape[self.readoutDirection] * 1e-3, decimals=2)
 
 @dataclass
 class ImageVolume:
     """ Data class for each acquired image volume. """
-    data: np.ndarray
+    data: np.ndarray = field(repr=False)
     meta: Metadata
-    NDIMS: ClassVar[int] = 3
+    NDIM: ClassVar[int] = 3
 
     def __post_init__(self):
-        if self.data.ndims != self.NDIMS:
+        if self.data.ndim != self.NDIM:
             raise ValueError(
-                'Invalid number of dimensions for data: got {}, require {}.'.format(self.data.ndims, self.NDIMS)
+                'Invalid number of dimensions for data: got {}, require {}.'.format(self.data.ndim, self.NDIM)
                 )
         self.shape = self.data.shape
         self.dtype = self.data.dtype
