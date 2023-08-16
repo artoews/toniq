@@ -1,18 +1,24 @@
 import itk
 import numpy as np
 
-def nonrigid(fixed_image, moving_image, moving_mask, verbose=False):
-    moving_image_bspline = itk.image_view_from_array(moving_image)
-    fixed_image_bspline = itk.image_view_from_array(fixed_image)
+def elastix_registration(fixed_image, moving_image, moving_mask, parameter_object, verbose=False):
+    moving_image = itk.image_view_from_array(moving_image)
+    fixed_image = itk.image_view_from_array(fixed_image)
     moving_mask = itk.image_from_array(moving_mask.astype(np.uint8))
+    result_image, result_transform_parameters = itk.elastix_registration_method(
+        fixed_image,
+        moving_image,
+        parameter_object=parameter_object,
+        fixed_mask=moving_mask,
+        log_to_console=verbose)
+    return result_image, result_transform_parameters
 
-    # Import Default Parameter Map
+
+def nonrigid(fixed_image, moving_image, moving_mask, verbose=False):
     parameter_object = itk.ParameterObject.New()  # slow
-
     default_affine_parameter_map = parameter_object.GetDefaultParameterMap('rigid', 1)
     # default_affine_parameter_map['FinalBSplineInterpolationOrder'] = ['1']
     parameter_object.AddParameterMap(default_affine_parameter_map)
-
     default_bspline_parameter_map = parameter_object.GetDefaultParameterMap('bspline', 1)
     default_bspline_parameter_map['ErodeMask'] = ['true']
     default_bspline_parameter_map['FinalGridSpacingInPhysicalUnits'] = ['20.0']
@@ -23,15 +29,16 @@ def nonrigid(fixed_image, moving_image, moving_mask, verbose=False):
     # default_bspline_parameter_map['ImagePyramidSchedule'] = ['2', '1']
     # default_bspline_parameter_map['GridSpacingSchedule'] = ['2', '1']
     parameter_object.AddParameterMap(default_bspline_parameter_map)
- 
     if verbose:
         print(parameter_object)
+    return elastix_registration(fixed_image, moving_image, moving_mask, parameter_object, verbose=False)
 
-    result_image_bspline, result_transform_parameters = itk.elastix_registration_method(
-        fixed_image_bspline,
-        moving_image_bspline,
-        parameter_object=parameter_object,
-        fixed_mask=moving_mask,
-        log_to_console=False)
-    
-    return result_image_bspline, result_transform_parameters
+
+def rigid(fixed_image, moving_image, moving_mask, verbose=False):
+    parameter_object = itk.ParameterObject.New()  # slow
+    default_affine_parameter_map = parameter_object.GetDefaultParameterMap('rigid', 1)
+    # default_affine_parameter_map['FinalBSplineInterpolationOrder'] = ['1']
+    parameter_object.AddParameterMap(default_affine_parameter_map)
+    if verbose:
+        print(parameter_object)
+        return elastix_registration(fixed_image, moving_image, moving_mask, parameter_object, verbose=False)
