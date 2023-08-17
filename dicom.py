@@ -3,7 +3,7 @@ from pydicom import dcmread
 
 from data import Metadata, ImageVolume
 
-def load_series(files, dtype=None):
+def load_series(files, dtype=float):
     """ Initialize an ImageVolume from a slice series of DICOM files """
     data = []
     slice_indices = []
