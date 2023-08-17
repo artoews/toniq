@@ -23,7 +23,3 @@ def energy(image, reference, kernel=None, size=None, footprint=None, mode='refle
     elif kernel == 'mean':
         energy = ndi.correlate(energy, footprint, mode=mode)
     return energy
-
-# TODO SNR: 1) noise over an ROI, 2) noise over repetitions in a voxel 
-# TODO intensity statistics for threshold-based identification of signal loss?
-
