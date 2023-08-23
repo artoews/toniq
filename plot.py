@@ -27,8 +27,8 @@ class MultiIndexTracker:
     
     def plot(self):
         self.ims = [
-            ax.imshow(vol[:, :, self.index], **self.plot_args)
-            for ax, vol in zip(self.axes, self.volumes)
+            ax.imshow(vol[:, :, self.index], **plot_args)
+            for ax, vol, plot_args in zip(self.axes, self.volumes, self.plot_args)
             ]
     
     def on_scroll(self, event):
@@ -59,7 +59,7 @@ class MultiIndexTracker:
         self.fig.canvas.draw()
 
 
-def plotVolumes(volumes, nrows, ncols, vmin=0, vmax=1, cmap='gray', titles=None, figsize=None):
+def plotVolumes(volumes, nrows, ncols, vmins, vmaxs, cmaps, titles=None, figsize=None):
     if nrows * ncols != len(volumes):
         raise ValueError(
             'Number of volumes ({}) must equal number of subplots ({}x{})'
@@ -70,13 +70,12 @@ def plotVolumes(volumes, nrows, ncols, vmin=0, vmax=1, cmap='gray', titles=None,
     if titles is not None:
         for ax, title in zip(axes, titles):
             ax.set_title(title)
-    plot_args = {
-        'vmin': vmin,
-        'vmax': vmax,
-        'cmap': cmap
-    }
+    plot_args = [{'vmin': vmin,
+                  'vmax': vmax,
+                  'cmap': cmap}
+                 for vmin, vmax, cmap in zip(vmins, vmaxs, cmaps)]
     tracker = MultiIndexTracker(fig, axes, volumes, plot_args)
 
     fig.canvas.mpl_connect('scroll_event', tracker.on_scroll)
     fig.canvas.mpl_connect('key_press_event', tracker.on_press)
-    plt.show()
+    return fig, tracker
