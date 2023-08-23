@@ -23,6 +23,8 @@ def energy(image, reference, kernel=None, size=None, footprint=None, mode='refle
         energy = ndi.gaussian_filter(energy, sigma=size, mode=mode)
     elif kernel == 'median':
         energy = ndi.median_filter(energy, footprint=footprint, mode=mode)
+    elif kernel == 'max':
+        energy = ndi.maximum_filter(energy, footprint=footprint, mode=mode)
     elif kernel == 'mean':
         energy = ndi.correlate(energy, footprint, mode=mode)
     elif kernel == 'kolind':
