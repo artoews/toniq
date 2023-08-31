@@ -68,13 +68,13 @@ def plotVolumes(volumes, nrows, ncols, vmins, vmaxs, cmaps, titles=None, figsize
     fig, axes = plt.subplots(nrows, ncols, sharex=True, sharey=True, figsize=figsize)
     fig.supylabel('Readout direction (x)')
     if titles is not None:
-        for ax, title in zip(axes, titles):
+        for ax, title in zip(axes.flatten(), titles):
             ax.set_title(title)
     plot_args = [{'vmin': vmin,
                   'vmax': vmax,
                   'cmap': cmap}
                  for vmin, vmax, cmap in zip(vmins, vmaxs, cmaps)]
-    tracker = MultiIndexTracker(fig, axes, volumes, plot_args)
+    tracker = MultiIndexTracker(fig, axes.flatten(), volumes, plot_args)
 
     fig.canvas.mpl_connect('scroll_event', tracker.on_scroll)
     fig.canvas.mpl_connect('key_press_event', tracker.on_press)
