@@ -59,7 +59,7 @@ class MultiIndexTracker:
         self.fig.canvas.draw()
 
 
-def plotVolumes(volumes, nrows, ncols, vmins, vmaxs, cmaps, titles=None, figsize=None):
+def plotVolumes(volumes, nrows, ncols, vmin=0, vmax=1, cmap='gray', titles=None, figsize=None):
     if nrows * ncols != len(volumes):
         raise ValueError(
             'Number of volumes ({}) must equal number of subplots ({}x{})'
@@ -71,9 +71,9 @@ def plotVolumes(volumes, nrows, ncols, vmins, vmaxs, cmaps, titles=None, figsize
         for ax, title in zip(axes.flatten(), titles):
             ax.set_title(title)
     plot_args = [{'vmin': vmin,
-                  'vmax': vmax,
-                  'cmap': cmap}
-                 for vmin, vmax, cmap in zip(vmins, vmaxs, cmaps)]
+                 'vmax': vmax,
+                 'cmap': cmap}
+                 for _ in axes.flatten()]
     tracker = MultiIndexTracker(fig, axes.flatten(), volumes, plot_args)
 
     fig.canvas.mpl_connect('scroll_event', tracker.on_scroll)
