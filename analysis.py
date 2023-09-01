@@ -3,7 +3,14 @@ import scipy.ndimage as ndi
 from skimage import filters, morphology
 from time import time
 
-def denoise(image, filter_radius=1):
+def normalize(image, pct=99):
+    return image / np.percentile(image, pct)
+
+def equalize(image, reference, pct=90):
+    # TODO find a more principled way
+    return image / np.percentile(image, pct) * np.percentile(reference, pct)
+
+def denoise(image, filter_radius=2):
     footprint = morphology.ball(filter_radius)
     return ndi.median_filter(image, footprint=footprint)
 
@@ -40,7 +47,7 @@ def get_mask_hyper(error, signal_ref, is_denoised=True):
 def get_mask_artifact(error, signal_ref, is_denoised=True):
     return get_mask_extrema(error, signal_ref, 0.3, is_denoised, mag=True)
 
-def get_mask_extrema(error, signal_ref, margin, is_denoised, mag=False, filter_radius=2):
+def get_mask_extrema(error, signal_ref, margin, is_denoised, mag=False, filter_radius=2, return_stages=False):
     if not is_denoised:
         error = denoise(error)
     if mag:
@@ -48,11 +55,24 @@ def get_mask_extrema(error, signal_ref, margin, is_denoised, mag=False, filter_r
     footprint = morphology.ball(filter_radius)
     max_error = ndi.maximum_filter(error * np.sign(margin), footprint=footprint)
     mask = max_error > np.abs(margin) * signal_ref
-    return cleanup(mask)
+    mask_clean = cleanup(mask)
+    if return_stages:
+        return mask_clean, mask, max_error * np.sign(margin)
+    else:
+        return mask_clean
 
 def print_labels(labels, max_label):
     for i in range(max_label + 1):
         print('label == {} has size {}'.format(i, np.sum(labels==i)))
+
+def combine_masks(implant, empty, hyper, hypo, artifact):
+    mask = np.zeros(empty.shape)
+    mask[artifact] = 2
+    mask[hypo] = 3
+    mask[hyper] = 4
+    mask[empty] = 0
+    mask[implant] = 1
+    return mask / 4
 
 # def mean_filter(image, size, mode):
 #     filter = np.ones((size,) * image.ndim) / (size ** image.ndim)
