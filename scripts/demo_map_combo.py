@@ -46,8 +46,8 @@ mask_to_artifact = analysis.combine_masks(mask_implant, mask_empty, mask_none, m
 mask_to_hypo = analysis.combine_masks(mask_implant, mask_empty, mask_none, mask_hypo, mask_artifact)
 mask_to_all = analysis.combine_masks(mask_implant, mask_empty, mask_hyper, mask_hypo, mask_artifact)
 
-volumes = (metal1.data, mask_to_artifact, mask_to_hypo, mask_to_all)
-titles = ('Metal Image', 'Masks: Implant + Artifact (30%)', '+ Hypointense (-60%)', '+ Hyperintense (+60%)')
+volumes = (pla1.data, metal1.data, mask_to_artifact, mask_to_hypo, mask_to_all)
+titles = ('Plastic', 'Metal', 'Masks: Implant + Artifact (30%)', '+ Hypointense (-60%)', '+ Hyperintense (+60%)')
 fig, tracker = plotVolumes(volumes, 1, len(volumes), titles=titles, figsize=(16, 8))
 
 plt.show()

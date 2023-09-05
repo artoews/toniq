@@ -49,12 +49,13 @@ def plot_stages(stages, threshold, vmax=3e3):
     else:
         filter_name = 'min filter'
     threshold_name = 'threshold outside {}%'.format(threshold * 100)
-    volumes = (error, denoised_error, filtered_error, raw_mask, clean_mask)
+    volumes = ((error + vmax) / (2 * vmax),
+               (denoised_error + vmax) / (2 * vmax),
+               (filtered_error + vmax) / (2 * vmax),
+               raw_mask,
+               clean_mask)
     titles = ('metal-plastic difference', 'median filter', filter_name, threshold_name, 'opening filter')
-    vmins = [-vmax, -vmax, -vmax, 0, 0]
-    vmaxs = [vmax, vmax, vmax, 1, 1]
-    cmaps = ['gray'] * len(volumes)
-    fig, tracker = plotVolumes(volumes, 1, len(volumes), vmins, vmaxs, cmaps, titles=titles, figsize=(16, 8))
+    fig, tracker = plotVolumes(volumes, 1, len(volumes), titles=titles, figsize=(16, 8))
     return fig, tracker
 
 fig1, tracker1 = plot_stages(stages_hyper, 0.6)
