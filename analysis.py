@@ -1,7 +1,6 @@
 import numpy as np
 import scipy.ndimage as ndi
-from skimage import filters, morphology
-from time import time
+from skimage import filters, morphology, util
 
 def normalize(image, pct=99):
     return image / np.percentile(image, pct)
@@ -20,8 +19,15 @@ def cleanup(mask, filter_radius=2):
 
 def get_mask_empty(image):
     image = denoise(image)
-    mask = image < filters.threshold_otsu(image)
+    mask = image < filters.threshold_otsu(image) # global Otsu
     return cleanup(mask)
+
+def get_mask_signal(image1, image2, filter_radius=5):
+    image_product = np.abs(image1) * np.abs(image2)
+    footprint = morphology.ball(filter_radius)
+    image_product = util.img_as_ubyte(image_product / np.max(image_product))
+    mask = image_product > filters.rank.otsu(image_product, footprint)  # local Otsu
+    return mask
 
 def get_mask_implant(mask_empty, verbose=False):
     labels, max_label = morphology.label(mask_empty, return_num=True)
@@ -74,13 +80,15 @@ def combine_masks(implant, empty, hyper, hypo, artifact):
     mask[implant] = 1
     return mask / 4
 
-# def mean_filter(image, size, mode):
-#     filter = np.ones((size,) * image.ndim) / (size ** image.ndim)
-#     return ndi.correlate(image, filter, mode=mode)
-# 
-# def signed_max(arr, size, mode):
-#     minimum = ndi.minimum_filter(arr, size=size, mode=mode)
-#     maximum = ndi.maximum_filter(arr, size=size, mode=mode)
-#     sign = (np.abs(maximum) > np.abs(minimum)) * 2 - 1
-#     min_max_stack = np.stack((maximum, minimum), axis=-1)
-#     return sign * np.max(np.abs(min_max_stack), axis=-1)
+def signal_to_noise(image1, image2, mask_signal, mask_empty, filter_radius=10):
+    # "Difference Method" from Reeder et al 2005, extended to include a mask reducing signal bias from lattice
+    footprint = morphology.ball(filter_radius)
+    image_sum = np.abs(image2) + np.abs(image1)
+    image_diff = np.abs(image2) - np.abs(image1)
+    filter_sum = ndi.generic_filter(image_sum * mask_signal, np.sum, footprint=footprint)
+    filter_count = ndi.generic_filter(mask_signal, np.sum, footprint=footprint, output=float)
+    signal =  np.divide(filter_sum, filter_count, out=np.zeros_like(filter_sum), where=filter_count > 0) / 2
+    # signal = ndi.generic_filter(image_sum, np.mean, footprint=footprint) / 2
+    noise = ndi.generic_filter(image_diff, np.std, footprint=footprint) / np.sqrt(2)
+    snr = np.divide(signal * np.logical_not(mask_empty), noise, out=np.zeros_like(signal), where=noise > 0)
+    return snr, signal, noise, mask_signal
