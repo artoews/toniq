@@ -18,7 +18,8 @@ def load_series(files, dtype=float):
         data.append(slice_data)
         slice_indices.append(slice_index)
     order = np.argsort(slice_indices)
-    data = np.stack([data[i] for i in order], dtype=dtype, axis=-1)
+    data = np.stack([data[i] for i in order], axis=-1)
+    data = data.astype(dtype)
     return ImageVolume(data, meta)
 
 def read_data(file):
