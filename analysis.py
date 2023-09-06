@@ -1,6 +1,6 @@
 import numpy as np
 import scipy.ndimage as ndi
-from skimage import filters, morphology, util
+from skimage import filters, morphology, restoration, util
 
 def normalize(image, pct=99):
     return image / np.percentile(image, pct)
@@ -92,3 +92,11 @@ def signal_to_noise(image1, image2, mask_signal, mask_empty, filter_radius=10):
     noise = ndi.generic_filter(image_diff, np.std, footprint=footprint) / np.sqrt(2)
     snr = np.divide(signal * np.logical_not(mask_empty), noise, out=np.zeros_like(signal), where=noise > 0)
     return snr, signal, noise, mask_signal
+
+def estimate_psf(clean_image, blurred_image, reg=0.1):
+    # https://scikit-image.org/docs/stable/api/skimage.restoration.html#skimage.restoration.wiener
+    max_val = np.max(clean_image)
+    blurred_image = blurred_image / max_val
+    clean_image = clean_image / max_val
+    psf = restoration.wiener(blurred_image, clean_image, reg)
+    return psf
