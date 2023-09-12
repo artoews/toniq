@@ -74,18 +74,38 @@ def get_mask_extrema(error, signal_ref, margin, mode, is_denoised, filter_radius
     else:
         return mask_clean
 
+def get_all_masks(image_clean, image_distorted, combine=False):
+
+    empty = get_mask_empty(image_clean)
+    implant = get_mask_implant(empty)
+
+    error = image_distorted - image_clean 
+    denoised_error = denoise(error)
+
+    signal_ref = get_typical_level(image_clean)
+    hyper = get_mask_hyper(denoised_error, signal_ref)
+    hypo = get_mask_hypo(denoised_error, signal_ref)
+    artifact = get_mask_artifact(denoised_error, signal_ref)
+
+    out = (implant, empty, hyper, hypo, artifact)
+
+    if combine:
+        return combine_masks(*out)
+    else:
+        return out
+
 def print_labels(labels, max_label):
     for i in range(max_label + 1):
         print('label == {} has size {}'.format(i, np.sum(labels==i)))
 
 def combine_masks(implant, empty, hyper, hypo, artifact):
-    mask = np.zeros(empty.shape)
-    mask[artifact] = 2
-    mask[hypo] = 3
-    mask[hyper] = 4
+    mask = 2 * np.ones(empty.shape)
+    mask[artifact] = 3
+    mask[hypo] = 4
+    mask[hyper] = 5
     mask[empty] = 0
     mask[implant] = 1
-    return mask / 4
+    return mask / 5
 
 def signal_to_noise(image1, image2, mask_signal, mask_empty, filter_radius=10):
     # "Difference Method" from Reeder et al 2005, extended to include a mask reducing signal bias from lattice
