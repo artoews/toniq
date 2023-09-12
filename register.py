@@ -1,7 +1,9 @@
 import itk
 import numpy as np
+from time import time
 
 def elastix_registration(fixed_image, moving_image, moving_mask, parameter_object, verbose=False):
+    t0 = time()
     moving_image = itk.image_view_from_array(moving_image)
     fixed_image = itk.image_view_from_array(fixed_image)
     moving_mask = itk.image_from_array(moving_mask.astype(np.uint8))
@@ -11,10 +13,11 @@ def elastix_registration(fixed_image, moving_image, moving_mask, parameter_objec
         parameter_object=parameter_object,
         fixed_mask=moving_mask,
         log_to_console=verbose)
+    print('registration time elapsed (s): {:.1f}'.format(time() - t0))
     return result_image, result_transform_parameters
 
 
-def nonrigid(fixed_image, moving_image, moving_mask, verbose=False):
+def nonrigid(fixed_image, moving_image, moving_mask, verbose=True):
     parameter_object = itk.ParameterObject.New()  # slow
     default_affine_parameter_map = parameter_object.GetDefaultParameterMap('rigid', 1)
     # default_affine_parameter_map['FinalBSplineInterpolationOrder'] = ['1']
