@@ -37,15 +37,7 @@ pla1.data = analysis.normalize(pla1.data)
 metal1.data = analysis.equalize(metal1.data, pla1.data)
 pla2.data = analysis.equalize(pla2.data, pla1.data)
 
-mask_empty = analysis.get_mask_empty(pla1.data)
-mask_implant = analysis.get_mask_implant(mask_empty)
-
-error = metal1.data - pla1.data
-denoised_error = analysis.denoise(error)
-signal_ref = analysis.get_typical_level(pla1.data)
-mask_hyper = analysis.get_mask_hyper(denoised_error, signal_ref)
-mask_hypo = analysis.get_mask_hypo(denoised_error, signal_ref)
-mask_artifact = analysis.get_mask_artifact(denoised_error, signal_ref)
+mask_implant, mask_empty, mask_hyper, mask_hypo, mask_artifact = analysis.get_all_masks(pla1.data, metal1.data)
 mask_artifact = morphology.dilation(mask_artifact, morphology.ball(2))
 
 mask_none = np.zeros_like(mask_implant)
@@ -54,10 +46,10 @@ mask_to_hypo = analysis.combine_masks(mask_implant, mask_empty, mask_none, mask_
 mask_to_all = analysis.combine_masks(mask_implant, mask_empty, mask_hyper, mask_hypo, mask_artifact)
 
 clean_metal = metal1.data.copy()
-clean_metal[mask_to_all > 0] = 0
+clean_metal[mask_to_all != 2/5] = 0
 
 volumes = (pla1.data, metal1.data, mask_to_artifact, mask_to_hypo, mask_to_all, clean_metal)
-titles = ('Plastic', 'Metal', 'Masks: Implant + Artifact (30%)', '+ Hypointense (-60%)', '+ Hyperintense (+60%)', 'Metal outside masks')
+titles = ('Plastic', 'Metal', 'Masks: Implant + Artifact (30%)', '+ Hypointense (-60%)', '+ Hyperintense (+60%)', 'Clean signal')
 fig, tracker = plotVolumes(volumes, 1, len(volumes), titles=titles, figsize=(16, 8))
 
 plt.show()
