@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
+from skimage import morphology
 
 import analysis
 import dicom
@@ -8,6 +9,11 @@ from plot import plotVolumes
 
 root = '/Users/artoews/root/data/mri/'
 
+series_dirs_bw31 = [
+    '230830/13511_dicom/Series4',
+    '230830/13511_dicom/Series8',
+    '230830/13511_dicom/Series12'
+]
 series_dirs_bw125 = [
     '230830/13511_dicom/Series19',
     '230830/13511_dicom/Series3',
@@ -19,7 +25,7 @@ series_dirs_msl = [
     '230830/13511_dicom/Series17',
 ]
 
-series_dirs = [root + s for s in series_dirs_bw125]
+series_dirs = [root + s for s in series_dirs_bw31]
 pla1_files = Path(series_dirs[0]).glob('*MRDC*')
 pla2_files = Path(series_dirs[1]).glob('*MRDC*')
 metal1_files = Path(series_dirs[2]).glob('*MRDC*')
@@ -40,14 +46,18 @@ signal_ref = analysis.get_typical_level(pla1.data)
 mask_hyper = analysis.get_mask_hyper(denoised_error, signal_ref)
 mask_hypo = analysis.get_mask_hypo(denoised_error, signal_ref)
 mask_artifact = analysis.get_mask_artifact(denoised_error, signal_ref)
+mask_artifact = morphology.dilation(mask_artifact, morphology.ball(2))
 
 mask_none = np.zeros_like(mask_implant)
 mask_to_artifact = analysis.combine_masks(mask_implant, mask_empty, mask_none, mask_none, mask_artifact)
 mask_to_hypo = analysis.combine_masks(mask_implant, mask_empty, mask_none, mask_hypo, mask_artifact)
 mask_to_all = analysis.combine_masks(mask_implant, mask_empty, mask_hyper, mask_hypo, mask_artifact)
 
-volumes = (pla1.data, metal1.data, mask_to_artifact, mask_to_hypo, mask_to_all)
-titles = ('Plastic', 'Metal', 'Masks: Implant + Artifact (30%)', '+ Hypointense (-60%)', '+ Hyperintense (+60%)')
+clean_metal = metal1.data.copy()
+clean_metal[mask_to_all > 0] = 0
+
+volumes = (pla1.data, metal1.data, mask_to_artifact, mask_to_hypo, mask_to_all, clean_metal)
+titles = ('Plastic', 'Metal', 'Masks: Implant + Artifact (30%)', '+ Hypointense (-60%)', '+ Hyperintense (+60%)', 'Metal outside masks')
 fig, tracker = plotVolumes(volumes, 1, len(volumes), titles=titles, figsize=(16, 8))
 
 plt.show()
