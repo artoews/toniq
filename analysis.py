@@ -20,13 +20,15 @@ def cleanup(mask, filter_radius=2):
 def get_mask_empty(image):
     image = denoise(image)
     mask = image < filters.threshold_otsu(image) # global Otsu
-    return cleanup(mask)
+    mask = cleanup(mask)
+    return mask
 
 def get_mask_signal(image1, image2, filter_radius=5):
     image_product = np.abs(image1) * np.abs(image2)
     footprint = morphology.ball(filter_radius)
     image_product = util.img_as_ubyte(image_product / np.max(image_product))
     mask = image_product > filters.rank.otsu(image_product, footprint)  # local Otsu
+    # TODO implement Brian's idea to check the otsu threshold value to detect if lattice is present. If not (i.e. threshold is very close to mean signal) then set threshold to 0.
     return mask
 
 def get_mask_implant(mask_empty, verbose=False):
@@ -44,26 +46,31 @@ def get_typical_level(image, filter_radius=3):
     image = morphology.closing(image, footprint=footprint) # dilation (max), then erosion (min)
     return image
 
-def get_mask_hypo(error, signal_ref, is_denoised=True):
-    return get_mask_extrema(error, signal_ref, -0.6, is_denoised)
+def get_mask_artifact(error, signal_ref, is_denoised=True):
+    return get_mask_extrema(error, signal_ref, 0.3, 'mean', is_denoised)
 
 def get_mask_hyper(error, signal_ref, is_denoised=True):
-    return get_mask_extrema(error, signal_ref, 0.6, is_denoised)
+    return get_mask_extrema(error, signal_ref, 0.6, 'max', is_denoised)
 
-def get_mask_artifact(error, signal_ref, is_denoised=True):
-    return get_mask_extrema(error, signal_ref, 0.3, is_denoised, mag=True)
+def get_mask_hypo(error, signal_ref, is_denoised=True):
+    return get_mask_extrema(error, signal_ref, -0.6, 'max', is_denoised)
 
-def get_mask_extrema(error, signal_ref, margin, is_denoised, mag=False, filter_radius=2, return_stages=False):
+def get_mask_extrema(error, signal_ref, margin, mode, is_denoised, filter_radius=2, return_stages=False):
     if not is_denoised:
         error = denoise(error)
-    if mag:
-        error = np.abs(error)
     footprint = morphology.ball(filter_radius)
-    max_error = ndi.maximum_filter(error * np.sign(margin), footprint=footprint)
-    mask = max_error > np.abs(margin) * signal_ref
+    if mode == 'max':
+        filtered_error = ndi.maximum_filter(error * np.sign(margin), footprint=footprint)
+    elif mode == 'mean':
+        filtered_error = ndi.generic_filter(error, np.sum, footprint=footprint) / np.sum(footprint)
+        filtered_error = np.abs(filtered_error)
+    elif mode == 'median':
+        filtered_error = ndi.median_filter(error, footprint=footprint)
+        filtered_error = np.abs(filtered_error)
+    mask = filtered_error > np.abs(margin) * signal_ref
     mask_clean = cleanup(mask)
     if return_stages:
-        return mask_clean, mask, max_error * np.sign(margin)
+        return mask_clean, mask, filtered_error * np.sign(margin)
     else:
         return mask_clean
 
