@@ -35,7 +35,7 @@ class MultiIndexTracker:
         print(event.button, event.step)
         increment = 1 if event.button == 'up' else -1
         self.index += increment
-        self.update(replot=True)
+        self.update(replot=False)
     
     def on_press(self, event):
         if event.key == 'r':  # reformat
@@ -47,6 +47,8 @@ class MultiIndexTracker:
     def update(self, replot=False):
         self.index = np.clip(self.index, 0, self.max_index)
         if replot:
+            for ax in self.axes:
+                ax.clear()
             self.plot()
         else:
             for im, vol in zip(self.ims, self.volumes):
@@ -57,7 +59,6 @@ class MultiIndexTracker:
         else:
             self.fig.supxlabel('Phase encode dimension (y)')
         self.fig.canvas.draw()
-
 
 def plotVolumes(volumes, nrows, ncols, vmin=0, vmax=1, cmap='gray', titles=None, figsize=None):
     if nrows * ncols != len(volumes):
