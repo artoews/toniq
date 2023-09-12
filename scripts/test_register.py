@@ -11,13 +11,17 @@ from plot import plotVolumes
 root = '/Users/artoews/root/data/mri/'
 # root = '/bmrNAS/people/artoews/data/scans/'
 
-series_dirs_old = [
-    '230713/13160_dicom/Series6',
-    '230713/13160_dicom/Series3'
-]
 series_dirs_bw31 = [
     '230830/13511_dicom/Series4',
     '230830/13511_dicom/Series12'
+]
+series_dirs_bw125 = [
+    '230830/13511_dicom/Series7',
+    '230830/13511_dicom/Series15'
+]
+series_dirs_msl = [
+    '230830/13511_dicom/Series21',
+    '230830/13511_dicom/Series17',
 ]
 
 series_dirs = [root + s for s in series_dirs_bw31]
@@ -28,23 +32,14 @@ moving_image = dicom.load_series(moving_files).data
 
 fixed_image = analysis.normalize(fixed_image)
 moving_image = analysis.equalize(moving_image, fixed_image)
-signal_ref = analysis.get_typical_level(fixed_image)
-error = moving_image - fixed_image
-denoised_error = analysis.denoise(error)
-signal_ref = analysis.get_typical_level(fixed_image)
-mask_empty = analysis.get_mask_empty(fixed_image)
-mask_implant = analysis.get_mask_implant(mask_empty)
-mask_hyper = analysis.get_mask_hyper(denoised_error, signal_ref)
-mask_hypo = analysis.get_mask_hypo(denoised_error, signal_ref)
-mask_artifact = analysis.get_mask_artifact(denoised_error, signal_ref)
 
-# TODO make a function that just generates all the masks for you
-# TODO debug why this mask looks different than the one I'm getting with demo_map_combo
-moving_mask = np.logical_not(np.logical_or(np.logical_or(np.logical_or(np.logical_or(mask_hyper, mask_hypo), mask_artifact), mask_empty), mask_implant))
-moving_mask = morphology.dilation(moving_mask, morphology.ball(2))
+mega_mask = analysis.get_all_masks(fixed_image, moving_image, combine=True)
+moving_mask = morphology.erosion(mega_mask == 2/5, morphology.ball(2))
+signal_ref = analysis.get_typical_level(fixed_image)
 
-# slc = (slice(25, 175), slice(50, 200), slice(10, 70)) # ~ 1e6 active pixels
-slc = (slice(75, 175), slice(100, 200), slice(20, 60)) # ~ 1e5 active pixels
+slc = (slice(25, 175), slice(50, 200), slice(10, 70)) # ~ 1e6 active pixels
+# slc = (slice(75, 175), slice(100, 200), slice(10, 50)) # ~ 1e5 active pixels
+# slc = (slice(100, 150), slice(100, 200), slice(20, 60))  # just the problem area
 # slc = (slice(20, 60), slice(100, 140), slice(30, 50)) # ~ 1e4 active pixels?
 fixed_image = fixed_image[slc]
 moving_image = moving_image[slc]
@@ -71,7 +66,9 @@ result_masked = np.zeros_like(result)
 mask = np.asarray(moving_mask, dtype=bool)
 result_masked[mask] = np.asarray(result)[mask]
 volumes = (fixed_image, moving_image, moving_image_masked, result_masked)
-volumes = volumes + tuple(2*np.abs(vol - fixed_image) for vol in volumes)
+error = tuple(2 * (np.abs(vol - fixed_image) / signal_ref[slc] - 0.3) for vol in volumes)
+# volumes = volumes + tuple(2*np.abs(vol - fixed_image) for vol in volumes)
+volumes = volumes + error
 titles = ('fixed', 'moving', 'moving masked', 'result masked')
 fig1, ax1 = plotVolumes(volumes, 2, len(volumes) // 2, titles=titles, figsize=(16, 8))
 

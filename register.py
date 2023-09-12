@@ -19,18 +19,11 @@ def elastix_registration(fixed_image, moving_image, moving_mask, parameter_objec
 
 def nonrigid(fixed_image, moving_image, moving_mask, verbose=True):
     parameter_object = itk.ParameterObject.New()  # slow
-    default_affine_parameter_map = parameter_object.GetDefaultParameterMap('rigid', 1)
-    # default_affine_parameter_map['FinalBSplineInterpolationOrder'] = ['1']
-    parameter_object.AddParameterMap(default_affine_parameter_map)
     default_bspline_parameter_map = parameter_object.GetDefaultParameterMap('bspline', 1)
-    default_bspline_parameter_map['ErodeMask'] = ['true']
-    default_bspline_parameter_map['FinalGridSpacingInPhysicalUnits'] = ['20.0']
+    default_bspline_parameter_map['FinalGridSpacingInPhysicalUnits'] = ['30']
+    default_bspline_parameter_map['Metric'] = ['AdvancedMattesMutualInformation']
+    default_bspline_parameter_map['BSplineTransformSplineOrder'] = ['3']
     default_bspline_parameter_map['ImageSampler'] = ['Full']
-    # default_bspline_parameter_map['FinalBSplineInterpolationOrder'] = ['1']
-    # default_bspline_parameter_map['Metric'] = ['AdvancedMattesMutualInformation']
-    # default_bspline_parameter_map['Registration'] = ['MultiResolutionRegistration']
-    # default_bspline_parameter_map['ImagePyramidSchedule'] = ['2', '1']
-    # default_bspline_parameter_map['GridSpacingSchedule'] = ['2', '1']
     parameter_object.AddParameterMap(default_bspline_parameter_map)
     if verbose:
         print(parameter_object)
@@ -40,7 +33,6 @@ def nonrigid(fixed_image, moving_image, moving_mask, verbose=True):
 def rigid(fixed_image, moving_image, moving_mask, verbose=False):
     parameter_object = itk.ParameterObject.New()  # slow
     default_affine_parameter_map = parameter_object.GetDefaultParameterMap('rigid', 1)
-    # default_affine_parameter_map['FinalBSplineInterpolationOrder'] = ['1']
     parameter_object.AddParameterMap(default_affine_parameter_map)
     if verbose:
         print(parameter_object)
