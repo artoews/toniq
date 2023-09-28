@@ -8,9 +8,7 @@ import analysis
 import dicom
 import psf
 from plot import plotVolumes
-
-# TODO see what time saving can be gained from a good initialization. Is it 10x? 100x?
-# TODO setup efficient solving over many overlapping patches, e.g. solve disparate patches in parallel, then use those results to initialize neighbors
+from time import time
 
 root = '/Users/artoews/root/data/mri/'
 
@@ -46,8 +44,8 @@ def upsample(psf, size):
 def impulse(shape):
     return sp.resize(np.ones((1,) * len(shape)), shape)
 
-# cell_size = 10
-cell_size = 14
+cell_size = 10
+# cell_size = 14
 psf_size = 7
 patch_size = cell_size * 2
 image_ref = image1.data
@@ -57,7 +55,12 @@ blur_axis = 1
 # image_blur = ndi.gaussian_filter(image_ref, blur_sigma, axes=blur_axis)
 imp = impulse((psf_size,) * image_blur.ndim)
 psf_true = ndi.gaussian_filter(imp, blur_sigma, axes=blur_axis)
-image_ref_patch, image_blur_patch, psf_init, psf_est = psf.estimate_psf(image_ref, image_blur, patch_size, psf_size)
+t0 = time()
+image_ref_patch, image_blur_patch, psf_init, psf_est = psf.estimate_psf(image_ref, image_blur, patch_size, psf_size, start=(50, 70, 30))
+print('Runtime with cold start: {:.2f}'.format(time() - t0))
+t1 = time()
+image_ref_patch, image_blur_patch, psf_init, psf_est = psf.estimate_psf(image_ref, image_blur, patch_size, psf_size, psf_init=psf_est, start=(50, 70, 35))
+print('Runtime with warm start: {:.2f}'.format(time() - t1))
 
 interp_factor = 8
 psf_int = psf.interpolate_sinc(psf_est, psf_size * interp_factor)
@@ -94,4 +97,4 @@ fwhm_string = '{:.1f}, {:.1f}, {:.1f} pixels'.format(fwhm_x, fwhm_y, fwhm_z)
 print(fwhm_string)
 fig3, tracker3 = plotVolumes((np.zeros_like(psf_int), psf_int), 1, 2, titles=('Zero', '{}x Sinc-Interpolated PSF with FWHM: '.format(interp_factor) + fwhm_string), figsize=(16, 8))
 
-plt.show()
+# plt.show()
