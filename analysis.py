@@ -27,7 +27,8 @@ def get_mask_signal(image1, image2, filter_radius=5):
     image_product = np.abs(image1) * np.abs(image2)
     footprint = morphology.ball(filter_radius)
     image_product = util.img_as_ubyte(image_product / np.max(image_product))
-    mask = image_product > filters.rank.otsu(image_product, footprint)  # local Otsu
+    threshold = filters.rank.otsu(image_product, footprint)  # local Otsu
+    mask = image_product > threshold
     # TODO implement Brian's idea to check the otsu threshold value to detect if lattice is present. If not (i.e. threshold is very close to mean signal) then set threshold to 0.
     return mask
 
@@ -97,6 +98,15 @@ def get_all_masks(image_clean, image_distorted, combine=False):
 def print_labels(labels, max_label):
     for i in range(max_label + 1):
         print('label == {} has size {}'.format(i, np.sum(labels==i)))
+
+def combine_masks_2(implant, empty, hyper, hypo, artifact):
+    mask = 0 * np.ones(empty.shape)
+    mask[artifact] = 3
+    mask[hypo] = 2
+    mask[hyper] = 4
+    mask[empty] = 0
+    mask[implant] = 1
+    return mask / 4
 
 def combine_masks(implant, empty, hyper, hypo, artifact):
     mask = 2 * np.ones(empty.shape)
