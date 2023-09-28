@@ -1,5 +1,6 @@
 import numpy as np
 import sigpy as sp
+from multiprocessing import Pool
 
 
 def model(image, psf_size):
@@ -12,13 +13,36 @@ def model(image, psf_size):
 def shape_without_margin(shape, margin):
     return tuple(n - margin for n in shape)
 
-def estimate_psf(image_ref, image_blur, patch_size, psf_size, psf_init=None, start=(50, 70, 31)):
+def estimate_psf(image_ref, image_blur, patch_size, psf_size, psf_init=None, start=None):
     ndim = image_ref.ndim
     patch = tuple(slice(start[i], start[i] + patch_size + psf_size) for i in range(ndim))
     image_ref_patch = image_ref[patch]
     image_blur_patch = image_blur[patch]
     psf_soln = estimate_psf_patch(image_ref_patch, image_blur_patch, psf_size, psf_init=psf_init)
     return image_ref_patch, image_blur_patch, psf_init, psf_soln
+
+def estimate_psf_all(image_ref, image_blurred, patch_size, psf_size, stride, tol=1e-2, max_iter=100):
+    nx, ny, nz = image_ref.shape
+    zero_init = np.zeros((psf_size,) * 3, dtype=np.complex128)
+    nx_pts = np.arange(0, nx - patch_size - psf_size, stride)
+    ny_pts = np.arange(0, ny - patch_size - psf_size, stride)
+    nz_pts = np.arange(0, nz - patch_size - psf_size, stride)
+    psf = np.zeros((len(nx_pts), len(ny_pts), len(nz_pts)) + zero_init.shape)
+    for ix in nx_pts:
+        for iy in ny_pts:
+            for iz in nz_pts:
+                print(ix, iy, iz)
+                patch = tuple(slice(i, i + patch_size + psf_size) for i in (ix, iy, iz))
+                soln = estimate_psf_patch(image_ref[patch], image_blurred[patch], psf_size, psf_init=zero_init)
+                psf[ix // stride, iy // stride, iz // stride] = soln
+    return psf
+
+# def estimimate_psf_all_in_parallel(image_ref, image_blurred, patch_size, psf_size, stride, accel=8, tol=1e-2, max_iter=100):
+#     sub_images_ref = np.split(image_ref, accel, axis=0)
+#     # setup pool
+#     # collect results
+# 
+# # TODO in another function, compute the FWHM and collect into an array. Interpolate to get a map at the image resolution.
 
 def estimate_psf_patch(image_ref, image_blurred, psf_size, psf_init=None, tol=1e-2, max_iter=100):
     ndim =image_ref.ndim
