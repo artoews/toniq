@@ -48,7 +48,9 @@ class MultiIndexTracker:
         self.index = np.clip(self.index, 0, self.max_index)
         if replot:
             for ax in self.axes:
-                ax.clear()
+                for im in ax.get_images():
+                    im.remove()
+                # ax.clear()
             self.plot()
         else:
             for im, vol in zip(self.ims, self.volumes):
