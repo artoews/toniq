@@ -27,24 +27,32 @@ def estimate_psf_all(image_ref, image_blurred, patch_size, psf_size, stride, tol
     nx_pts = np.arange(0, nx - patch_size - psf_size, stride)
     ny_pts = np.arange(0, ny - patch_size - psf_size, stride)
     nz_pts = np.arange(0, nz - patch_size - psf_size, stride)
-    psf = np.zeros((len(nx_pts), len(ny_pts), len(nz_pts)) + zero_init.shape)
+    psf = np.zeros((len(nx_pts), len(ny_pts), len(nz_pts)) + zero_init.shape, dtype=np.complex128)
     for ix in nx_pts:
         for iy in ny_pts:
             for iz in nz_pts:
-                print(ix, iy, iz)
                 patch = tuple(slice(i, i + patch_size + psf_size) for i in (ix, iy, iz))
-                soln = estimate_psf_patch(image_ref[patch], image_blurred[patch], psf_size, psf_init=zero_init)
+                soln = estimate_psf_patch(image_ref[patch], image_blurred[patch], psf_size, psf_init=zero_init, tol=tol, max_iter=max_iter)
                 psf[ix // stride, iy // stride, iz // stride] = soln
     return psf
 
-# def estimimate_psf_all_in_parallel(image_ref, image_blurred, patch_size, psf_size, stride, accel=8, tol=1e-2, max_iter=100):
-#     sub_images_ref = np.split(image_ref, accel, axis=0)
-#     # setup pool
-#     # collect results
-# 
-# # TODO in another function, compute the FWHM and collect into an array. Interpolate to get a map at the image resolution.
+def estimate_psf_all_in_parallel(image_ref, image_blurred, patch_size, psf_size, stride, num_workers=8):
+    # TODO re-work the splitting so there is enough overlap to not miss sections. 
+    # TODO in another function (?), compute the FWHM and collect into an array. Interpolate to get a map at the image resolution.
+    sub_images_ref = np.split(image_ref, num_workers, axis=0)
+    sub_images_blurred = np.split(image_blurred, num_workers, axis=0)
+    inputs = list(zip(
+                sub_images_ref,
+                sub_images_blurred,
+                (patch_size,) * num_workers,
+                (psf_size,) * num_workers,
+                (stride,) * num_workers
+                ))
+    with Pool(num_workers) as p:
+        result = p.starmap(estimate_psf_all, inputs)
+    return result
 
-def estimate_psf_patch(image_ref, image_blurred, psf_size, psf_init=None, tol=1e-2, max_iter=100):
+def estimate_psf_patch(image_ref, image_blurred, psf_size, psf_init=None, tol=1e-2, max_iter=100, verbose=False):
     ndim =image_ref.ndim
     if psf_init is None:
         psf_init = np.zeros((psf_size,) * ndim, dtype=np.complex128)
@@ -52,7 +60,7 @@ def estimate_psf_patch(image_ref, image_blurred, psf_size, psf_init=None, tol=1e
     patch_shape = shape_without_margin(image_ref.shape, psf_size)
     image_ref = sp.util.resize(image_ref, patch_shape)
     image_blurred = sp.util.resize(image_blurred, patch_shape)
-    app = sp.app.LinearLeastSquares(op, image_blurred, x=psf_init.copy(), tol=tol, max_iter=max_iter)
+    app = sp.app.LinearLeastSquares(op, image_blurred, x=psf_init.copy(), tol=tol, max_iter=max_iter, show_pbar=verbose)
     return app.run()
 
 def interpolate_sinc(psf, size):
