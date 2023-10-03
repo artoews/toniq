@@ -25,7 +25,7 @@ series_dirs_msl = [
     '230830/13511_dicom/Series17',
 ]
 
-series_dirs = [root + s for s in series_dirs_msl]
+series_dirs = [root + s for s in series_dirs_bw125]
 pla1_files = Path(series_dirs[0]).glob('*MRDC*')
 pla2_files = Path(series_dirs[1]).glob('*MRDC*')
 metal1_files = Path(series_dirs[2]).glob('*MRDC*')
@@ -57,14 +57,15 @@ def plot(image, dist=None, alpha=None, title=None, cmap='gray', vmin=0, vmax=1):
     # axes[0].set_xlabel('y')
     # axes[1].set_xlabel('z')
     if dist is not None:
-        mappable = axes[0].imshow(dist[slc1], alpha=alpha[slc1], vmin=-5, vmax=5, cmap='seismic')
-        axes[1].imshow(dist[slc2], alpha=alpha[slc2], vmin=-5, vmax=5, cmap='seismic')
+        cmap = 'Spectral'
+        mappable = axes[0].imshow(dist[slc1], alpha=alpha[slc1], vmin=-2, vmax=2, cmap=cmap)
+        axes[1].imshow(dist[slc2], alpha=alpha[slc2], vmin=-5, vmax=5, cmap=cmap)
         cbar = fig.colorbar(mappable, ax=axes, orientation='horizontal', fraction=.1, ticks=[-2.5, 2.5])
         cbar.ax.set_xticklabels(['', ''])
     return fig, axes
 
 artifact_masks = analysis.combine_masks_2(mask_implant, mask_empty, mask_hyper, mask_hypo, mask_artifact)
-deformation_field = np.load('deformation_field_msl.npy')
+deformation_field = np.load('deformation_field_bw125.npy')
 distortion = deformation_field[..., 0]
 
 slc = (slice(25, 175), slice(50, 200), slice(10, 70))

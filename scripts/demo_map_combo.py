@@ -25,7 +25,7 @@ series_dirs_msl = [
     '230830/13511_dicom/Series17',
 ]
 
-series_dirs = [root + s for s in series_dirs_bw31]
+series_dirs = [root + s for s in series_dirs_bw125]
 pla1_files = Path(series_dirs[0]).glob('*MRDC*')
 pla2_files = Path(series_dirs[1]).glob('*MRDC*')
 metal1_files = Path(series_dirs[2]).glob('*MRDC*')
