@@ -128,7 +128,7 @@ def signal_to_noise(image1, image2, mask_signal, mask_empty, filter_radius=10):
     # signal = ndi.generic_filter(image_sum, np.mean, footprint=footprint) / 2
     noise = ndi.generic_filter(image_diff, np.std, footprint=footprint) / np.sqrt(2)
     snr = np.divide(signal * np.logical_not(mask_empty), noise, out=np.zeros_like(signal), where=noise > 0)
-    return snr, signal, noise, mask_signal
+    return snr, signal, noise
 
 def estimate_psf(clean_image, blurred_image, reg=0.1):
     # https://scikit-image.org/docs/stable/api/skimage.restoration.html#skimage.restoration.wiener

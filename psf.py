@@ -36,7 +36,7 @@ def estimate_psf_all(image_ref, image_blurred, patch_size, psf_size, stride, tol
                 psf[ix // stride, iy // stride, iz // stride] = soln
     return psf
 
-def estimate_psf_all_in_parallel(image_ref, image_blurred, patch_size, psf_size, stride, num_workers=8):
+def estimate_psf_all_in_parallel(image_ref, image_blurred, patch_size, stride, psf_size=7, num_workers=8):
     # TODO in another function (?), compute the FWHM and collect into an array. Interpolate to get a map at the image resolution.
     nx = image_ref.shape[0]
     nx_pts = np.arange(0, nx - patch_size - psf_size, stride)
