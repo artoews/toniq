@@ -32,7 +32,7 @@ if __name__ == '__main__':
         '230817/13427_dicom/Series5'
     ]
 
-    series_dirs = [root + s for s in series_dirs_msl_large]
+    series_dirs = [root + s for s in series_dirs_msl_small]
     image1_files = Path(series_dirs[0]).glob('*MRDC*')
     image2_files = Path(series_dirs[1]).glob('*MRDC*')
     image1 = dicom.load_series(image1_files)
@@ -53,9 +53,9 @@ if __name__ == '__main__':
     patch_size = cell_size * 2
     image_ref = image1.data
     image_blur = image2.data
-    blur_sigma = 0.8
+    blur_sigma = 0.7
     blur_axis = 1
-    # image_blur = ndi.gaussian_filter(image_ref, blur_sigma, axes=blur_axis)
+    image_blur = ndi.gaussian_filter(image_ref, blur_sigma, axes=blur_axis)  # TODO add noise
     imp = impulse((psf_size,) * image_blur.ndim)
     psf_true = ndi.gaussian_filter(imp, blur_sigma, axes=blur_axis)
     t0 = time()
@@ -66,34 +66,44 @@ if __name__ == '__main__':
     print('Runtime with warm start: {:.2f}'.format(time() - t1))
     t2 = time()
     stride = cell_size // 2
-    # psf_soln = psf.estimate_psf_all(image_ref, image_blur, patch_size, psf_size, stride)
-    # print(psf_soln.shape)
 
     # PARALLEL POOL
-    result = psf.estimate_psf_all_in_parallel(image_ref, image_blur, patch_size, psf_size, stride)
-    print(result[1].shape)
+    psf_soln = psf.estimate_psf_all_in_parallel(image_ref, image_blur, patch_size, psf_size, stride)
+    print('result shape', psf_soln.shape)
     print('Runtime for psf_all: {:.2f}'.format(time() - t1))
-    psf_soln = psf_soln[50 // stride, 70 // stride, 30 // stride, ...]
-    print(psf_soln.shape)
+    # psf_soln = psf_soln[50 // stride, 70 // stride, 30 // stride, ...]
+    # print(psf_soln.shape)
 
-    interp_factor = 8
-    psf_int = psf.interpolate_sinc(psf_est, psf_size * interp_factor)
+    t0 = time()
+    fwhm = psf.get_FWHM_in_parallel(psf_soln)
+    print('fwhm time {:.3f}'.format(time() - t0))
+    print('fwhm shape', fwhm.shape)
 
-    psf_init = np.abs(psf_init)
-    psf_est = np.abs(psf_est)
-    psf_int = np.abs(psf_int)
+    volumes = (fwhm[..., 0], fwhm[..., 1], fwhm[..., 2])
+    fig, tracker = plotVolumes(volumes, 1, len(volumes), titles=('FWHM in x', 'FWHM in y', 'FWHM in z'), figsize=(16, 8), vmin=1, vmax=3)
 
-    norm = np.max(psf_est)
-    psf_init = psf_init / norm 
-    psf_soln = psf_est / norm
-    psf_int = psf_int / norm
-    psf_true = psf_true / np.max(psf_true)
+    # interp_factor = 8
+    # t0 = time()
+    # psf_int = psf.interpolate_sinc(psf_est, psf_size * interp_factor)
+    # print('interpolation time {:.3f}'.format(time() - t0))
 
-    max_idx = np.unravel_index(np.argmax(psf_int), psf_int.shape)
-    fwhm_x = psf.get_FWHM(psf_int[:, max_idx[1], max_idx[2]]) / interp_factor
-    fwhm_y = psf.get_FWHM(psf_int[max_idx[0], :, max_idx[2]]) / interp_factor
-    fwhm_z = psf.get_FWHM(psf_int[max_idx[0], max_idx[1], :]) / interp_factor
-    print('FWHM', fwhm_x, fwhm_y, fwhm_z)
+    # psf_init = np.abs(psf_init)
+    # psf_est = np.abs(psf_est)
+    # psf_int = np.abs(psf_int)
+
+    # norm = np.max(psf_est)
+    # psf_init = psf_init / norm 
+    # psf_soln = psf_est / norm
+    # psf_int = psf_int / norm
+    # psf_true = psf_true / np.max(psf_true)
+
+    # max_idx = np.unravel_index(np.argmax(psf_int), psf_int.shape)
+    # t1 = time()
+    # fwhm_x = psf.get_FWHM(psf_int[:, max_idx[1], max_idx[2]]) / interp_factor
+    # print('FWHM time {:.3f}'.format(time() - t0))
+    # fwhm_y = psf.get_FWHM(psf_int[max_idx[0], :, max_idx[2]]) / interp_factor
+    # fwhm_z = psf.get_FWHM(psf_int[max_idx[0], max_idx[1], :]) / interp_factor
+    # print('FWHM', fwhm_x, fwhm_y, fwhm_z)
 
     volumes = (image_ref, image_blur)
     titles = ('Clean', 'Blurred')
@@ -103,12 +113,12 @@ if __name__ == '__main__':
     titles = ('Clean', 'Blurred')
     fig1, tracker1 = plotVolumes(volumes, 1, len(volumes), titles=titles, figsize=(16, 8))
 
-    volumes = (imp, psf_true, psf_soln)
-    titles = ('Impulse', 'True PSF', 'Estimated PSF')
-    fig2, tracker2 = plotVolumes(volumes, 1, len(volumes), titles=titles, figsize=(16, 8))
+    # volumes = (imp, psf_true, psf_soln)
+    # titles = ('Impulse', 'True PSF', 'Estimated PSF')
+    # fig2, tracker2 = plotVolumes(volumes, 1, len(volumes), titles=titles, figsize=(16, 8))
 
-    fwhm_string = '{:.1f}, {:.1f}, {:.1f} pixels'.format(fwhm_x, fwhm_y, fwhm_z)
-    print(fwhm_string)
-    fig3, tracker3 = plotVolumes((np.zeros_like(psf_int), psf_int), 1, 2, titles=('Zero', '{}x Sinc-Interpolated PSF with FWHM: '.format(interp_factor) + fwhm_string), figsize=(16, 8))
+    # fwhm_string = '{:.1f}, {:.1f}, {:.1f} pixels'.format(fwhm_x, fwhm_y, fwhm_z)
+    # print(fwhm_string)
+    # fig3, tracker3 = plotVolumes((np.zeros_like(psf_int), psf_int), 1, 2, titles=('Zero', '{}x Sinc-Interpolated PSF with FWHM: '.format(interp_factor) + fwhm_string), figsize=(16, 8))
 
-    # plt.show()
+    plt.show()

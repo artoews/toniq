@@ -37,10 +37,17 @@ def estimate_psf_all(image_ref, image_blurred, patch_size, psf_size, stride, tol
     return psf
 
 def estimate_psf_all_in_parallel(image_ref, image_blurred, patch_size, psf_size, stride, num_workers=8):
-    # TODO re-work the splitting so there is enough overlap to not miss sections. 
     # TODO in another function (?), compute the FWHM and collect into an array. Interpolate to get a map at the image resolution.
-    sub_images_ref = np.split(image_ref, num_workers, axis=0)
-    sub_images_blurred = np.split(image_blurred, num_workers, axis=0)
+    nx = image_ref.shape[0]
+    nx_pts = np.arange(0, nx - patch_size - psf_size, stride)
+    pt_splits = np.array_split(nx_pts, num_workers)
+    splits = []
+    for i in np.arange(num_workers):
+        start = pt_splits[i][0]
+        end = pt_splits[i][-1] + patch_size + psf_size
+        splits.append(np.arange(start, end + 1))
+    sub_images_ref = (np.take(image_ref, split, axis=0) for split in splits)
+    sub_images_blurred = (np.take(image_blurred, split, axis=0) for split in splits)
     inputs = list(zip(
                 sub_images_ref,
                 sub_images_blurred,
@@ -50,6 +57,14 @@ def estimate_psf_all_in_parallel(image_ref, image_blurred, patch_size, psf_size,
                 ))
     with Pool(num_workers) as p:
         result = p.starmap(estimate_psf_all, inputs)
+    result = np.concatenate(result, axis=0)
+    return result
+
+def get_FWHM_in_parallel(psf, num_workers=8):
+    psf_splits = np.array_split(psf, num_workers, axis=0)
+    with Pool(num_workers) as p:
+        result = p.map(get_FWHM_from_many_psf, psf_splits) 
+    result = np.concatenate(result, axis=0)
     return result
 
 def estimate_psf_patch(image_ref, image_blurred, psf_size, psf_init=None, tol=1e-2, max_iter=100, verbose=False):
@@ -68,6 +83,33 @@ def interpolate_sinc(psf, size):
     factor = np.prod(shape) / np.prod(psf.shape)
     return sp.ifft(sp.resize(sp.fft(psf), shape)) * np.sqrt(factor)
 
+def get_FWHM_from_many_psf(psf):
+    nx, ny, nz = psf.shape[:3]
+    fwhm = np.zeros((nx, ny, nz, 3))
+    for ix in np.arange(nx): 
+        for iy in np.arange(ny):
+            for iz in np.arange(nz):
+                fwhm[ix, iy, iz, :] = get_FWHM_from_psf(psf[ix, iy, iz, ...])
+    return fwhm
+
+def get_FWHM_from_psf(psf, interp_factor=8):
+    psf = np.abs(psf)
+    psf_size = psf.shape[0]
+    psf_int = interpolate_sinc(psf, psf_size * interp_factor)  # TODO consider another interpolation strategy, like use sigpy.interpolate with b splines
+    max_idx = np.unravel_index(np.argmax(psf_int), psf_int.shape)
+    max_val = psf_int[max_idx]
+    fwhm_x = fwhm(psf_int[:, max_idx[1], max_idx[2]], max_val) / interp_factor
+    fwhm_y = fwhm(psf_int[max_idx[0], :, max_idx[2]], max_val) / interp_factor
+    fwhm_z = fwhm(psf_int[max_idx[0], max_idx[1], :], max_val) / interp_factor
+    return fwhm_x, fwhm_y, fwhm_z
+
+def fwhm(x, max_val=None, max_idx=None):
+    if max_idx is None or max_val is None:
+        max_idx = np.argmax(x)
+        max_val = x[max_idx]
+    half_max = max_val / 2
+    return np.argmin(x[max_idx::1] > half_max) + np.argmin(x[max_idx::-1] > half_max)
+
 def get_FWHM(x):
     peak_idx = np.argmax(x)
     half_max = x[peak_idx] / 2
@@ -75,5 +117,3 @@ def get_FWHM(x):
     # print(x[peak_idx::1])
     # print(x[peak_idx::-1])
     return np.argmin(x[peak_idx::1] > half_max) + np.argmin(x[peak_idx::-1] > half_max)
-
-# TODO interpolate along an arbitrary direction of the PSF to measure FWHM in that direction
