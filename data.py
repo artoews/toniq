@@ -32,6 +32,7 @@ class Metadata:
         resolution_rounded = np.round(self.resolution_mm, decimals=1)
         self.isotropic = np.all(resolution_rounded == resolution_rounded[0])
         self.readoutBandwidth_kHz = np.round(self.pixelBandwidth_Hz * self.matrixShape[self.readoutDirection] * 1e-3, decimals=2)
+    
 
 @dataclass
 class ImageVolume:
@@ -47,3 +48,7 @@ class ImageVolume:
                 )
         self.shape = self.data.shape
         self.dtype = self.data.dtype
+    
+    @property
+    def is_isotropic(self):
+        return True if len(set(self.meta.resolution_mm)) else False
