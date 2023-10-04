@@ -3,7 +3,7 @@ import numpy as np
 
 class MultiIndexTracker:
     """ Scroll through a collection of volumes in lock step """
-    def __init__(self, fig, axes, volumes, plot_args):
+    def __init__(self, fig, axes, volumes, plot_args, cbar=False):
         for vol in volumes:
             if vol.shape != volumes[0].shape:
                 raise ValueError(
@@ -15,6 +15,7 @@ class MultiIndexTracker:
         self.index = self.max_index // 2
         self.reformat = False
         self.plot_args = plot_args
+        self.cbar = cbar
         self.update(replot=True)
     
     @property
@@ -30,6 +31,10 @@ class MultiIndexTracker:
             ax.imshow(vol[:, :, self.index], **plot_args)
             for ax, vol, plot_args in zip(self.axes, self.volumes, self.plot_args)
             ]
+        if self.cbar:
+            for im in self.ims:
+                plt.colorbar(im)
+            self.cbar = False
     
     def on_scroll(self, event):
         print(event.button, event.step)
@@ -62,7 +67,10 @@ class MultiIndexTracker:
             self.fig.supxlabel('Phase encode dimension (y)')
         self.fig.canvas.draw()
 
-def plotVolumes(volumes, nrows, ncols, vmin=0, vmax=1, cmap='gray', titles=None, figsize=None):
+def plotVolumes(volumes, nrows=None, ncols=None, vmin=0, vmax=1, cmap='gray', titles=None, figsize=None, cbar=False):
+    if nrows is None or ncols is None:
+        nrows = 1
+        ncols = len(volumes)
     if nrows * ncols != len(volumes):
         raise ValueError(
             'Number of volumes ({}) must equal number of subplots ({}x{})'
@@ -77,7 +85,7 @@ def plotVolumes(volumes, nrows, ncols, vmin=0, vmax=1, cmap='gray', titles=None,
                  'vmax': vmax,
                  'cmap': cmap}
                  for _ in axes.flatten()]
-    tracker = MultiIndexTracker(fig, axes.flatten(), volumes, plot_args)
+    tracker = MultiIndexTracker(fig, axes.flatten(), volumes, plot_args, cbar=cbar)
 
     fig.canvas.mpl_connect('scroll_event', tracker.on_scroll)
     fig.canvas.mpl_connect('key_press_event', tracker.on_press)
