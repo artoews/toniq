@@ -2,6 +2,8 @@ import numpy as np
 import scipy.ndimage as ndi
 from skimage import filters, morphology, restoration, util
 
+import register
+
 def normalize(image, pct=99):
     return image / np.percentile(image, pct)
 
@@ -137,3 +139,14 @@ def estimate_psf(clean_image, blurred_image, reg=0.1):
     clean_image = clean_image / max_val
     psf = restoration.wiener(blurred_image, clean_image, reg)
     return psf
+
+def estimate_geometric_distortion(fixed_image, moving_image, fixed_mask, moving_mask):
+    fixed_image_masked = fixed_image.copy()
+    fixed_image_masked[~fixed_mask] = 0
+    moving_image_masked = moving_image.copy()
+    moving_image_masked[~moving_mask] = 0
+    result, transform = register.nonrigid(fixed_image, moving_image, fixed_mask, moving_mask)
+    result_masked = register.transform(moving_image_masked, transform)
+    deformation_field = register.get_deformation_field(moving_image, transform)
+    _, jacobian_det = register.get_jacobian(moving_image, transform)
+    return deformation_field, jacobian_det, result, result_masked
