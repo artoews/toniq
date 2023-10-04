@@ -95,7 +95,7 @@ def get_FWHM_from_many_psf(psf):
 def get_FWHM_from_psf(psf, interp_factor=8):
     psf = np.abs(psf)
     psf_size = psf.shape[0]
-    psf_int = interpolate_sinc(psf, psf_size * interp_factor)  # TODO consider another interpolation strategy, like use sigpy.interpolate with b splines
+    psf_int = interpolate_sinc(psf, psf_size * interp_factor)  # TODO try sigpy.interpolate
     max_idx = np.unravel_index(np.argmax(psf_int), psf_int.shape)
     max_val = psf_int[max_idx]
     fwhm_x = fwhm(psf_int[:, max_idx[1], max_idx[2]], max_val) / interp_factor
@@ -108,7 +108,7 @@ def fwhm(x, max_val=None, max_idx=None):
         max_idx = np.argmax(x)
         max_val = x[max_idx]
     half_max = max_val / 2
-    return np.argmin(x[max_idx::1] > half_max) + np.argmin(x[max_idx::-1] > half_max)
+    return np.argmin(x[max_idx::1] > half_max) + np.argmin(x[max_idx::-1] > half_max) - 1
 
 def get_FWHM(x):
     peak_idx = np.argmax(x)
