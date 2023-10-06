@@ -37,17 +37,23 @@ def estimate_psf_all(image_ref, image_blurred, patch_size, psf_size, stride, tol
                 psf[ix // stride, iy // stride, iz // stride] = soln
     return psf
 
-def estimate_psf_all_in_parallel(image_ref, image_blurred, patch_size, stride, psf_size=7, num_workers=8):
-    nx = image_ref.shape[0]
-    nx_pts = np.arange(0, nx - patch_size - psf_size, stride)
-    pt_splits = np.array_split(nx_pts, num_workers)
+def split_volumes_with_overlap(volumes, num_workers, overlap, stride, axis):
+    size = volumes[0].shape[axis]
+    pts = np.arange(0, size - overlap, stride)
+    pts = np.array_split(pts, num_workers)
     splits = []
     for i in np.arange(num_workers):
-        start = pt_splits[i][0]
-        end = pt_splits[i][-1] + patch_size + psf_size
+        start = pts[i][0]
+        end = pts[i][-1] + overlap
         splits.append(np.arange(start, end + 1))
-    sub_images_ref = (np.take(image_ref, split, axis=0) for split in splits)
-    sub_images_blurred = (np.take(image_blurred, split, axis=0) for split in splits)
+    split_volumes = []
+    for vol in volumes:
+        split_vol = tuple(np.take(vol, split, axis=axis) for split in splits)
+        split_volumes.append(split_vol)
+    return split_volumes
+
+def estimate_psf_all_in_parallel(image_ref, image_blurred, patch_size, stride, psf_size=7, num_workers=8, split_axis=0):
+    sub_images_ref, sub_images_blurred = split_volumes_with_overlap((image_ref, image_blurred), num_workers, patch_size + psf_size, stride, split_axis)
     inputs = list(zip(
                 sub_images_ref,
                 sub_images_blurred,
@@ -57,7 +63,7 @@ def estimate_psf_all_in_parallel(image_ref, image_blurred, patch_size, stride, p
                 ))
     with Pool(num_workers) as p:
         result = p.starmap(estimate_psf_all, inputs)
-    result = np.concatenate(result, axis=0)
+    result = np.concatenate(result, axis=split_axis)
     return result
 
 def get_FWHM_in_parallel(psf, num_workers=8):
