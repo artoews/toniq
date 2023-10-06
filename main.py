@@ -114,15 +114,16 @@ if __name__ == '__main__':
         patch_size = int(cell_size_pixels * 2)
         # stride = int(cell_size_pixels / 2)
         stride = int(cell_size_pixels)
-        # TODO figure out why results are off by 3/8 of a pixel; try plotting PSF and eyeballing what you think the PSF half width should be
         # clean_input = analysis.denoise(clean_image.data)
         # target_input = analysis.denoise(target_image.data)
         clean_input = clean_image.data
         target_input = target_image.data
-        psf_soln = psf.estimate_psf_all_in_parallel(clean_input, target_input, patch_size, stride, psf_size=7)
+        psf_soln = psf.estimate_psf_all_in_parallel(clean_input, target_input, patch_size, stride, psf_size=5)
         print('PSF shape', psf_soln.shape)
+        start_fwhm_time = time()
         fwhm = psf.get_FWHM_in_parallel(psf_soln)
         resolution = fwhm * voxel_size_mm  # TODO what if clean and target resolution are different?
+        print('FWHM time: {:.1f} seconds elapsed.'.format(time() - start_fwhm_time))
 
         if args.verbose:
             print('Done. {:.1f} seconds elapsed.'.format(time() - start_time))
