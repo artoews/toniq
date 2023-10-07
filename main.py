@@ -111,15 +111,13 @@ if __name__ == '__main__':
             start_time = time()
 
         cell_size_pixels = args.cell_size_mm / voxel_size_mm
-        patch_size = int(cell_size_pixels * 2)
-        # stride = int(cell_size_pixels / 2)
-        stride = int(cell_size_pixels)
+        patch_size = int(cell_size_pixels)
+        stride = int(cell_size_pixels / 2)
         # clean_input = analysis.denoise(clean_image.data)
         # target_input = analysis.denoise(target_image.data)
         clean_input = clean_image.data
         target_input = target_image.data
         psf_soln = psf.estimate_psf_all_in_parallel(clean_input, target_input, patch_size, stride, psf_size=5)
-        print('PSF shape', psf_soln.shape)
         start_fwhm_time = time()
         fwhm = psf.get_FWHM_in_parallel(psf_soln)
         resolution = fwhm * voxel_size_mm  # TODO what if clean and target resolution are different?
@@ -131,15 +129,18 @@ if __name__ == '__main__':
         np.save(path.join(map_dir, 'resolution.npy'), resolution)
 
         if args.plot:
-            psf_slc = np.abs(psf_soln[8, 8, 2, ...])
+            # psf_slc = np.abs(psf_soln[8, 8, 2, ...])
+            psf_slc = np.moveaxis(np.abs(psf_soln[15, 15, ...]), 0, -1)
             psf_slc = psf_slc / np.max(psf_slc)
             volumes = (psf_slc, psf_slc)
-            titles = ('PSF with FWHM {} pixels'.format(fwhm[8, 8, 2, :]), 'Same')
+            print('FWHM shape', fwhm.shape)
+            titles = ('PSF with FWHM {} pixels'.format(fwhm[15, 15, 3, :]), 'Same')
             fig1, tracker1 = plotVolumes(volumes, titles=titles, figsize=(16, 8))
-            vmax = 4
-            volumes = (fwhm[..., 0], fwhm[..., 1], fwhm[..., 2])
-            titles = ('FWHM x [mm]', 'FWHM y [mm]', 'FWHM z [mm]')
-            fig2, tracker2 = plotVolumes(volumes, titles=titles, figsize=(16, 8), vmin=0, vmax=vmax, cmap='twilight', cbar=True)
+            # volumes = (fwhm[..., 0], fwhm[..., 1], fwhm[..., 2])
+            # titles = ('FWHM x [mm]', 'FWHM y [mm]', 'FWHM z [mm]')
+            volumes = (fwhm[..., 0], fwhm[..., 1])
+            titles = ('FWHM x [pixels]', 'FWHM y [pixels]')
+            fig2, tracker2 = plotVolumes(volumes, titles=titles, figsize=(16, 8), vmin=0, vmax=10, cmap='tab20c', cbar=True)
 
     if map_all or args.intensity or args.geometric:
 
