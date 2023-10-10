@@ -9,6 +9,7 @@ from time import time
 
 import analysis
 import dicom
+import fwhm as fwh
 from plot import plotVolumes
 import psf
 import register
@@ -111,15 +112,17 @@ if __name__ == '__main__':
             start_time = time()
 
         cell_size_pixels = args.cell_size_mm / voxel_size_mm
-        patch_size = int(cell_size_pixels)
+        patch_shape = (int(cell_size_pixels),) * 3
+        psf_shape = (5, 5, 1)
         stride = int(cell_size_pixels / 2)
         # clean_input = analysis.denoise(clean_image.data)
         # target_input = analysis.denoise(target_image.data)
-        clean_input = clean_image.data
-        target_input = target_image.data
-        psf_soln = psf.estimate_psf_all_in_parallel(clean_input, target_input, patch_size, stride, psf_size=5)
+        clean_input = clean_image.data[..., 30:48]
+        target_input = target_image.data[..., 30:48]
+        psf_soln = psf.map_psf(clean_input, target_input, patch_shape, psf_shape, stride, 'iterative', mask=None, num_workers=8)
+        print('psf_soln', psf_soln.shape)
         start_fwhm_time = time()
-        fwhm = psf.get_FWHM_in_parallel(psf_soln)
+        fwhm = fwh.get_FWHM_in_parallel(psf_soln)
         resolution = fwhm * voxel_size_mm  # TODO what if clean and target resolution are different?
         print('FWHM time: {:.1f} seconds elapsed.'.format(time() - start_fwhm_time))
 
@@ -135,7 +138,7 @@ if __name__ == '__main__':
             volumes = (psf_slc, psf_slc)
             print('FWHM shape', fwhm.shape)
             titles = ('PSF with FWHM {} pixels'.format(fwhm[15, 15, 3, :]), 'Same')
-            fig1, tracker1 = plotVolumes(volumes, titles=titles, figsize=(16, 8))
+            # fig1, tracker1 = plotVolumes(volumes, titles=titles, figsize=(16, 8))
             # volumes = (fwhm[..., 0], fwhm[..., 1], fwhm[..., 2])
             # titles = ('FWHM x [mm]', 'FWHM y [mm]', 'FWHM z [mm]')
             volumes = (fwhm[..., 0], fwhm[..., 1])
