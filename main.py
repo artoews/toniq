@@ -103,8 +103,32 @@ if __name__ == '__main__':
 
             np.save(path.join(map_dir, 'snr.npy'), snr)
             np.save(path.join(map_dir, 'signal.npy'), signal)
-            np.save(path.join(map_dir, 'noise.npy'), noise_std)
-    
+            np.save(path.join(map_dir, 'noise.npy'), noise_std) 
+
+    if map_all or args.intensity or args.geometric or args.resolution:
+
+        if args.verbose:
+            print('Mapping intensity distortion...')
+            start_time = time()
+
+        mask_implant, mask_empty, mask_hyper, mask_hypo, mask_artifact = analysis.get_all_masks(clean_image.data, target_image.data)
+        # mask_artifact = morphology.dilation(mask_artifact, morphology.ball(2))
+        combo_mask = analysis.combine_masks(mask_implant, mask_empty, mask_hyper, mask_hypo, mask_artifact)
+        lattice_mask = analysis.get_mask_lattice(clean_image.data)
+
+        if args.verbose:
+            print('Done. {:.1f} seconds elapsed.'.format(time() - start_time))
+
+        np.save(path.join(map_dir, 'mask_implant.npy'), mask_implant)
+        np.save(path.join(map_dir, 'mask_empty.npy'), mask_empty)
+        np.save(path.join(map_dir, 'mask_hyper.npy'), mask_hyper)
+        np.save(path.join(map_dir, 'mask_hypo.npy'), mask_hypo)
+        np.save(path.join(map_dir, 'mask_artifact.npy'), mask_artifact)
+
+        volumes = (clean_image.data, target_image.data, combo_mask, lattice_mask)
+        titles = ('Plastic', 'Metal', 'Artifact Masks', 'Lattice Mask')
+        fig_i, tracker_i = plotVolumes(volumes, titles=titles, figsize=(16, 8))
+
     if map_all or args.resolution:
 
         if args.verbose:
@@ -113,13 +137,18 @@ if __name__ == '__main__':
 
         cell_size_pixels = args.cell_size_mm / voxel_size_mm
         patch_shape = (int(cell_size_pixels),) * 3
+        print('patch shape', patch_shape)
         psf_shape = (5, 5, 1)
         stride = int(cell_size_pixels / 2)
         # clean_input = analysis.denoise(clean_image.data)
         # target_input = analysis.denoise(target_image.data)
-        clean_input = clean_image.data[..., 30:48]
-        target_input = target_image.data[..., 30:48]
-        psf_soln = psf.map_psf(clean_input, target_input, patch_shape, psf_shape, stride, 'iterative', mask=None, num_workers=8)
+        # slc = (slice(None), slice(None), slice(30, 48))
+        # slc = (slice(None), slice(None), slice(30, 48))
+        slc = (slice(None), slice(None), slice(None))
+        clean_input = clean_image.data[slc]
+        target_input = target_image.data[slc]
+        psf_mask = lattice_mask[slc]
+        psf_soln = psf.map_psf(clean_input, target_input, psf_mask, patch_shape, psf_shape, stride, 'iterative', num_workers=8)
         print('psf_soln', psf_soln.shape)
         start_fwhm_time = time()
         fwhm = fwh.get_FWHM_in_parallel(psf_soln)
@@ -141,27 +170,13 @@ if __name__ == '__main__':
             # fig1, tracker1 = plotVolumes(volumes, titles=titles, figsize=(16, 8))
             # volumes = (fwhm[..., 0], fwhm[..., 1], fwhm[..., 2])
             # titles = ('FWHM x [mm]', 'FWHM y [mm]', 'FWHM z [mm]')
+            volumes = (clean_input, target_input, psf_mask)
+            titles = ('Clean input', 'Target input', 'PSF Mask')
+            fig_r1, tracker_r1 = plotVolumes(volumes, titles=titles, figsize=(16, 8))
             volumes = (fwhm[..., 0], fwhm[..., 1])
             titles = ('FWHM x [pixels]', 'FWHM y [pixels]')
-            fig2, tracker2 = plotVolumes(volumes, titles=titles, figsize=(16, 8), vmin=0, vmax=10, cmap='tab20c', cbar=True)
-
-    if map_all or args.intensity or args.geometric:
-
-        if args.verbose:
-            print('Mapping intensity distortion...')
-            start_time = time()
-
-        mask_implant, mask_empty, mask_hyper, mask_hypo, mask_artifact = analysis.get_all_masks(clean_image.data, target_image.data)
-        # mask_artifact = morphology.dilation(mask_artifact, morphology.ball(2))
-
-        if args.verbose:
-            print('Done. {:.1f} seconds elapsed.'.format(time() - start_time))
-
-        np.save(path.join(map_dir, 'mask_implant.npy'), mask_implant)
-        np.save(path.join(map_dir, 'mask_empty.npy'), mask_empty)
-        np.save(path.join(map_dir, 'mask_hyper.npy'), mask_hyper)
-        np.save(path.join(map_dir, 'mask_hypo.npy'), mask_hypo)
-        np.save(path.join(map_dir, 'mask_artifact.npy'), mask_artifact)
+            # fig_r2, tracker_r2 = plotVolumes(volumes, titles=titles, figsize=(16, 8), vmin=0, vmax=10, cmap='tab20c', cbar=True)
+            fig_r2, tracker_r2 = plotVolumes(volumes, titles=titles, figsize=(16, 8), vmin=0, vmax=3, cmap='viridis', cbar=True)
 
     if map_all or args.geometric:
 

@@ -19,6 +19,20 @@ def cleanup(mask, filter_radius=2):
     footprint = morphology.ball(filter_radius)
     return morphology.binary_opening(mask, footprint)  # erosion (min), then dilation (max)
 
+def get_mask_lattice(image, filter_size=5):
+    footprint = morphology.cube(filter_size)
+    filtered_diffs = []
+    for axis in range(image.ndim):
+        diff = np.abs(np.diff(image, axis=axis, append=0))
+        filtered_diff = ndi.generic_filter(diff, np.sum, footprint=footprint)
+        filtered_diffs.append(filtered_diff)
+    min_diff = np.min(np.stack(filtered_diffs, axis=-1), axis=-1)
+    threshold = filters.threshold_otsu(min_diff)  # global Otsu
+    mask = min_diff > threshold
+    mask = morphology.binary_opening(mask, footprint)
+    mask = morphology.binary_closing(mask, footprint=footprint)
+    return mask
+
 def get_mask_empty(image):
     image = denoise(image)
     mask = image < filters.threshold_otsu(image) # global Otsu

@@ -9,16 +9,21 @@ def batch_with_overlap(volume, overlap, num_batches, axis=-1):
     indices_of_batches = tuple(np.arange(starts_of_batch[0], starts_of_batch[-1] + overlap + 1) for starts_of_batch in starts_of_batches)
     return tuple(np.take(volume, indices_of_batch, axis=axis) for indices_of_batch in indices_of_batches)
 
-def map_psf(image_in, image_out, patch_shape, psf_shape, stride, mode, mask=None, num_workers=1):
+def map_psf(image_in, image_out, mask, patch_shape, psf_shape, stride, mode, num_workers=1):
     # batched dimension is not strided
     batch_axis = 2
+
+    if image_in.shape != image_out.shape or mask.shape != image_out.shape:
+        raise ValueError('Image input, output and mask must have same shape; got {}, {}, {}'.format(image_in.shape, image_out.shape, mask.shape))
 
     if num_workers > 1:
         batched_image_in = batch_with_overlap(image_in, patch_shape[2] + psf_shape[2] - 1, num_workers, axis=batch_axis)
         batched_image_out = batch_with_overlap(image_out, patch_shape[2] + psf_shape[2] - 1, num_workers, axis=batch_axis)
+        batched_mask = batch_with_overlap(mask, patch_shape[2] + psf_shape[2] - 1, num_workers, axis=batch_axis)
         inputs = list(zip(
                     batched_image_in,
                     batched_image_out,
+                    batched_mask,
                     (patch_shape,) * num_workers,
                     (psf_shape,) * num_workers,
                     (stride,) * num_workers,
@@ -39,7 +44,9 @@ def map_psf(image_in, image_out, patch_shape, psf_shape, stride, mode, mask=None
         slc = tuple(slice(patch_loc[i], patch_loc[i] + patch_shape[i] + psf_shape[i] - 1) for i in range(3))
         patch_in = image_in[slc]
         patch_out = image_out[slc]
-        if mode == 'iterative':
+        if mask is not None and not np.all(mask[slc]):
+            soln = psf_init
+        elif mode == 'iterative':
             tol = 1e-6
             max_iter = 1e3
             soln = estimate_psf_iterative(patch_in, patch_out, psf_shape, psf_init, tol, max_iter)

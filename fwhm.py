@@ -36,6 +36,8 @@ def get_FWHM_from_many_psf_2D(psf):
 def get_FWHM_from_psf_3D(psf):
     psf = np.abs(psf)
     max_idx = np.unravel_index(np.argmax(psf), psf.shape)
+    if psf[max_idx] == 0:
+        return 0, 0, 0
     fwhm_x = fwhm(psf[:, max_idx[1], max_idx[2]], im=max_idx[0])
     fwhm_y = fwhm(psf[max_idx[0], :, max_idx[2]], im=max_idx[1])
     fwhm_z = fwhm(psf[max_idx[0], max_idx[1], :], im=max_idx[2])
@@ -44,6 +46,8 @@ def get_FWHM_from_psf_3D(psf):
 def get_FWHM_from_psf_2D(psf):
     psf = np.abs(psf)
     max_idx = np.unravel_index(np.argmax(psf), psf.shape)
+    if psf[max_idx] == 0:
+        return 0, 0
     fwhm_x = fwhm(psf[:, max_idx[1]], im=max_idx[0])
     fwhm_y = fwhm(psf[max_idx[0], :], im=max_idx[1])
     return fwhm_x, fwhm_y
