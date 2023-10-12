@@ -105,7 +105,7 @@ if __name__ == '__main__':
             np.save(path.join(map_dir, 'signal.npy'), signal)
             np.save(path.join(map_dir, 'noise.npy'), noise_std) 
 
-    if map_all or args.intensity or args.geometric or args.resolution:
+    if map_all or args.intensity or args.geometric:
 
         if args.verbose:
             print('Mapping intensity distortion...')
@@ -114,7 +114,6 @@ if __name__ == '__main__':
         mask_implant, mask_empty, mask_hyper, mask_hypo, mask_artifact = analysis.get_all_masks(clean_image.data, target_image.data)
         # mask_artifact = morphology.dilation(mask_artifact, morphology.ball(2))
         combo_mask = analysis.combine_masks(mask_implant, mask_empty, mask_hyper, mask_hypo, mask_artifact)
-        lattice_mask = analysis.get_mask_lattice(clean_image.data)
 
         if args.verbose:
             print('Done. {:.1f} seconds elapsed.'.format(time() - start_time))
@@ -137,7 +136,6 @@ if __name__ == '__main__':
 
         cell_size_pixels = args.cell_size_mm / voxel_size_mm
         patch_shape = (int(cell_size_pixels),) * 3
-        print('patch shape', patch_shape)
         psf_shape = (5, 5, 1)
         stride = int(cell_size_pixels / 2)
         # clean_input = analysis.denoise(clean_image.data)
@@ -147,6 +145,7 @@ if __name__ == '__main__':
         slc = (slice(None), slice(None), slice(None))
         clean_input = clean_image.data[slc]
         target_input = target_image.data[slc]
+        lattice_mask = analysis.get_mask_lattice(clean_image.data)
         psf_mask = lattice_mask[slc]
         psf_soln = psf.map_psf(clean_input, target_input, psf_mask, patch_shape, psf_shape, stride, 'iterative', num_workers=8)
         print('psf_soln', psf_soln.shape)
@@ -176,7 +175,7 @@ if __name__ == '__main__':
             volumes = (fwhm[..., 0], fwhm[..., 1])
             titles = ('FWHM x [pixels]', 'FWHM y [pixels]')
             # fig_r2, tracker_r2 = plotVolumes(volumes, titles=titles, figsize=(16, 8), vmin=0, vmax=10, cmap='tab20c', cbar=True)
-            fig_r2, tracker_r2 = plotVolumes(volumes, titles=titles, figsize=(16, 8), vmin=0, vmax=3, cmap='viridis', cbar=True)
+            fig_r2, tracker_r2 = plotVolumes(volumes, titles=titles, figsize=(16, 5), vmin=0, vmax=3, cmap='viridis', cbar=True)
 
     if map_all or args.geometric:
 
