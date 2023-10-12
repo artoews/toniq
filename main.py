@@ -124,8 +124,8 @@ if __name__ == '__main__':
         np.save(path.join(map_dir, 'mask_hypo.npy'), mask_hypo)
         np.save(path.join(map_dir, 'mask_artifact.npy'), mask_artifact)
 
-        volumes = (clean_image.data, target_image.data, combo_mask, lattice_mask)
-        titles = ('Plastic', 'Metal', 'Artifact Masks', 'Lattice Mask')
+        volumes = (clean_image.data, target_image.data, combo_mask)
+        titles = ('Plastic', 'Metal', 'Artifact Masks')
         fig_i, tracker_i = plotVolumes(volumes, titles=titles, figsize=(16, 8))
 
     if map_all or args.resolution:
@@ -138,6 +138,8 @@ if __name__ == '__main__':
         patch_shape = (int(cell_size_pixels),) * 3
         psf_shape = (5, 5, 1)
         stride = int(cell_size_pixels / 2)
+        # mode = 'direct'
+        mode = 'iterative'
         # clean_input = analysis.denoise(clean_image.data)
         # target_input = analysis.denoise(target_image.data)
         # slc = (slice(None), slice(None), slice(30, 48))
@@ -147,7 +149,7 @@ if __name__ == '__main__':
         target_input = target_image.data[slc]
         lattice_mask = analysis.get_mask_lattice(clean_image.data)
         psf_mask = lattice_mask[slc]
-        psf_soln = psf.map_psf(clean_input, target_input, psf_mask, patch_shape, psf_shape, stride, 'iterative', num_workers=8)
+        psf_soln = psf.map_psf(clean_input, target_input, psf_mask, patch_shape, psf_shape, stride, mode, num_workers=8)
         print('psf_soln', psf_soln.shape)
         start_fwhm_time = time()
         fwhm = fwh.get_FWHM_in_parallel(psf_soln)
