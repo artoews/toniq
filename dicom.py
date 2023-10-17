@@ -42,7 +42,7 @@ def read_meta(file):
         'pulseSequenceName': dicom[0x0019, 0x109c].value,
         'duration_s': np.round(dicom[0x0019, 0x105a].value * 1e-6),
 
-        'matrixShape': tuple(inplaneMatrixSize) + (int(dicom.ImagesInAcquisition),),
+        'acqMatrixShape': tuple(inplaneMatrixSize) + (int(dicom.ImagesInAcquisition),),
         'resolution_mm': tuple(map(float, dicom.PixelSpacing)) + (float(dicom.SliceThickness),),
         'refocusFlipAngle_deg': float(dicom.FlipAngle),
         'echoTrainLength': int(dicom.EchoTrainLength),
