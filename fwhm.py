@@ -10,8 +10,8 @@ def interpolate(psf, factor):
 def get_FWHM_in_parallel(psf, num_workers=8):
     psf_splits = np.array_split(psf, num_workers, axis=0)
     with Pool(num_workers) as p:
-        # result = p.map(get_FWHM_from_many_psf_3D, psf_splits) 
-        result = p.map(get_FWHM_from_many_psf_2D, psf_splits) 
+        result = p.map(get_FWHM_from_many_psf_3D, psf_splits) 
+        # result = p.map(get_FWHM_from_many_psf_2D, psf_splits) 
     result = np.concatenate(result, axis=0)
     return result
 
