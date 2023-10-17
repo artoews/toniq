@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 import numpy as np
+import sigpy as sp
 from typing import ClassVar
 
 
@@ -16,7 +17,7 @@ class Metadata:
     pulseSequenceName: str
     duration_s: float
 
-    matrixShape: tuple[int, int, int]
+    acqMatrixShape: tuple[int, int, int]
     resolution_mm: tuple[float, float, float]
     refocusFlipAngle_deg: float
     echoTrainLength: int
@@ -31,9 +32,8 @@ class Metadata:
     def __post_init__(self):
         resolution_rounded = np.round(self.resolution_mm, decimals=1)
         self.isotropic = np.all(resolution_rounded == resolution_rounded[0])
-        self.readoutBandwidth_kHz = np.round(self.pixelBandwidth_Hz * self.matrixShape[self.readoutDirection] * 1e-3, decimals=2)
+        self.readoutBandwidth_kHz = np.round(self.pixelBandwidth_Hz * self.acqMatrixShape[self.readoutDirection] * 1e-3, decimals=2)
     
-
 @dataclass
 class ImageVolume:
     """ Data class for each acquired image volume. """
