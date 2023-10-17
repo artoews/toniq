@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from os import path, makedirs
 from pathlib import Path
+from scipy.ndimage import median_filter
 from skimage import morphology
 from time import time
 
@@ -13,6 +14,7 @@ import fwhm as fwh
 from plot import plotVolumes
 import psf
 import register
+from util import resize_image_matrix
 
 # TODO use image resolution, or lattice cell size (?) to determine the filter size for operations with filter radius > 2
 
@@ -59,29 +61,37 @@ if __name__ == '__main__':
     clean_image = load_dicom_series(args.clean_image)
     repeat_image = load_dicom_series(args.repeat_image)
 
-    clean_image.data = analysis.normalize(clean_image.data)
-    target_image.data = analysis.equalize(target_image.data, clean_image.data)
-    if repeat_image is not None:
-        repeat_image.data = analysis.equalize(repeat_image.data, clean_image.data)
+    target_image_data = target_image.data
+    # target_image_data = resize_image_matrix(target_image_data, (256, 128, 40))
+    # target_image_data = resize_image_matrix(target_image_data, (256, 256, 40))
+    clean_image_data = clean_image.data
+    if clean_image_data.shape != target_image_data.shape:
+        print('Resizing target image matrix from {} to {}'.format(target_image_data.shape, clean_image_data.shape))
+        target_image_data = resize_image_matrix(target_image_data, clean_image_data.shape)
 
-    print('Clean data shape', clean_image.data.shape)
-    print('Target data shape', target_image.data.shape)
+    clean_image_data = analysis.normalize(clean_image_data)
+    target_image_data = analysis.equalize(target_image_data, clean_image_data)
+    if repeat_image is not None:
+        repeat_image_data = analysis.equalize(repeat_image.data, clean_image_data)
+
+    print('Clean data shape', clean_image_data.shape)
+    print('Target data shape', target_image_data.shape)
     
     if target_image.is_isotropic:
-        voxel_size_mm = target_image.meta.resolution_mm[0]
+        voxel_size_mm = clean_image.meta.resolution_mm[0]
     else:
-        raise ValueError('Isotropic resolution is required, but got: ', target_image.meta.resolution_mm)
+        raise ValueError('Isotropic resolution is required, but got: ', clean_image.meta.resolution_mm)
 
     if args.snr or args.resolution or args.geometric or args.intensity:
         map_all = False
     else:
         map_all = True
     
-    mask_empty = analysis.get_mask_empty(clean_image.data)
-    mask_signal = analysis.get_mask_signal(clean_image.data, target_image.data)
+    mask_empty = analysis.get_mask_empty(clean_image_data)
+    mask_signal = analysis.get_mask_signal(clean_image_data, target_image_data)
 
     if args.plot:
-        volumes = (clean_image.data, target_image.data)
+        volumes = (clean_image_data, target_image_data)
         titles = ('clean image', 'target image')
         fig0, tracker0 = plotVolumes(volumes, titles=titles, figsize=(16, 8))
 
@@ -96,7 +106,7 @@ if __name__ == '__main__':
                 print('Mapping SNR...')
                 start_time = time()
 
-            snr, signal, noise_std = analysis.signal_to_noise(clean_image.data, target_image.data, mask_signal, mask_empty)
+            snr, signal, noise_std = analysis.signal_to_noise(clean_image_data, target_image_data, mask_signal, mask_empty)
 
             if args.verbose:
                 print('Done. {:.1f} seconds elapsed.'.format(time() - start_time))
@@ -111,7 +121,7 @@ if __name__ == '__main__':
             print('Mapping intensity distortion...')
             start_time = time()
 
-        mask_implant, mask_empty, mask_hyper, mask_hypo, mask_artifact = analysis.get_all_masks(clean_image.data, target_image.data)
+        mask_implant, mask_empty, mask_hyper, mask_hypo, mask_artifact = analysis.get_all_masks(clean_image_data, target_image_data)
         # mask_artifact = morphology.dilation(mask_artifact, morphology.ball(2))
         combo_mask = analysis.combine_masks(mask_implant, mask_empty, mask_hyper, mask_hypo, mask_artifact)
 
@@ -124,7 +134,7 @@ if __name__ == '__main__':
         np.save(path.join(map_dir, 'mask_hypo.npy'), mask_hypo)
         np.save(path.join(map_dir, 'mask_artifact.npy'), mask_artifact)
 
-        volumes = (clean_image.data, target_image.data, combo_mask)
+        volumes = (clean_image_data, target_image_data, combo_mask)
         titles = ('Plastic', 'Metal', 'Artifact Masks')
         fig_i, tracker_i = plotVolumes(volumes, titles=titles, figsize=(16, 8))
 
@@ -135,24 +145,33 @@ if __name__ == '__main__':
             start_time = time()
 
         cell_size_pixels = args.cell_size_mm / voxel_size_mm
-        patch_shape = (int(cell_size_pixels),) * 3
+        print('voxel_size_mm', voxel_size_mm)
+        print('cell size in pixels', int(cell_size_pixels))
+        patch_shape = (int(cell_size_pixels), int(cell_size_pixels), int(cell_size_pixels))
         psf_shape = (5, 5, 1)
-        stride = int(cell_size_pixels / 2)
+        # stride = int(cell_size_pixels / 2)
+        stride = 2
         # mode = 'direct'
-        mode = 'iterative'
-        # clean_input = analysis.denoise(clean_image.data)
-        # target_input = analysis.denoise(target_image.data)
+        # mode = 'iterative'
+        mode = 'kspace'
+        # clean_input = analysis.denoise(clean_image_data)
+        # target_input = analysis.denoise(target_image_data)
         # slc = (slice(None), slice(None), slice(30, 48))
-        # slc = (slice(None), slice(None), slice(30, 48))
+        # slc = (slice(None), slice(None), slice(20, 29))
         slc = (slice(None), slice(None), slice(None))
-        clean_input = clean_image.data[slc]
-        target_input = target_image.data[slc]
-        lattice_mask = analysis.get_mask_lattice(clean_image.data)
+        clean_input = clean_image_data[slc]
+        target_input = target_image_data[slc]
+        lattice_mask = analysis.get_mask_lattice(clean_image_data)
         psf_mask = lattice_mask[slc]
         psf_soln = psf.map_psf(clean_input, target_input, psf_mask, patch_shape, psf_shape, stride, mode, num_workers=8)
         print('psf_soln', psf_soln.shape)
         start_fwhm_time = time()
         fwhm = fwh.get_FWHM_in_parallel(psf_soln)
+
+        fwhm[..., 0] = median_filter(fwhm[..., 0], size=int(cell_size_pixels))
+        fwhm[..., 1] = median_filter(fwhm[..., 1], size=int(cell_size_pixels))
+        fwhm[..., 2] = median_filter(fwhm[..., 2], size=int(cell_size_pixels))
+
         resolution = fwhm * voxel_size_mm  # TODO what if clean and target resolution are different?
         print('FWHM time: {:.1f} seconds elapsed.'.format(time() - start_fwhm_time))
 
@@ -163,12 +182,18 @@ if __name__ == '__main__':
 
         if args.plot:
             # psf_slc = np.abs(psf_soln[8, 8, 2, ...])
-            psf_slc = np.moveaxis(np.abs(psf_soln[15, 15, ...]), 0, -1)
+            shape = psf_soln.shape
+            slc = (int(shape[0] * 0.5), int(shape[1] * 0.5), int(shape[2] * 0.5))
+            print('slc', slc)
+            print(psf_soln.shape)
+            # psf_slc = np.moveaxis(np.abs(psf_soln[slc[:2]][..., 0]), 0, -1)
+            psf_slc = np.abs(psf_soln[slc])
+            print(psf_slc.shape)
             psf_slc = psf_slc / np.max(psf_slc)
             volumes = (psf_slc, psf_slc)
             print('FWHM shape', fwhm.shape)
-            titles = ('PSF with FWHM {} pixels'.format(fwhm[15, 15, 3, :]), 'Same')
-            # fig1, tracker1 = plotVolumes(volumes, titles=titles, figsize=(16, 8))
+            titles = ('PSF with FWHM {} pixels'.format(fwhm[slc]), 'Same')
+            fig1, tracker1 = plotVolumes(volumes, titles=titles, figsize=(16, 8))
             # volumes = (fwhm[..., 0], fwhm[..., 1], fwhm[..., 2])
             # titles = ('FWHM x [mm]', 'FWHM y [mm]', 'FWHM z [mm]')
             volumes = (clean_input, target_input, psf_mask)
@@ -177,7 +202,7 @@ if __name__ == '__main__':
             volumes = (fwhm[..., 0], fwhm[..., 1])
             titles = ('FWHM x [pixels]', 'FWHM y [pixels]')
             # fig_r2, tracker_r2 = plotVolumes(volumes, titles=titles, figsize=(16, 8), vmin=0, vmax=10, cmap='tab20c', cbar=True)
-            fig_r2, tracker_r2 = plotVolumes(volumes, titles=titles, figsize=(16, 5), vmin=0, vmax=3, cmap='viridis', cbar=True)
+            fig_r2, tracker_r2 = plotVolumes(volumes, titles=titles, figsize=(16, 5), vmin=0, vmax=4, cmap='viridis', cbar=True)
 
     if map_all or args.geometric:
 
@@ -185,8 +210,8 @@ if __name__ == '__main__':
             print('Mapping geometric distortion...')
             start_time = time()
 
-        fixed_image = clean_image.data
-        moving_image = target_image.data
+        fixed_image = clean_image_data
+        moving_image = target_image_data
         mega_mask = analysis.combine_masks(mask_implant, mask_empty, mask_hyper, mask_hypo, mask_artifact)
         
         fixed_mask = np.logical_not(mask_empty)
