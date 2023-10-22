@@ -11,14 +11,6 @@ def equalize(image, reference, pct=90):
     # TODO find a more principled way
     return image / np.percentile(image, pct) * np.percentile(reference, pct)
 
-def denoise(image, filter_radius=2):
-    footprint = morphology.ball(filter_radius)
-    return ndi.median_filter(image, footprint=footprint)
-
-def cleanup(mask, filter_radius=2):
-    footprint = morphology.ball(filter_radius)
-    return morphology.binary_opening(mask, footprint)  # erosion (min), then dilation (max)
-
 def get_mask_lattice(image, filter_size=5):
     footprint = morphology.cube(filter_size)
     filtered_diffs = []
@@ -33,10 +25,10 @@ def get_mask_lattice(image, filter_size=5):
     mask = morphology.binary_closing(mask, footprint=footprint)
     return mask
 
-def get_mask_empty(image):
-    image = denoise(image)
+def get_mask_empty(image, filter_radius=3):
+    image = ndi.median_filter(image, footprint=morphology.ball(filter_radius))  # remove noise & structure
     mask = image < filters.threshold_otsu(image) # global Otsu
-    mask = cleanup(mask)
+    mask = morphology.binary_opening(mask, morphology.ball(filter_radius))  # erosion (min), then dilation (max)
     return mask
 
 def get_mask_signal(image1, image2, filter_radius=5):
@@ -57,52 +49,66 @@ def get_mask_implant(mask_empty, verbose=False):
     implant = order[-3] # implant is 3rd largest group (after air/frame, oil)
     return labels == implant
 
-def get_typical_level(image, filter_radius=3):
-    image = denoise(image)
-    footprint = morphology.ball(filter_radius)
-    image = morphology.closing(image, footprint=footprint) # dilation (max), then erosion (min)
+def remove_smaller_than(mask, size):
+    labelled_mask, num_labels = morphology.label(mask, return_num=True)
+    refined_mask = mask.copy()
+    for label in range(num_labels):
+        label_count = np.sum(refined_mask[labelled_mask == label])
+        if label_count < size:
+            refined_mask[labelled_mask == label] = 0
+        else:
+            print(label_count)
+    return refined_mask
+
+def get_typical_level(image, filter_size=10):
+    # remove noise & lattice
+    image = ndi.median_filter(image, footprint=morphology.cube(filter_size))
+    # fill in the dark spots with dilation
+    image = ndi.maximum_filter(image, footprint=np.ones((3 * filter_size, 3 * filter_size, filter_size)))
+    # dilation_threshold = 2 * filters.threshold_otsu(image)
+    # dilation_mask = (image < dilation_threshold)
+    # image[dilation_mask] = image_dilated[dilation_mask]
     return image
 
-def get_mask_artifact(error, signal_ref, is_denoised=True):
-    return get_mask_extrema(error, signal_ref, 0.3, 'mean', is_denoised)
+def get_mask_artifact(error, signal_ref):
+    return get_mask_extrema(error, signal_ref, 0.3, 'mean')
 
-def get_mask_hyper(error, signal_ref, is_denoised=True):
-    return get_mask_extrema(error, signal_ref, 0.6, 'max', is_denoised)
+def get_mask_hyper(error, signal_ref):
+    return get_mask_extrema(error, signal_ref, 0.3, 'mean', abs_margin=False)
 
-def get_mask_hypo(error, signal_ref, is_denoised=True):
-    return get_mask_extrema(error, signal_ref, -0.6, 'max', is_denoised)
+def get_mask_hypo(error, signal_ref):
+    return get_mask_extrema(error, signal_ref, -0.3, 'mean', abs_margin=False)
 
-def get_mask_extrema(error, signal_ref, margin, mode, is_denoised, filter_radius=2, return_stages=False):
-    if not is_denoised:
-        error = denoise(error)
+def get_mask_extrema(error, signal_ref, margin, mode, filter_radius=3, abs_margin=True):
     footprint = morphology.ball(filter_radius)
     if mode == 'max':
         filtered_error = ndi.maximum_filter(error * np.sign(margin), footprint=footprint)
     elif mode == 'mean':
-        filtered_error = ndi.generic_filter(error, np.sum, footprint=footprint) / np.sum(footprint)
-        filtered_error = np.abs(filtered_error)
+        filtered_error = ndi.generic_filter(error, np.mean, footprint=footprint)
     elif mode == 'median':
         filtered_error = ndi.median_filter(error, footprint=footprint)
-        filtered_error = np.abs(filtered_error)
-    mask = filtered_error > np.abs(margin) * signal_ref
-    mask_clean = cleanup(mask)
-    if return_stages:
-        return mask_clean, mask, filtered_error * np.sign(margin)
     else:
-        return mask_clean
+        raise ValueError('unrecognized mode: {}'.format(mode))
+    if abs_margin:
+        filtered_error = np.abs(filtered_error)
+        mask = filtered_error > np.abs(margin) * signal_ref
+    else:
+        mask = filtered_error * np.sign(margin) > np.abs(margin) * signal_ref
+    return mask, filtered_error
 
-def get_all_masks(image_clean, image_distorted, combine=False):
+def get_all_masks(image_clean, image_distorted, combine=False, denoise=False):
 
     empty = get_mask_empty(image_clean)
     implant = get_mask_implant(empty)
 
     error = image_distorted - image_clean 
-    denoised_error = denoise(error)
+    if denoise:
+        error = denoise(error)
 
     signal_ref = get_typical_level(image_clean)
-    hyper = get_mask_hyper(denoised_error, signal_ref)
-    hypo = get_mask_hypo(denoised_error, signal_ref)
-    artifact = get_mask_artifact(denoised_error, signal_ref)
+    hyper = get_mask_hyper(error, signal_ref)
+    hypo = get_mask_hypo(error, signal_ref)
+    artifact = get_mask_artifact(error, signal_ref)
 
     out = (implant, empty, hyper, hypo, artifact)
 

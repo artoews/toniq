@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 from pathlib import Path
 
 import analysis
@@ -18,6 +19,18 @@ series_dirs_msl = [
     '230830/13511_dicom/Series17',
 ]
 
+series_dirs_bw125 = [
+    '231021/13882_dicom/Series3',
+    '231021/13882_dicom/Series7',
+    '231021/13882_dicom/Series30',
+]
+ 
+series_dirs_msl = [
+    '231021/13882_dicom/Series21',
+    '231021/13882_dicom/Series25',
+    '231021/13882_dicom/Series30',
+]
+
 series_dirs = [root + s for s in series_dirs_bw125]
 pla1_files = Path(series_dirs[0]).glob('*MRDC*')
 pla2_files = Path(series_dirs[1]).glob('*MRDC*')
@@ -33,33 +46,24 @@ mask_empty = analysis.get_mask_empty(pla1.data)
 mask_implant = analysis.get_mask_implant(mask_empty)
 
 error = metal1.data - pla1.data
-denoised_error = analysis.denoise(error)
-is_denoised = True
 signal_ref = analysis.get_typical_level(pla1.data)
-stages_hyper = analysis.get_mask_extrema(denoised_error, signal_ref, 0.6, is_denoised, return_stages=True)
-stages_hypo = analysis.get_mask_extrema(denoised_error, signal_ref, -0.6, is_denoised, return_stages=True)
-stages_artifact = analysis.get_mask_extrema(denoised_error, signal_ref, 0.3, is_denoised, mag=True, return_stages=True)
+stages_artifact = analysis.get_mask_artifact(error, signal_ref)
+stages_artifact_hyper = analysis.get_mask_hyper(error, signal_ref)
+stages_artifact_hypo = analysis.get_mask_hypo(error, signal_ref)
 
 def plot_stages(stages, threshold, vmax=3e3):
-    clean_mask, raw_mask, filtered_error = stages
-    if threshold == 0.3:
-        filter_name = 'max-of-mag filter'
-    elif threshold > 0:
-        filter_name = 'max filter'
-    else:
-        filter_name = 'min filter'
-    threshold_name = 'threshold outside {}%'.format(threshold * 100)
+    mask, filtered_error = stages
+    threshold_name = 'threshold at {}%'.format(threshold * 100)
     volumes = ((error + vmax) / (2 * vmax),
-               (denoised_error + vmax) / (2 * vmax),
                (filtered_error + vmax) / (2 * vmax),
-               raw_mask,
-               clean_mask)
-    titles = ('metal-plastic difference', 'median filter', filter_name, threshold_name, 'opening filter')
+               signal_ref / vmax,
+               mask)
+    titles = ('metal-plastic difference', 'mean filter', 'signal level', threshold_name)
     fig, tracker = plotVolumes(volumes, 1, len(volumes), titles=titles, figsize=(16, 8))
     return fig, tracker
 
-fig1, tracker1 = plot_stages(stages_hyper, 0.6)
-fig2, tracker2 = plot_stages(stages_hypo, -0.6)
-fig3, tracker3 = plot_stages(stages_artifact, 0.3)
+fig1, tracker1 = plot_stages(stages_artifact, 0.3)
+fig2, tracker2 = plot_stages(stages_artifact_hyper, 0.3)
+fig3, tracker3 = plot_stages(stages_artifact_hypo, -0.3)
 
 plt.show()
