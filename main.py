@@ -20,8 +20,8 @@ from util import resize_image_matrix
 
 p = argparse.ArgumentParser(description='Image quality mapping toolbox for image volumes from metal phantom scans')
 p.add_argument('out', type=str, help='path where outputs are saved')
-p.add_argument('target_image', type=str, help='path to image volume; target for analysis')
 p.add_argument('clean_image', type=str, default=None, help='path to image volume; reference for analysis')
+p.add_argument('target_image', type=str, help='path to image volume; target for analysis')
 p.add_argument('-d', '--repeat_image', type=str, default=None, help='path to image volume; repetition of target; default=None')
 p.add_argument('-c', '--cell_size_mm', type=float, default=12, help='size of lattice unit cell (in mm); default=12')
 p.add_argument('-s', '--snr', action='store_true', help='map SNR, and nothing else unless explicitly indicated')
@@ -88,7 +88,7 @@ if __name__ == '__main__':
         map_all = True
     
     mask_empty = analysis.get_mask_empty(clean_image_data)
-    mask_signal = analysis.get_mask_signal(clean_image_data, target_image_data)
+    mask_signal = analysis.get_mask_signal(clean_image_data)
 
     if args.plot:
         volumes = (clean_image_data, target_image_data)
@@ -172,6 +172,15 @@ if __name__ == '__main__':
         fwhm[..., 1] = median_filter(fwhm[..., 1], size=int(cell_size_pixels))
         fwhm[..., 2] = median_filter(fwhm[..., 2], size=int(cell_size_pixels))
 
+        mask = (fwhm[..., 0] > 0)
+        fwhm_median = tuple(np.median(fwhm[..., i][mask]) for i in range(3))
+        fwhm_std = tuple(np.std(fwhm[..., i][mask]) for i in range(3))
+        print('--------------------------')
+        print('FWHM median +/- std')
+        for m, s in zip(fwhm_median, fwhm_std):
+            print('{:.2f} +/- {:.2f}'.format(m, s))
+        print('--------------------------')
+
         resolution = fwhm * voxel_size_mm  # TODO what if clean and target resolution are different?
         print('FWHM time: {:.1f} seconds elapsed.'.format(time() - start_fwhm_time))
 
@@ -203,6 +212,8 @@ if __name__ == '__main__':
             titles = ('FWHM x [pixels]', 'FWHM y [pixels]')
             # fig_r2, tracker_r2 = plotVolumes(volumes, titles=titles, figsize=(16, 8), vmin=0, vmax=10, cmap='tab20c', cbar=True)
             fig_r2, tracker_r2 = plotVolumes(volumes, titles=titles, figsize=(16, 5), vmin=0, vmax=4, cmap='viridis', cbar=True)
+
+
 
     if map_all or args.geometric:
 
@@ -240,5 +251,7 @@ if __name__ == '__main__':
         np.save(path.join(map_dir, 'jacobian_det.npy'), deformation_field)
         np.save(path.join(map_dir, 'registration_result.npy'), result)
         np.save(path.join(map_dir, 'registration_result_masked.npy'), result_masked)
+
+        # TODO plot geometric distortion results
     
     plt.show()

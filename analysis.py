@@ -31,13 +31,11 @@ def get_mask_empty(image, filter_radius=3):
     mask = morphology.binary_opening(mask, morphology.ball(filter_radius))  # erosion (min), then dilation (max)
     return mask
 
-def get_mask_signal(image1, image2, filter_radius=5):
-    image_product = np.abs(image1) * np.abs(image2)
-    footprint = morphology.ball(filter_radius)
-    image_product = util.img_as_ubyte(image_product / np.max(image_product))
-    threshold = filters.rank.otsu(image_product, footprint)  # local Otsu
-    mask = image_product > threshold
-    # TODO implement Brian's idea to check the otsu threshold value to detect if lattice is present. If not (i.e. threshold is very close to mean signal) then set threshold to 0.
+def get_mask_signal(image, filter_size=5):
+    image = np.abs(image)
+    image = util.img_as_ubyte(image / np.max(image))
+    threshold = filters.rank.otsu(image, morphology.cube(filter_size))  # local Otsu
+    mask = image > threshold
     return mask
 
 def get_mask_implant(mask_empty, verbose=False):
@@ -60,29 +58,37 @@ def remove_smaller_than(mask, size):
             print(label_count)
     return refined_mask
 
-def get_typical_level(image, filter_size=10):
-    # remove noise & lattice
-    image = ndi.median_filter(image, footprint=morphology.cube(filter_size))
-    # fill in the dark spots with dilation
-    image = ndi.maximum_filter(image, footprint=np.ones((3 * filter_size, 3 * filter_size, filter_size)))
-    # dilation_threshold = 2 * filters.threshold_otsu(image)
-    # dilation_mask = (image < dilation_threshold)
-    # image[dilation_mask] = image_dilated[dilation_mask]
-    return image
+def get_typical_level(image, signal_mask, implant_mask, filter_size=5):
+    # fill in implant area
+    filled_image = np.abs(image)
+    median_signal = np.median(filled_image[signal_mask])
+    # mean_signal = np.sum(image * signal_mask) / np.sum(signal_mask)
+    implant_mask = ndi.maximum_filter(implant_mask, size=filter_size)
+    # image[implant_mask] = mean_signal
+    filled_image[implant_mask] = median_signal
+    signal_sum = ndi.uniform_filter(filled_image * signal_mask, size=filter_size)
+    signal_count = ndi.uniform_filter(signal_mask, size=filter_size, output=float)
+    signal_mean =  np.divide(signal_sum, signal_count, out=np.zeros_like(signal_sum), where=signal_count > 0)
+    return signal_mean
 
 def get_mask_artifact(error, signal_ref):
-    return get_mask_extrema(error, signal_ref, 0.3, 'mean')
+    mask, _ = get_mask_extrema(error, signal_ref, 0.3, 'mean')
+    return mask
 
 def get_mask_hyper(error, signal_ref):
-    return get_mask_extrema(error, signal_ref, 0.3, 'mean', abs_margin=False)
+    mask, _ = get_mask_extrema(error, signal_ref, 0.3, 'mean', abs_margin=False)
+    return mask
 
 def get_mask_hypo(error, signal_ref):
-    return get_mask_extrema(error, signal_ref, -0.3, 'mean', abs_margin=False)
+    mask, _ = get_mask_extrema(error, signal_ref, -0.3, 'mean', abs_margin=False)
+    return mask
 
-def get_mask_extrema(error, signal_ref, margin, mode, filter_radius=3, abs_margin=True):
-    footprint = morphology.ball(filter_radius)
+def get_mask_extrema(error, signal_ref, margin, mode, filter_size=5, abs_margin=True):
+    footprint = morphology.cube(filter_size)
     if mode == 'max':
         filtered_error = ndi.maximum_filter(error * np.sign(margin), footprint=footprint)
+    elif mode == 'min':
+        filtered_error = ndi.minimum_filter(error * np.sign(margin), footprint=footprint)
     elif mode == 'mean':
         filtered_error = ndi.generic_filter(error, np.mean, footprint=footprint)
     elif mode == 'median':
@@ -100,12 +106,14 @@ def get_all_masks(image_clean, image_distorted, combine=False, denoise=False):
 
     empty = get_mask_empty(image_clean)
     implant = get_mask_implant(empty)
+    signal = get_mask_signal(image_clean)
 
     error = image_distorted - image_clean 
     if denoise:
         error = denoise(error)
 
-    signal_ref = get_typical_level(image_clean)
+
+    signal_ref = get_typical_level(image_clean, signal, implant)
     hyper = get_mask_hyper(error, signal_ref)
     hypo = get_mask_hypo(error, signal_ref)
     artifact = get_mask_artifact(error, signal_ref)
