@@ -77,6 +77,8 @@ def plotVolumes(volumes, nrows=None, ncols=None, vmin=0, vmax=1, cmap='gray', ti
             .format(len(volumes), nrows, ncols)
             )
     fig, axes = plt.subplots(nrows, ncols, sharex=True, sharey=True, figsize=figsize)
+    if nrows * ncols == 1:
+        axes = np.array([axes])
     fig.supylabel('Readout direction (x)')
     if titles is not None:
         for ax, title in zip(axes.flatten(), titles):
