@@ -5,6 +5,7 @@ from pathlib import Path
 import analysis
 import dicom
 from plot import plotVolumes
+from util import safe_divide
 
 root = '/Users/artoews/root/data/mri/'
 
@@ -49,7 +50,7 @@ mask_signal = analysis.get_mask_signal(pla1.data)
 
 error = metal1.data - pla1.data
 signal_ref = analysis.get_typical_level(pla1.data, mask_signal, mask_implant)
-# stages_artifact = analysis.get_mask_extrema(error, signal_ref, 0.3, 'mean', abs_margin=False, filter_size=2)
+stages_artifact = analysis.get_mask_extrema(error, signal_ref, 0.3, 'mean', abs_margin=True)
 stages_artifact_hyper = analysis.get_mask_extrema(error, signal_ref, 0.3, 'mean', abs_margin=False)
 stages_artifact_hypo = analysis.get_mask_extrema(error, signal_ref, -0.3, 'mean', abs_margin=False)
 
@@ -58,8 +59,8 @@ def plot_stages(stages, threshold, vmax=1):
     threshold_name = 'threshold at {}%'.format(threshold * 100)
     volumes = (pla1.data / vmax,
                metal1.data / vmax,
-               error / signal_ref + 0.5,
-               filtered_error / signal_ref + 0.5,
+               safe_divide(error, signal_ref) + 0.5,
+               safe_divide(filtered_error, signal_ref) + 0.5,
                # (error + vmax) / (2 * vmax),
                # (filtered_error + vmax) / (2 * vmax),
                signal_ref / vmax,
@@ -68,7 +69,7 @@ def plot_stages(stages, threshold, vmax=1):
     fig, tracker = plotVolumes(volumes, 1, len(volumes), titles=titles, figsize=(16, 8))
     return fig, tracker
 
-# fig1, tracker1 = plot_stages(stages_artifact, 0.3)
+fig1, tracker1 = plot_stages(stages_artifact, 0.3)
 fig2, tracker2 = plot_stages(stages_artifact_hyper, 0.3)
 fig3, tracker3 = plot_stages(stages_artifact_hypo, -0.3)
 
