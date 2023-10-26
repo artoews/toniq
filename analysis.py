@@ -71,8 +71,14 @@ def get_typical_level(image, signal_mask, implant_mask, filter_size=5):
     signal_mean =  np.divide(signal_sum, signal_count, out=np.zeros_like(signal_sum), where=signal_count > 0)
     return signal_mean
 
+def get_mask_register(mask_empty, mask_implant, mask_artifact, filter_radius=3):
+    mask = (mask_implant + mask_empty + mask_artifact) == 0
+    mask = ndi.binary_closing(mask, structure=morphology.ball(filter_radius))
+    mask = ndi.binary_opening(mask, structure=morphology.ball(2 * filter_radius))
+    return mask
+
 def get_mask_artifact(error, signal_ref):
-    mask, _ = get_mask_extrema(error, signal_ref, 0.3, 'mean')
+    mask, _ = get_mask_extrema(error, signal_ref, 0.3, 'mean', abs_margin=True)
     return mask
 
 def get_mask_hyper(error, signal_ref):
