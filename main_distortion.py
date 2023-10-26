@@ -74,7 +74,7 @@ if __name__ == '__main__':
             masks_register.append(mask_register)
         masks_register = np.stack(masks_register)
         
-        # TODO crop to lattice automatically
+        # TODO crop to lattice automatically, perhaps using get_mask_lattice ??
         slc = (slice(None), slice(25, 175), slice(50, 200), slice(10, 60))
         images = images[slc]
         masks_register = masks_register[slc]
