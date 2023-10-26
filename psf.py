@@ -71,7 +71,7 @@ def estimate_psf_kspace(patch_in, patch_out):
     # TODO set thresh based on noise std?
     kspace_in = sp.fft(patch_in)
     kspace_out = sp.fft(patch_out)
-    kspace_quotient = safe_divide(kspace_out, kspace_in, thresh=1e-2)
+    kspace_quotient = safe_divide(kspace_out, kspace_in, thresh=0)
     psf = np.abs(sp.ifft(kspace_quotient))
     return psf
 
