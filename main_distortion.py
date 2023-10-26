@@ -10,6 +10,7 @@ import analysis
 import dicom
 from plot import plotVolumes
 import register
+import distortion
 
 from util import safe_divide
 
@@ -29,17 +30,17 @@ def load_dicom_series(path):
 
 if __name__ == '__main__':
 
-    # parse command line arguments and save state for reference
     args = p.parse_args()
-    with open(path.join(args.root, 'args.txt'), 'w') as f:
-        json.dump(args.__dict__, f, indent=4)
     
     # set up directory structure
     save_dir = path.join(args.root, 'distortion')
     if not path.exists(save_dir):
         makedirs(save_dir)
-    
+
     if args.exam_root is not None and args.series_list is not None:
+
+        with open(path.join(save_dir, 'args.txt'), 'w') as f:
+            json.dump(args.__dict__, f, indent=4)
 
         # load data
         images = []
@@ -50,7 +51,7 @@ if __name__ == '__main__':
                 print('Found DICOM series {}; loaded data with shape {}'.format(series_name, image.shape))
 
         # extract relevant metadata and throw away the rest
-        pbw = np.array([image.meta.pixelBandwidth_Hz for image in images])
+        pbw = np.array([image.meta.pixelBandwidth_Hz for image in images[1:]])
         images = np.stack([image.data for image in images])
         
         # rescale data for comparison
@@ -85,19 +86,21 @@ if __name__ == '__main__':
         # quit()
         
         # run registration
-        if args.verbose:
-            print('Running registration...')
+        print('Running registration...')
         results = []
         results_masked = []
         fields = []
         fixed_mask = masks_register[0]
         itk_parameters = register.setup_nonrigid()
-        for image, moving_mask in zip(images[2:], masks_register[1:]):
+        num_trials = len(images) - 2
+        for i in range(num_trials):
+            if args.verbose:
+                print('on trial {} with PBWs {:.1f} and {:.1f} Hz'.format(i, pbw[0], pbw[1+i]))
             fixed_image = images[1]
-            moving_image = image 
+            moving_image = images[2+i]
+            moving_mask = masks_register[1+i]
             moving_image_masked = moving_image.copy()
             moving_image_masked[~moving_mask] = 0
-            # result, transform = register.nonrigid(fixed_image, moving_image, fixed_mask, moving_mask)
             result, transform = register.elastix_registration(fixed_image, moving_image, fixed_mask, moving_mask, itk_parameters)
             field = register.get_deformation_field(moving_image, transform)
             result_masked = register.transform(moving_image_masked, transform)
@@ -128,6 +131,9 @@ if __name__ == '__main__':
         
     else:
 
+        with open(path.join(save_dir, 'args_post.txt'), 'w') as f:
+            json.dump(args.__dict__, f, indent=4)
+
         data = np.load(path.join(save_dir, 'outputs.npz'))
         for var in data:
             globals()[var] = data[var]
@@ -141,42 +147,61 @@ if __name__ == '__main__':
         # pbw =             np.load(path.join(save_dir, 'pixelBandwidths_Hz.npy'))
 
     # plot image results figure for each trial
-    i = 0  # trial index
     fixed_image = images[1]
-    moving_image = images[2+i]
     fixed_mask = masks_register[1]
-    moving_mask = masks_register[1+i]
-    result = results[i]
-    result_masked = results_masked[i]
-
     fixed_image_masked = fixed_image.copy()
-    fixed_image_masked[fixed_mask] = 0
-    moving_image_masked = moving_image.copy()
-    moving_image_masked[moving_mask] = 0
+    fixed_image_masked[~fixed_mask] = 0
 
-    fields[i][np.abs(fields[i]) < 0.5] = 0
-    field_x = fields[i][..., 0] / 10 + 0.5
-    field_y = fields[i][..., 1] / 10 + 0.5
-    field_z = fields[i][..., 2] / 10 + 0.5
+    num_trials = len(images) - 2
 
-    volumes = (field_x, field_y, field_z)
-    titles = ('field x', 'field y', 'field z')
-    fig1, tracker1 = plotVolumes(volumes, titles=titles, figsize=(12, 8), cmap='RdBu')
+    for i in range(num_trials):
 
-    volumes = (fixed_image, moving_image, result, fixed_image_masked, moving_image_masked, result_masked)
-    titles = ('fixed', 'moving', 'result', 'fixed masked', 'moving masked', 'result masked')
-    fig2, tracker2 = plotVolumes(volumes, 2, len(volumes) // 2, titles=titles, figsize=(16, 8))
+        moving_image = images[2+i]
+        moving_mask = masks_register[1+i]
+        moving_image_masked = moving_image.copy()
+        moving_image_masked[~moving_mask] = 0
 
-    error = list(2 * np.abs(vol - fixed_image) * (np.abs(vol) > 0.1) for vol in volumes)
-    fig3, tracker3 = plotVolumes(error, 2, len(volumes) // 2, titles=titles, figsize=(16, 8))
+        result = results[i]
+        result_masked = results_masked[i]
+
+        fields[i][~fixed_mask] = 0
+        field_x = fields[i][..., 0] / 10 + 0.5
+        field_y = fields[i][..., 1] / 10 + 0.5
+        field_z = fields[i][..., 2] / 10 + 0.5
+
+        volumes = (field_x, field_y, field_z)
+        titles = ('field x', 'field y', 'field z')
+        fig1, tracker1 = plotVolumes(volumes, titles=titles, figsize=(12, 8), cmap='RdBu')
+
+        volumes = (fixed_image, moving_image, result, fixed_image_masked, moving_image_masked, result_masked)
+        titles = ('fixed', 'moving', 'result', 'fixed masked', 'moving masked', 'result masked')
+        fig2, tracker2 = plotVolumes(volumes, 2, len(volumes) // 2, titles=titles, figsize=(16, 8))
+
+        error = list(2 * np.abs(vol - fixed_image) * (np.abs(vol) > 0.1) for vol in volumes)
+        fig3, tracker3 = plotVolumes(error, 2, len(volumes) // 2, titles=titles, figsize=(16, 8))
 
     print('pbw', pbw)
 
-    plt.show()
-
     # run stats, combining all results into one figure
 
-        # group voxels by distance to the registration masks
-        # displacement vs b0 plot with a separate colr for each distortion instance
-                # reference line for given RBW
-                # data for each group represented by a line with error bands
+    fig, ax = plt.subplots()
+    f_max = 2000
+    prop_cycle = plt.rcParams['axes.prop_cycle']
+    colors = prop_cycle.by_key()['color']
+
+    for i in range(num_trials):
+        net_pbw = distortion.net_pixel_bandwidth(pbw[1+i], pbw[0])
+        displacement_map = np.abs(fields[i][..., 0])
+        mask = (displacement_map[i] > 0.5)  # TODO consider implant proximity masking instead
+        disp = displacement_map[i][mask]
+        field = disp * net_pbw # TODO hack for now; this should be the field map estimated from MSL
+        ax.scatter(field, disp, c=colors[i]) # TODO compress information with random subsampling or replace scatter altogether with line plot error bands, e.g. https://seaborn.pydata.org/examples/errorband_lineplots.html
+        ax.axline((0, 0), (f_max, f_max / net_pbw), color=colors[i], label='PBW={:.0f}Hz'.format(pbw[1+i]))
+    ax.set_xlabel('field [Hz]')
+    ax.set_ylabel('displacement [pixels]')
+    ax.set_xlim([0, f_max])
+    ax.set_ylim([0.5, f_max / net_pbw])
+
+    plt.legend()
+
+    plt.show()
