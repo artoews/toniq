@@ -24,13 +24,26 @@ class MultiIndexTracker:
     
     @property
     def max_index(self):
-        return self.shape[-1] - 1
+        if self.ndim == 3:
+            return self.shape[2] - 1
+        else:
+            return 0
+    
+    @property
+    def ndim(self):
+        return self.volumes[0].ndim
     
     def plot(self):
-        self.ims = [
-            ax.imshow(vol[:, :, self.index], **plot_args)
-            for ax, vol, plot_args in zip(self.axes, self.volumes, self.plot_args)
-            ]
+        if self.ndim == 3:
+            self.ims = [
+                ax.imshow(vol[:, :, self.index], **plot_args)
+                for ax, vol, plot_args in zip(self.axes, self.volumes, self.plot_args)
+                ]
+        elif self.ndim == 2:
+            self.ims = [
+                ax.imshow(vol, **plot_args)
+                for ax, vol, plot_args in zip(self.axes, self.volumes, self.plot_args)
+                ]
         if self.cbar:
             for im in self.ims:
                 plt.colorbar(im)
@@ -59,7 +72,10 @@ class MultiIndexTracker:
             self.plot()
         else:
             for im, vol in zip(self.ims, self.volumes):
-                im.set_data(vol[:, :, self.index])
+                if self.ndim == 3:
+                    im.set_data(vol[:, :, self.index])
+                elif self.ndim == 2:
+                    im.set_data(vol)
         self.fig.suptitle(f'Press "r" to reformat \n Use scroll wheel to navigate \n At slice index {self.index}/{self.max_index}')
         if self.reformat:
             self.fig.supxlabel('Slice dimension (z)')
