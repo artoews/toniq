@@ -1,7 +1,6 @@
 import numpy as np
 import scipy.ndimage as ndi
 from skimage import filters, morphology, restoration, util
-
 import register
 
 def normalize(image, pct=99):
@@ -11,19 +10,31 @@ def equalize(image, reference, pct=90):
     # TODO find a more principled way
     return image / np.percentile(image, pct) * np.percentile(reference, pct)
 
-def get_mask_lattice(image, filter_size=5):
-    footprint = morphology.cube(filter_size)
+def get_mask_lattice(image, diff_size=5, morph_size=10):
     filtered_diffs = []
     for axis in range(image.ndim):
         diff = np.abs(np.diff(image, axis=axis, append=0))
-        filtered_diff = ndi.generic_filter(diff, np.sum, footprint=footprint)
+        filtered_diff = ndi.generic_filter(diff, np.sum, footprint=morphology.cube(diff_size))
         filtered_diffs.append(filtered_diff)
     min_diff = np.min(np.stack(filtered_diffs, axis=-1), axis=-1)
     threshold = filters.threshold_otsu(min_diff)  # global Otsu
     mask = min_diff > threshold
-    mask = morphology.binary_opening(mask, footprint)
-    mask = morphology.binary_closing(mask, footprint=footprint)
+    mask = morphology.binary_opening(mask, morphology.cube(morph_size))
+    mask = morphology.binary_closing(mask, footprint=morphology.cube(morph_size))
     return mask
+
+# def get_inscribed_box_from_lattice(mask_lattice, lattice_shape):
+#     # this is way too slow! gets killed
+# 
+#     correlation = ndi.generic_filter(mask_lattice, np.sum, footprint=np.ones(lattice_shape, dtype=bool), mode='constant')
+#     idx = np.argmax(correlation)
+#     idx = np.unravel_index(idx, mask_lattice.shape)
+#     print(idx)
+#     slc = [slice(i - n//2, i + n//2) for i, n in zip(idx, lattice_shape)]
+#     box = np.zeros_like(mask_lattice)
+#     box[slc] = True
+#     # TODO erode until its fully contained
+#     return box
 
 def get_mask_empty(image, filter_radius=3):
     image = ndi.median_filter(image, footprint=morphology.ball(filter_radius))  # remove noise & structure
@@ -156,6 +167,7 @@ def combine_masks(implant, empty, hyper, hypo, artifact):
 def signal_to_noise(image1, image2, mask_signal, mask_empty, filter_radius=10):
     # "Difference Method" from Reeder et al 2005, extended to include a mask reducing signal bias from lattice
     footprint = morphology.ball(filter_radius)
+    # footprint = morphology.cube(filter_size)
     image_sum = np.abs(image2) + np.abs(image1)
     image_diff = np.abs(image2) - np.abs(image1)
     filter_sum = ndi.generic_filter(image_sum * mask_signal, np.sum, footprint=footprint)
