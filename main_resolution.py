@@ -5,6 +5,7 @@ import numpy as np
 import scipy.ndimage as ndi
 from os import path, makedirs
 from pathlib import Path
+import seaborn as sns
 from time import time
 
 import analysis
@@ -111,7 +112,16 @@ if __name__ == '__main__':
 
     num_trials = len(images) - 1
 
+    fwhm_x_masked_list = [fwhms[i][..., 0][fwhms[i][..., 0] > 0] for i in range(num_trials)]
+    plt.figure()
+    sns.violinplot(fwhm_x_masked_list)
+    fwhm_y_masked_list = [fwhms[i][..., 1][fwhms[i][..., 1] > 0] for i in range(num_trials)]
+    plt.figure()
+    sns.violinplot(fwhm_y_masked_list)
+
     for i in range(num_trials):
+
+        continue
 
         mask = (fwhms[i][..., 0] > 0)
         fwhm_median = tuple(np.median(fwhms[i][..., j][mask]) for j in range(3))
