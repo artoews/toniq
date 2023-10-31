@@ -37,7 +37,6 @@ if __name__ == '__main__':
     if not path.exists(save_dir):
         makedirs(save_dir)
 
-    # slc = (slice(40, 160), slice(65, 185), slice(15, 45))
     slc = (slice(35, 155), slice(65, 185), slice(15, 45))
 
     if args.exam_root is not None and args.series_list is not None:
@@ -145,16 +144,17 @@ if __name__ == '__main__':
     
     # make abstract figure
     slc = (slice(None), slice(None), image_ref.shape[2] // 2)
+    fs = 20
     fig, axes = plt.subplots(nrows=num_trials, ncols=6, figsize=(18, 6), gridspec_kw={'width_ratios': [1, 1, 1, 1, 1, 0.1]})
     for ax in axes.ravel():
         ax.set_xticks([])
         ax.set_yticks([])
     axes[0, 0].imshow(image_ref[slc], cmap='gray', vmin=0, vmax=1)
-    axes[0, 0].set_title('Plastic')
-    axes[0, 1].set_title('Metal')
-    axes[0, 2].set_title('Relative Error')
-    axes[0, 3].set_title('+ Mean Filter')
-    axes[0, 4].set_title('+ Threshold (30%)')
+    axes[0, 0].set_title('Plastic', fontsize=fs)
+    axes[0, 1].set_title('Metal', fontsize=fs)
+    axes[0, 2].set_title('Relative Error', fontsize=fs)
+    axes[0, 3].set_title('+ Mean Filter', fontsize=fs)
+    axes[0, 4].set_title('+ Threshold (30%)', fontsize=fs)
     # axes[0, 3].set_title('Intensity Artifact Map')
     # axes[0, 4].set_title('Intensity Artifact Mask')
     for i in range(num_trials):
@@ -169,7 +169,7 @@ if __name__ == '__main__':
         im = axes[i, 2].imshow(normalized_error_i[slc], cmap='RdBu', vmin=-1, vmax=1)
         axes[i, 3].imshow(maps_artifact[i][slc], cmap='RdBu', vmin=-1, vmax=1)
         axes[i, 4].imshow(mask_artifact[slc], cmap='RdBu', vmin=-1, vmax=1)
-        axes[i, 1].set_ylabel('Readout BW = +/- {:.0f} kHz'.format(rbw[i]/2))
+        axes[i, 1].set_ylabel('+/-{:.0f}kHz'.format(rbw[i]/2), fontsize=fs)
         plt.colorbar(im, cax=axes[i, 5], ticks=[-1, 0, 1])
     plt.savefig(path.join(save_dir, 'artifact_validation.png'))
     plt.show()
