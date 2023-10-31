@@ -40,7 +40,8 @@ if __name__ == '__main__':
     if not path.exists(save_dir):
         makedirs(save_dir)
     
-    slc = (slice(None), slice(25, 175), slice(50, 200), slice(10, 60))
+    # slc = (slice(None), slice(25, 175), slice(50, 200), slice(10, 60))
+    slc = (slice(None), slice(35, 155), slice(65, 185), 30)
 
     if args.exam_root is not None and args.series_list is not None:
 
@@ -57,6 +58,7 @@ if __name__ == '__main__':
 
         # extract relevant metadata and throw away the rest
         pbw = np.array([image.meta.pixelBandwidth_Hz for image in images[1:]])
+        rbw = np.array([image.meta.readoutBandwidth_kHz for image in images[1:]])
         images = np.stack([image.data for image in images])
         
         # rescale data for comparison
@@ -74,12 +76,13 @@ if __name__ == '__main__':
 
         masks_register = []
         for image in images[1:]:
-            mask_artifact = analysis.get_mask_artifact(image - images[0], signal_ref)
+            error = image - images[0]
+            normalized_error = safe_divide(error, signal_ref)
+            mask_artifact = analysis.get_mask_artifact(normalized_error)
             mask_register = analysis.get_mask_register(mask_empty, mask_implant, mask_artifact)
             masks_register.append(mask_register)
         masks_register = np.stack(masks_register)
         
-        # TODO crop to lattice automatically, perhaps using get_mask_lattice ?? 
         images = images[slc]
         masks_register = masks_register[slc]
 
@@ -124,7 +127,8 @@ if __name__ == '__main__':
                  results_masked=np.stack(results_masked),
                  masks_register=np.stack(masks_register),
                  fields=np.stack(fields),
-                 pbw=pbw
+                 pbw=pbw,
+                 rbw=rbw
                  )
         # np.save(path.join(save_dir, 'images.npy'), images)
         # np.save(path.join(save_dir, 'results.npy'), np.stack(results))
@@ -161,7 +165,7 @@ if __name__ == '__main__':
     true_field = -true_field / 2  # TODO hack
     true_field = ndi.median_filter(true_field, footprint=morphology.ball(5))
     true_field = true_field[slc[1:]] * 1000  # Hz
-    fig4, tracker4 = plotVolumes((images[0], true_field / 12000 + 0.5), titles=('trial 0', 'true_field'))
+    # fig4, tracker4 = plotVolumes((images[0], true_field / 12000 + 0.5), titles=('trial 0', 'true_field'))
     true_field_masked = true_field.copy()
     true_field_masked[~fixed_mask] = 0
 
@@ -180,23 +184,37 @@ if __name__ == '__main__':
         fields[i][~fixed_mask] = 0
         field_x = fields[i][..., 0]
         field_y = fields[i][..., 1]
-        field_z = fields[i][..., 2]
+        # field_z = fields[i][..., 2]
+
+        fig, axes = plt.subplots(nrows=2, ncols=3, figsize=(12, 8))
+        for ax in axes.ravel():
+            ax.set_xticks([])
+            ax.set_yticks([])
+        plt.delaxes(axes[1, 0])
+        # TODO make mask non-black
+        kwargs = {'cmap': 'gray', 'vmin': 0, 'vmax': 1}
+        fs = 20
+        axes[0, 0].imshow(fixed_image_masked, **kwargs)
+        axes[0, 1].imshow(moving_image_masked, **kwargs)
+        axes[0, 2].imshow(result_masked, **kwargs)
+        axes[1, 1].imshow(3 * (moving_image_masked - fixed_image_masked), **kwargs)
+        axes[1, 2].imshow(3 * (result_masked - fixed_image_masked), **kwargs)
+        # axes[0, 0].set_title('+/-{}kHz'.format(rbw[0]/2))
+        # axes[0, 1].set_title('+/-{}kHz'.format(rbw[1+i]/2))
+        axes[0, 0].set_title('Target (+/-{:.0f}kHz)'.format(rbw[0]/2), fontsize=fs)
+        axes[0, 1].set_title('Input (+/-{:.0f}kHz)'.format(rbw[1+i]/2), fontsize=fs)
+        axes[0, 2].set_title('Result', fontsize=fs)
+        axes[1, 1].set_ylabel('3x Error', fontsize=fs)
+        # axes[0, 3].set_title('Readout displacement')
+        # axes[0, 4].set_title('PE displacement')
+        plt.savefig(path.join(save_dir, 'distortion_validation_{:.0f}.png'.format(rbw[1+i]/2)))
 
         net_pbw = distortion.net_pixel_bandwidth(pbw[1+i], pbw[0])
         true_field_x = true_field_masked / net_pbw
 
-        volumes = (true_field_x, field_x, field_x - true_field_x, field_x / true_field_x)
-        titles = ('MSL field', 'Registration field', 'error')
-        fig1, tracker1 = plotVolumes(volumes, titles=titles, figsize=(12, 8), cmap='RdBu', vmin=-10, vmax=10)
-
-        volumes = (fixed_image, moving_image, result, fixed_image_masked, moving_image_masked, result_masked)
-        titles = ('fixed', 'moving', 'result', 'fixed masked', 'moving masked', 'result masked')
-        fig2, tracker2 = plotVolumes(volumes, 2, len(volumes) // 2, titles=titles, figsize=(16, 8))
-
-        error = list(2 * np.abs(vol - fixed_image) * (np.abs(vol) > 0.1) for vol in volumes)
-        fig3, tracker3 = plotVolumes(error, 2, len(volumes) // 2, titles=titles, figsize=(16, 8))
-
-    print('pbw', pbw)
+        volumes = (field_y, field_x, true_field_x, field_x - true_field_x, field_x / true_field_x)
+        titles = ('PE displacement', 'Readout disp.', 'MSL Readout disp.', 'difference', 'quotient')
+        fig1, tracker1 = plotVolumes(volumes, titles=titles, figsize=(12, 8), cmap='RdBu', vmin=-2, vmax=2, cbar=True)
 
     # run stats, combining all results into one figure
 
@@ -206,8 +224,6 @@ if __name__ == '__main__':
     colors = prop_cycle.by_key()['color']
 
     for i in range(num_trials):
-        if i == 0:
-            continue
         net_pbw = distortion.net_pixel_bandwidth(pbw[1+i], pbw[0])
         print('pixel BWs', pbw[0], pbw[1+i], net_pbw)
         displacement_map = np.abs(fields[i][..., 0])
