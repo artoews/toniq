@@ -1,6 +1,7 @@
 import argparse
 import json
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 from os import path, makedirs
 from pathlib import Path
@@ -36,6 +37,9 @@ if __name__ == '__main__':
     if not path.exists(save_dir):
         makedirs(save_dir)
 
+    # slc = (slice(40, 160), slice(65, 185), slice(15, 45))
+    slc = (slice(35, 155), slice(65, 185), slice(15, 45))
+
     if args.exam_root is not None and args.series_list is not None:
 
         with open(path.join(save_dir, 'args.txt'), 'w') as f:
@@ -50,7 +54,7 @@ if __name__ == '__main__':
                 print('Found DICOM series {}; loaded data with shape {}'.format(series_name, image.shape))
         
         # extract relevant metadata and throw away the rest
-        rbw = np.array([image.meta.readoutBandwidth_kHz for image in images[::2]])
+        rbw = np.array([image.meta.readoutBandwidth_kHz for image in images[1:]])
         images = np.stack([image.data for image in images])
 
         # rescale data for comparison
@@ -66,7 +70,6 @@ if __name__ == '__main__':
         mask_signal = analysis.get_mask_signal(images[0])
         signal_ref = analysis.get_typical_level(images[0], mask_signal, mask_implant)
 
-        slc = (slice(40, 160), slice(65, 185), slice(15, 45))
         images = images[(slice(None),) + slc]
         mask_empty = mask_empty[slc]
         mask_implant = mask_implant[slc]
@@ -115,12 +118,12 @@ if __name__ == '__main__':
         print('Begin plotting...')
 
     num_trials = len(images) - 1
+    image_ref = images[0]
 
     figs = [None] * num_trials
     trackers = [None] * num_trials
     for i in range(num_trials):
-
-        image_ref = images[0]
+        continue
         image_i = images[1+i]
         error_i = image_i - image_ref
         normalized_error_i = safe_divide(error_i, signal_ref)
@@ -139,5 +142,34 @@ if __name__ == '__main__':
 
         titles = ('plastic', 'metal', 'diff', 'norm. diff.', 'filtered norm. diff.', 'threshold at +/-30%')
         figs[i], trackers[i] = plotVolumes(volumes, 1, len(volumes), titles=titles, figsize=(16, 8), vmin=-1, vmax=1)
-
+    
+    # make abstract figure
+    slc = (slice(None), slice(None), image_ref.shape[2] // 2)
+    fig, axes = plt.subplots(nrows=num_trials, ncols=6, figsize=(18, 6), gridspec_kw={'width_ratios': [1, 1, 1, 1, 1, 0.1]})
+    for ax in axes.ravel():
+        ax.set_xticks([])
+        ax.set_yticks([])
+    axes[0, 0].imshow(image_ref[slc], cmap='gray', vmin=0, vmax=1)
+    axes[0, 0].set_title('Plastic')
+    axes[0, 1].set_title('Metal')
+    axes[0, 2].set_title('Relative Error')
+    axes[0, 3].set_title('+ Mean Filter')
+    axes[0, 4].set_title('+ Threshold (30%)')
+    # axes[0, 3].set_title('Intensity Artifact Map')
+    # axes[0, 4].set_title('Intensity Artifact Mask')
+    for i in range(num_trials):
+        image_i = images[1+i]
+        error_i = image_i - image_ref
+        normalized_error_i = safe_divide(error_i, signal_ref)
+        mask_artifact = np.zeros_like(maps_artifact[i])
+        mask_artifact[maps_artifact[i] > 0.3] = 0.3
+        mask_artifact[maps_artifact[i] < -0.3] = -0.3
+        if i > 0: plt.delaxes(axes[i, 0])
+        axes[i, 1].imshow(image_i[slc], cmap='gray', vmin=0, vmax=1)
+        im = axes[i, 2].imshow(normalized_error_i[slc], cmap='RdBu', vmin=-1, vmax=1)
+        axes[i, 3].imshow(maps_artifact[i][slc], cmap='RdBu', vmin=-1, vmax=1)
+        axes[i, 4].imshow(mask_artifact[slc], cmap='RdBu', vmin=-1, vmax=1)
+        axes[i, 1].set_ylabel('Readout BW = +/- {:.0f} kHz'.format(rbw[i]/2))
+        plt.colorbar(im, cax=axes[i, 5], ticks=[-1, 0, 1])
+    plt.savefig(path.join(save_dir, 'artifact_validation.png'))
     plt.show()
