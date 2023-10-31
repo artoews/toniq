@@ -88,16 +88,16 @@ def get_mask_register(mask_empty, mask_implant, mask_artifact, filter_radius=3):
     mask = ndi.binary_opening(mask, structure=morphology.ball(2 * filter_radius))
     return mask
 
-def get_mask_artifact(error, signal_ref):
-    mask, _ = get_mask_extrema(error, signal_ref, 0.3, 'mean', abs_margin=True)
+def get_mask_artifact(error):
+    mask, _ = get_mask_extrema(error, 0.3, 'mean', abs_margin=True)
     return mask
 
-def get_mask_hyper(error, signal_ref):
-    mask, _ = get_mask_extrema(error, signal_ref, 0.3, 'mean', abs_margin=False)
+def get_mask_hyper(error):
+    mask, _ = get_mask_extrema(error, 0.3, 'mean', abs_margin=False)
     return mask
 
-def get_mask_hypo(error, signal_ref):
-    mask, _ = get_mask_extrema(error, signal_ref, -0.3, 'mean', abs_margin=False)
+def get_mask_hypo(error):
+    mask, _ = get_mask_extrema(error, -0.3, 'mean', abs_margin=False)
     return mask
 
 def get_mask_extrema(error, margin, mode, filter_size=5, abs_margin=True):
