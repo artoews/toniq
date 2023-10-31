@@ -100,7 +100,7 @@ def get_mask_hypo(error, signal_ref):
     mask, _ = get_mask_extrema(error, signal_ref, -0.3, 'mean', abs_margin=False)
     return mask
 
-def get_mask_extrema(error, signal_ref, margin, mode, filter_size=5, abs_margin=True):
+def get_mask_extrema(error, margin, mode, filter_size=5, abs_margin=True):
     footprint = morphology.cube(filter_size)
     if mode == 'max':
         filtered_error = ndi.maximum_filter(error * np.sign(margin), footprint=footprint)
@@ -114,9 +114,9 @@ def get_mask_extrema(error, signal_ref, margin, mode, filter_size=5, abs_margin=
         raise ValueError('unrecognized mode: {}'.format(mode))
     if abs_margin:
         filtered_error = np.abs(filtered_error)
-        mask = filtered_error > np.abs(margin) * signal_ref
+        mask = filtered_error > np.abs(margin)
     else:
-        mask = filtered_error * np.sign(margin) > np.abs(margin) * signal_ref
+        mask = filtered_error * np.sign(margin) > np.abs(margin)
     return mask, filtered_error
 
 def get_all_masks(image_clean, image_distorted, combine=False, denoise=False):
