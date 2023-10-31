@@ -4,11 +4,11 @@ from skimage import filters, morphology, restoration, util
 import register
 
 def normalize(image, pct=99):
-    return image / np.percentile(image, pct)
+    return image / np.percentile(np.abs(image), pct)
 
 def equalize(image, reference, pct=90):
     # TODO find a more principled way
-    return image / np.percentile(image, pct) * np.percentile(reference, pct)
+    return image / np.percentile(np.abs(image), pct) * np.percentile(np.abs(reference), pct)
 
 def get_mask_lattice(image, diff_size=5, morph_size=10):
     filtered_diffs = []
