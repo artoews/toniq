@@ -4,8 +4,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from os import path, makedirs
 from pathlib import Path
+import scipy.ndimage as ndi
+from skimage import morphology
+import sigpy as sp
 from time import time
-
 import analysis
 import dicom
 from plot import plotVolumes
@@ -28,6 +30,7 @@ def load_dicom_series(path):
     image = dicom.load_series(files)
     return image
 
+
 if __name__ == '__main__':
 
     args = p.parse_args()
@@ -36,6 +39,8 @@ if __name__ == '__main__':
     save_dir = path.join(args.root, 'distortion')
     if not path.exists(save_dir):
         makedirs(save_dir)
+    
+    slc = (slice(None), slice(25, 175), slice(50, 200), slice(10, 60))
 
     if args.exam_root is not None and args.series_list is not None:
 
@@ -74,8 +79,7 @@ if __name__ == '__main__':
             masks_register.append(mask_register)
         masks_register = np.stack(masks_register)
         
-        # TODO crop to lattice automatically, perhaps using get_mask_lattice ??
-        slc = (slice(None), slice(25, 175), slice(50, 200), slice(10, 60))
+        # TODO crop to lattice automatically, perhaps using get_mask_lattice ?? 
         images = images[slc]
         masks_register = masks_register[slc]
 
@@ -145,12 +149,21 @@ if __name__ == '__main__':
         # masks_register =  np.load(path.join(save_dir, 'masks_register.npy'))
         # fields =          np.load(path.join(save_dir, 'fields.npy'))
         # pbw =             np.load(path.join(save_dir, 'pixelBandwidths_Hz.npy'))
+    
 
     # plot image results figure for each trial
     fixed_image = images[1]
     fixed_mask = masks_register[1]
     fixed_image_masked = fixed_image.copy()
     fixed_image_masked[~fixed_mask] = 0
+
+    true_field = np.load(path.join(args.root, 'field', 'field.npy'))  # kHz
+    true_field = -true_field / 2  # TODO hack
+    true_field = ndi.median_filter(true_field, footprint=morphology.ball(5))
+    true_field = true_field[slc[1:]] * 1000  # Hz
+    fig4, tracker4 = plotVolumes((images[0], true_field / 12000 + 0.5), titles=('trial 0', 'true_field'))
+    true_field_masked = true_field.copy()
+    true_field_masked[~fixed_mask] = 0
 
     num_trials = len(images) - 2
 
@@ -165,13 +178,16 @@ if __name__ == '__main__':
         result_masked = results_masked[i]
 
         fields[i][~fixed_mask] = 0
-        field_x = fields[i][..., 0] / 10 + 0.5
-        field_y = fields[i][..., 1] / 10 + 0.5
-        field_z = fields[i][..., 2] / 10 + 0.5
+        field_x = fields[i][..., 0]
+        field_y = fields[i][..., 1]
+        field_z = fields[i][..., 2]
 
-        volumes = (field_x, field_y, field_z)
-        titles = ('field x', 'field y', 'field z')
-        fig1, tracker1 = plotVolumes(volumes, titles=titles, figsize=(12, 8), cmap='RdBu')
+        net_pbw = distortion.net_pixel_bandwidth(pbw[1+i], pbw[0])
+        true_field_x = true_field_masked / net_pbw
+
+        volumes = (true_field_x, field_x, field_x - true_field_x, field_x / true_field_x)
+        titles = ('MSL field', 'Registration field', 'error')
+        fig1, tracker1 = plotVolumes(volumes, titles=titles, figsize=(12, 8), cmap='RdBu', vmin=-10, vmax=10)
 
         volumes = (fixed_image, moving_image, result, fixed_image_masked, moving_image_masked, result_masked)
         titles = ('fixed', 'moving', 'result', 'fixed masked', 'moving masked', 'result masked')
@@ -190,12 +206,15 @@ if __name__ == '__main__':
     colors = prop_cycle.by_key()['color']
 
     for i in range(num_trials):
+        if i == 0:
+            continue
         net_pbw = distortion.net_pixel_bandwidth(pbw[1+i], pbw[0])
+        print('pixel BWs', pbw[0], pbw[1+i], net_pbw)
         displacement_map = np.abs(fields[i][..., 0])
-        mask = (displacement_map[i] > 0.5)  # TODO consider implant proximity masking instead
-        disp = displacement_map[i][mask]
-        field = disp * net_pbw # TODO hack for now; this should be the field map estimated from MSL
-        ax.scatter(field, disp, c=colors[i]) # TODO compress information with random subsampling or replace scatter altogether with line plot error bands, e.g. https://seaborn.pydata.org/examples/errorband_lineplots.html
+        # mask = (displacement_map > 1)  # TODO consider implant proximity masking instead
+        disp = displacement_map.ravel()
+        # true_field = disp * net_pbw  # hack for perfect result
+        ax.scatter(np.abs(true_field_masked.ravel()), disp, c=colors[i], s=0.1, marker='.') # TODO compress information with random subsampling or replace scatter altogether with line plot error bands, e.g. https://seaborn.pydata.org/examples/errorband_lineplots.html
         ax.axline((0, 0), (f_max, f_max / net_pbw), color=colors[i], label='PBW={:.0f}Hz'.format(pbw[1+i]))
     ax.set_xlabel('field [Hz]')
     ax.set_ylabel('displacement [pixels]')
