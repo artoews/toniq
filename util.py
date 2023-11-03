@@ -27,3 +27,9 @@ def coord_mats(shape, res=None, loc=(0.5, 0.5, 0.5), offset=0):
         res = (1,) * len(shape)
     coord_vecs = (r * (np.arange(s, dtype=float) - int(s * l) + offset) for r, s, l in zip(res, shape, loc))
     return np.meshgrid(*coord_vecs, indexing='ij')
+
+def masked_copy(arr, mask, fill_val=0):
+    ''' return copy of arr with values outside mask set to fill_val '''
+    arr_copy = arr.copy()
+    arr_copy[~mask] = fill_val
+    return arr_copy
