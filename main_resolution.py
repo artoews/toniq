@@ -6,6 +6,8 @@ import scipy.ndimage as ndi
 from os import path, makedirs
 from pathlib import Path
 import seaborn as sns
+import sigpy as sp
+from skimage import morphology
 from time import time
 
 import analysis
@@ -60,19 +62,60 @@ if __name__ == '__main__':
             raise ValueError('Isotropic resolution is required, but got: ', images[0].meta.resolution_mm)
         unit_cell_pixels = int(args.unit_cell_mm / voxel_size_mm)
         print('From voxel size {} mm, compute unit cell size is {} pixels'.format(voxel_size_mm, unit_cell_pixels))
+
+        # hack: overwrite images to be copies of the reference with masked k-space 
+        # k_full = sp.fft(images[0].data)
+        # fullShape = k_full.shape
+        # for i in range(1, len(images)):
+        #     acqShape = images[i].meta.acqMatrixShape
+        #     print('hacking image {} to be copy of reference image {} with k-space shape {}'.format(i, fullShape, acqShape))
+        #     k = sp.resize(sp.resize(k_full, acqShape), fullShape)
+        #     images[i].data = np.abs(sp.ifft(k))
+
         images = np.stack([image.data for image in images])
 
         # rescale data for comparison
         images[0] = analysis.normalize(images[0])
         for i in range(1, len(images)):
             images[i] = analysis.equalize(images[i], images[0])
+        
+        # plot line pairs
+        slc_x = (slice(182, 214), slice(113, 145), 15)
+        slc_y = (slice(182, 214), slice(151, 183), 15)
+        fig_x, axes_x = plt.subplots(nrows=1, ncols=len(images)-1, figsize=(12, 3))
+        fig_y, axes_y = plt.subplots(nrows=1, ncols=len(images)-1, figsize=(12, 3))
+        plot_kwargs = {'vmin': 0, 'vmax': 1, 'cmap': 'gray'}
+        for i in range(len(images)-1):
+            j = i + 1
+            print(images.shape)
+            print(images[j].shape)
+            print(slc_x)
+            print(images[j][slc_x].shape)
+            axes_x[i].imshow(images[j][slc_x], **plot_kwargs)
+            axes_x[i].set_title('{} x {}'.format(shapes[j][0], shapes[j][1]))
+            axes_y[i].imshow(images[j][slc_y], **plot_kwargs)
+            axes_y[i].set_title('{} x {}'.format(shapes[j][0], shapes[j][1]))
+            axes_x[i].set_xticks([])
+            axes_x[i].set_yticks([])
+            axes_y[i].set_xticks([])
+            axes_y[i].set_yticks([])
+        plt.show()
+        fig_x.savefig(path.join(save_dir, 'line_pairs_x.png'))
+        fig_y.savefig(path.join(save_dir, 'line_pairs_y.png'))
+        quit()
 
         # compute masks
         if args.verbose:
             print('Computing masks...')
+        mask_empty = analysis.get_mask_empty(images[0])
+        mask_implant = analysis.get_mask_implant(mask_empty)
         mask_lattice = analysis.get_mask_lattice(images[0])
+        mask_psf = np.logical_and(mask_lattice, ~mask_implant)
 
-        # TODO is there any need for cropping if we are using the mask_lattice anyway?
+        slc = (slice(35, 155), slice(65, 185), slice(15, 45))
+
+        mask_psf = mask_psf[slc]
+        images = images[(slice(None),) + slc]
 
         # compute PSF & FWHM
         num_trials = len(images) - 1
@@ -82,7 +125,7 @@ if __name__ == '__main__':
         for i in range(num_trials):
             if args.verbose:
                 print('on trial {} with acquired matrix shapes {} and {} Hz'.format(i, shapes[0], shapes[1+i]))
-            psf_i = psf.map_psf(images[0], images[1+i], mask_lattice, patch_shape, None, args.stride, 'kspace', num_workers=8)
+            psf_i = psf.map_psf(images[0], images[1+i], mask_psf, patch_shape, None, args.stride, 'kspace', num_workers=8)
             fwhm_i = fwh.get_FWHM_in_parallel(psf_i)
             for j in range(3):
                 fwhm_i[..., j] = ndi.median_filter(fwhm_i[..., j], size=int(unit_cell_pixels))
@@ -94,11 +137,12 @@ if __name__ == '__main__':
             print('Saving outputs...')
         np.savez(path.join(save_dir, 'outputs.npz'),
             images=images,
-            mask_lattice=mask_lattice,
+            mask_psf=mask_psf,
             shapes=shapes,
             psfs=psfs,
-            fwhms=fwhms,
-            voxel_size_mm=voxel_size_mm
+            fwhms=np.stack(fwhms),
+            voxel_size_mm=voxel_size_mm,
+            unit_cell_pixels=unit_cell_pixels
          )
     
     else:
@@ -112,12 +156,20 @@ if __name__ == '__main__':
 
     num_trials = len(images) - 1
 
+    mask_psf_eroded = ndi.binary_erosion(fwhms[0][..., 0] > 0, structure=morphology.cube(int(unit_cell_pixels)))
+    for i in range(num_trials):
+        for j in range(3):
+            fwhms[i][~mask_psf_eroded, j] = 0
+
     fwhm_x_masked_list = [fwhms[i][..., 0][fwhms[i][..., 0] > 0] for i in range(num_trials)]
     plt.figure()
     sns.violinplot(fwhm_x_masked_list)
+    plt.savefig(path.join(save_dir, 'resolution_x.png'))
+
     fwhm_y_masked_list = [fwhms[i][..., 1][fwhms[i][..., 1] > 0] for i in range(num_trials)]
     plt.figure()
     sns.violinplot(fwhm_y_masked_list)
+    plt.savefig(path.join(save_dir, 'resolution_y.png'))
 
     for i in range(num_trials):
 
@@ -133,7 +185,7 @@ if __name__ == '__main__':
         print('--------------------------')
 
         shape = psfs[i].shape
-        slc = (int(shape[0] * 0.5), int(shape[1] * 0.5), int(shape[2] * 0.5))
+        slc = (int(shape[0] * 0.25), int(shape[1] * 0.25), int(shape[2] * 0.25))
         psf_slc = np.abs(psfs[i][slc])
         psf_slc = psf_slc / np.max(psf_slc)
 
@@ -141,8 +193,8 @@ if __name__ == '__main__':
         titles = ('PSF with FWHM {} pixels'.format(fwhms[i][slc]), 'Same')
         fig1, tracker1 = plotVolumes(volumes, titles=titles, figsize=(16, 8))
 
-        volumes = (images[0], images[i], mask_lattice)
-        titles = ('Input image', 'Output image', 'Lattice mask')
+        volumes = (images[0], images[i], mask_psf)
+        titles = ('Input image', 'Output image', 'PSF mask')
         fig2, tracker2 = plotVolumes(volumes, titles=titles, figsize=(16, 8))
 
         volumes = (fwhms[i][..., 0], fwhms[i][..., 1], fwhms[i][..., 2])
