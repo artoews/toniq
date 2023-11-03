@@ -29,7 +29,7 @@ def center_of_mass(mass, coords, axis):
     return np.sum(coords * normalized_mass, axis=axis)
 
 def grad_maps(gz, gx, shape, res):
-    x, _, z = coord_mats(shape, res=res, loc=(0.5, 0.5, 0.5), offset=0)
+    x, _, z = coord_mats(shape, res=res, loc=(0.5, 0.5, 0.5), offset=0.5)
     gz_map = gz * z
     gx_map = gx * x
     return gx_map, gz_map  # kHz
@@ -110,7 +110,7 @@ if __name__ == '__main__':
     bin_images[~mask] = 0
 
     # field map estimation and save result
-    bin_centers = np.arange(-12, 12)
+    bin_centers = np.linspace(-11.5, 11.5, 24)  # TODO read this from the scan archive
     field = center_of_mass(bin_images, bin_centers, -1)
 
     # adjust field to remove VAT
@@ -119,8 +119,14 @@ if __name__ == '__main__':
     G_cm_to_kHz_mm = 0.42577
     gx = 1.912 * G_cm_to_kHz_mm  # kHz/mm
     gz = 0.795 * G_cm_to_kHz_mm # kHz/mm
-    _, field_vat = grad_maps(gz, gx, seq_shape, seq_res)
-    field = field - field_vat
+    # _, field_vat = grad_maps(gz, gx, seq_shape, seq_res)
+    # field = field - field_vat
+    # VAT field not needed here if you are going to take the difference from the plastic field anyway
+
+    # print('field at top edge', field[14:18, 64, 15])
+    # for i in range(12, 24):
+    #     print('bin {} at top edge {}'.format(i, bin_images[14:18, 64, 15, i]))
+    # print('bin_centers', bin_centers[12:])
 
     # form composite image from RSOS bin combination
     image = rsos(bin_images, axis=-1)  # combine bins
@@ -149,8 +155,8 @@ if __name__ == '__main__':
         volumes += [bin_images[..., i]]
         titles += ['bin {}'.format(i)]
     fig0, tracker0 = plotVolumes(volumes)
-    fig1, tracker1 = plotVolumes((image, field / 12 + 0.5,))
-    fig2, tracker2 = plotVolumes((bin_images[:, :, 16, :],))
+    fig1, tracker1 = plotVolumes(((image - 0.5) * 12, field), vmin=-12, vmax=12)
+    fig2, tracker2 = plotVolumes((bin_images[:, :, 15, :],))
     if args.reference is not None:
         fig3, tracker3 = plotVolumes((image, ref_image, np.abs(image - ref_image) + 0.5), titles=('scanarchive', 'dicom', 'difference'))
 

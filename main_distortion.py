@@ -6,15 +6,16 @@ from os import path, makedirs
 from pathlib import Path
 import scipy.ndimage as ndi
 from skimage import morphology
+import seaborn as sns
 import sigpy as sp
 from time import time
 import analysis
 import dicom
-from plot import plotVolumes
+from plot import plotVolumes, overlay_mask
 import register
 import distortion
 
-from util import safe_divide
+from util import safe_divide, masked_copy
 
 
 p = argparse.ArgumentParser(description='Geometric distortion analysis of 2DFSE multi-slice image volumes with varying readout bandwidth.')
@@ -29,7 +30,6 @@ def load_dicom_series(path):
     files = Path(path).glob('*MRDC*')
     image = dicom.load_series(files)
     return image
-
 
 if __name__ == '__main__':
 
@@ -60,6 +60,8 @@ if __name__ == '__main__':
         pbw = np.array([image.meta.pixelBandwidth_Hz for image in images[1:]])
         rbw = np.array([image.meta.readoutBandwidth_kHz for image in images[1:]])
         images = np.stack([image.data for image in images])
+        print('pbw', pbw)
+        print('rbw', rbw)
         
         # rescale data for comparison
         images[0] = analysis.normalize(images[0])
@@ -96,7 +98,7 @@ if __name__ == '__main__':
         print('Running registration...')
         results = []
         results_masked = []
-        fields = []
+        deformation_fields = []
         fixed_mask = masks_register[0]
         itk_parameters = register.setup_nonrigid()
         num_trials = len(images) - 2
@@ -106,16 +108,18 @@ if __name__ == '__main__':
             fixed_image = images[1]
             moving_image = images[2+i]
             moving_mask = masks_register[1+i]
+
             moving_image_masked = moving_image.copy()
             moving_image_masked[~moving_mask] = 0
+
             result, transform = register.elastix_registration(fixed_image, moving_image, fixed_mask, moving_mask, itk_parameters)
-            field = register.get_deformation_field(moving_image, transform)
+            deformation_field = register.get_deformation_field(moving_image, transform)
             result_masked = register.transform(moving_image_masked, transform)
-            result_masked[np.abs(result_masked) < 1e-2] = 0  # TODO check this threshold
-            result_masked[~fixed_mask] = 0
+            result_mask = np.logical_and(np.abs(result_masked) > 0.1, fixed_mask)
+            result_masked = masked_copy(result_masked, result_mask)
             results.append(result)
             results_masked.append(result_masked)
-            fields.append(field)
+            deformation_fields.append(deformation_field)
         
         # save outputs
         if args.verbose:
@@ -126,7 +130,7 @@ if __name__ == '__main__':
                  results=np.stack(results),
                  results_masked=np.stack(results_masked),
                  masks_register=np.stack(masks_register),
-                 fields=np.stack(fields),
+                 deformation_fields=np.stack(deformation_fields),
                  pbw=pbw,
                  rbw=rbw
                  )
@@ -145,98 +149,116 @@ if __name__ == '__main__':
         data = np.load(path.join(save_dir, 'outputs.npz'))
         for var in data:
             globals()[var] = data[var]
-        
-        # load outputs
-        # images =          np.load(path.join(save_dir, 'images.npy'))
-        # result =          np.load(path.join(save_dir, 'results.npy'))
-        # result_masked =   np.load(path.join(save_dir, 'results_masked.npy'))
-        # masks_register =  np.load(path.join(save_dir, 'masks_register.npy'))
-        # fields =          np.load(path.join(save_dir, 'fields.npy'))
-        # pbw =             np.load(path.join(save_dir, 'pixelBandwidths_Hz.npy'))
-    
 
     # plot image results figure for each trial
     fixed_image = images[1]
     fixed_mask = masks_register[1]
-    fixed_image_masked = fixed_image.copy()
-    fixed_image_masked[~fixed_mask] = 0
+    fixed_image_masked = masked_copy(fixed_image, fixed_mask)
 
-    true_field = np.load(path.join(args.root, 'field', 'field.npy'))  # kHz
-    true_field = -true_field / 2  # TODO hack
-    true_field = ndi.median_filter(true_field, footprint=morphology.ball(5))
+    # true_field = np.load(path.join(args.root, 'field', 'field.npy'))  # kHz
+    true_field = np.load(path.join(args.root, 'field', 'field-metal.npy')) - np.load(path.join(args.root, 'field', 'field-plastic.npy'))  # kHz
+    true_field = -true_field
+    true_field = ndi.median_filter(true_field, footprint=morphology.ball(4))
+    # true_field = ndi.generic_filter(true_field, np.mean, footprint=morphology.ball(3))
     true_field = true_field[slc[1:]] * 1000  # Hz
-    # fig4, tracker4 = plotVolumes((images[0], true_field / 12000 + 0.5), titles=('trial 0', 'true_field'))
-    true_field_masked = true_field.copy()
-    true_field_masked[~fixed_mask] = 0
+
+    # fig4, tracker4 = plotVolumes((images[0] * 24e3 - 12e3, true_field), titles=('trial 0', 'true_field'), vmin=-12e3, vmax=12e3)
+    # true_field_masked = masked_copy(true_field, fixed_mask)
 
     num_trials = len(images) - 2
 
-    for i in range(num_trials):
+    # abstract validation figure panel A: image result
 
-        moving_image = images[2+i]
+    fig, axes = plt.subplots(nrows=num_trials, ncols=5, figsize=(20, 8))
+    fs = 20
+    kwargs = {'cmap': 'gray', 'vmin': 0, 'vmax': 1}
+    axes[0, 0].imshow(fixed_image_masked, **kwargs)
+    overlay_mask(axes[0, 0], ~fixed_mask)
+    error_multiplier = 3
+    for ax in axes.ravel():
+        ax.set_xticks([])
+        ax.set_yticks([])
+    for i in range(num_trials):
         moving_mask = masks_register[1+i]
-        moving_image_masked = moving_image.copy()
-        moving_image_masked[~moving_mask] = 0
+        moving_image_masked = masked_copy(images[2+i], moving_mask)
+        init_error = np.abs(moving_image_masked - fixed_image_masked) * error_multiplier
+        result_error = np.abs(results_masked[i] - fixed_image_masked) * error_multiplier
+        init_mask =  (moving_image_masked != 0) * (fixed_image_masked != 0)
+        result_mask = (results_masked[i] != 0)
+        # color_mask = np.zeros(result_error.shape + (4,), dtype=np.uint8)
+        # color_mask[~result_mask, :] = np.array([0, 0, 255, 255], dtype=np.uint8)
+        axes[i, 1].imshow(moving_image_masked, **kwargs)
+        axes[i, 2].imshow(results_masked[i], **kwargs)
+        axes[i, 3].imshow(init_error * init_mask, **kwargs)
+        axes[i, 4].imshow(result_error * result_mask, **kwargs)
+        overlay_mask(axes[i, 1], ~moving_mask)
+        overlay_mask(axes[i, 2], ~result_mask)
+        overlay_mask(axes[i, 3], ~init_mask)
+        overlay_mask(axes[i, 4], ~result_mask)
+        axes[i, 1].set_ylabel('RBW={:.3g}kHz'.format(rbw[1+i]), fontsize=fs)
+        if i > 0:
+            plt.delaxes(axes[i, 0])
+    axes[0, 0].set_title('Fixed Image', fontsize=fs)
+    axes[0, 1].set_title('Moving Image', fontsize=fs)
+    axes[0, 2].set_title('Registration', fontsize=fs)
+    axes[0, 3].set_title('Initial Error (3x)', fontsize=fs)
+    axes[0, 4].set_title('Final Error (3x)', fontsize=fs)
+    axes[0, 0].set_ylabel('RBW={:.3g}kHz'.format(rbw[0]), fontsize=fs)
+    plt.savefig(path.join(save_dir, 'validation_distortion_images.png'), dpi=300)
 
-        result = results[i]
-        result_masked = results_masked[i]
+    # abstract validation figure panel B: field result
 
-        fields[i][~fixed_mask] = 0
-        field_x = fields[i][..., 0]
-        field_y = fields[i][..., 1]
-        # field_z = fields[i][..., 2]
-
-        fig, axes = plt.subplots(nrows=2, ncols=3, figsize=(12, 8))
-        for ax in axes.ravel():
-            ax.set_xticks([])
-            ax.set_yticks([])
-        plt.delaxes(axes[1, 0])
-        # TODO make mask non-black
-        kwargs = {'cmap': 'gray', 'vmin': 0, 'vmax': 1}
-        fs = 20
-        axes[0, 0].imshow(fixed_image_masked, **kwargs)
-        axes[0, 1].imshow(moving_image_masked, **kwargs)
-        axes[0, 2].imshow(result_masked, **kwargs)
-        axes[1, 1].imshow(3 * (moving_image_masked - fixed_image_masked), **kwargs)
-        axes[1, 2].imshow(3 * (result_masked - fixed_image_masked), **kwargs)
-        # axes[0, 0].set_title('+/-{}kHz'.format(rbw[0]/2))
-        # axes[0, 1].set_title('+/-{}kHz'.format(rbw[1+i]/2))
-        axes[0, 0].set_title('Target (+/-{:.0f}kHz)'.format(rbw[0]/2), fontsize=fs)
-        axes[0, 1].set_title('Input (+/-{:.0f}kHz)'.format(rbw[1+i]/2), fontsize=fs)
-        axes[0, 2].set_title('Result', fontsize=fs)
-        axes[1, 1].set_ylabel('3x Error', fontsize=fs)
-        # axes[0, 3].set_title('Readout displacement')
-        # axes[0, 4].set_title('PE displacement')
-        plt.savefig(path.join(save_dir, 'distortion_validation_{:.0f}.png'.format(rbw[1+i]/2)))
-
-        net_pbw = distortion.net_pixel_bandwidth(pbw[1+i], pbw[0])
-        true_field_x = true_field_masked / net_pbw
-
-        volumes = (field_y, field_x, true_field_x, field_x - true_field_x, field_x / true_field_x)
-        titles = ('PE displacement', 'Readout disp.', 'MSL Readout disp.', 'difference', 'quotient')
-        fig1, tracker1 = plotVolumes(volumes, titles=titles, figsize=(12, 8), cmap='RdBu', vmin=-2, vmax=2, cbar=True)
-
-    # run stats, combining all results into one figure
-
-    fig, ax = plt.subplots()
-    f_max = 2000
-    prop_cycle = plt.rcParams['axes.prop_cycle']
-    colors = prop_cycle.by_key()['color']
-
+    fig, axes = plt.subplots(nrows=num_trials, ncols=4, figsize=(12, 8), gridspec_kw={'width_ratios': [1, 1, 1, 0.1]})
+    kwargs = {'cmap': 'RdBu', 'vmin': -4, 'vmax': 4}
+    fs = 20
+    for ax in axes.ravel():
+        ax.set_xticks([])
+        ax.set_yticks([])
     for i in range(num_trials):
         net_pbw = distortion.net_pixel_bandwidth(pbw[1+i], pbw[0])
-        print('pixel BWs', pbw[0], pbw[1+i], net_pbw)
-        displacement_map = np.abs(fields[i][..., 0])
-        # mask = (displacement_map > 1)  # TODO consider implant proximity masking instead
-        disp = displacement_map.ravel()
-        # true_field = disp * net_pbw  # hack for perfect result
-        ax.scatter(np.abs(true_field_masked.ravel()), disp, c=colors[i], s=0.1, marker='.') # TODO compress information with random subsampling or replace scatter altogether with line plot error bands, e.g. https://seaborn.pydata.org/examples/errorband_lineplots.html
-        ax.axline((0, 0), (f_max, f_max / net_pbw), color=colors[i], label='PBW={:.0f}Hz'.format(pbw[1+i]))
-    ax.set_xlabel('field [Hz]')
-    ax.set_ylabel('displacement [pixels]')
-    ax.set_xlim([0, f_max])
-    ax.set_ylim([0.5, f_max / net_pbw])
+        result_mask = (results_masked[i] != 0)
+        moving_image_masked = masked_copy(images[2+i], masks_register[1+i])
+        simulated_deformation = true_field / net_pbw
+        measured_deformation = deformation_fields[i][..., 0]
+        axes[i, 0].imshow(simulated_deformation * result_mask, **kwargs)
+        axes[i, 1].imshow(measured_deformation * result_mask, **kwargs)
+        im = axes[i, 2].imshow((simulated_deformation - measured_deformation) * result_mask, **kwargs)
+        overlay_mask(axes[i, 0], ~result_mask)
+        overlay_mask(axes[i, 1], ~result_mask)
+        overlay_mask(axes[i, 2], ~result_mask)
+        axes[i, 0].set_ylabel('RBW={:.3g}kHz'.format(rbw[1+i]), fontsize=fs)
+        cb = plt.colorbar(im, cax=axes[i, 3], ticks=[-4, -2, 0, 2, 4])
+        cb.set_label(label='Readout Disp. (pixels)', size=int(fs*0.7))
+    axes[0, 0].set_title('Reference', fontsize=fs)
+    axes[0, 1].set_title('Registration', fontsize=fs)
+    axes[0, 2].set_title('Error', fontsize=fs)
+    plt.savefig(path.join(save_dir, 'validation_distortion_fields.png'), dpi=300)
 
-    plt.legend()
+    # abstract validation figure panel C: line plots
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    f_max = 1500
+    fs = 14
+    colors = ['black', 'red', 'blue']
+    for i in range(num_trials):
+        result_mask = (results_masked[i] != 0)
+        net_pbw = distortion.net_pixel_bandwidth(pbw[1+i], pbw[0])
+        measured_deformation = deformation_fields[i][..., 0]
+        field_bins = np.round(true_field / 100) * 100
+        # measured_deformation = np.abs(measured_deformation)
+        # field_bins = np.abs(field_bins)
+        # plots mean line and 95% confidence band
+        sns.lineplot(x=(field_bins * result_mask).ravel(),
+                     y=(measured_deformation * result_mask).ravel(),
+                     ax=ax, legend='brief', label='{0:.3g}kHz'.format(rbw[i+1]), color=colors[i])
+        # ax.scatter((field_bins * result_mask).ravel(), (np.abs(measured_deformation) * result_mask).ravel(), c=colors[i], s=0.1, marker='.')
+        ax.axline((-f_max, -f_max / net_pbw), (f_max, f_max / net_pbw), color=colors[i], linestyle='--')
+    ax.set_xlabel('Off-Resonance (Hz)', fontsize=fs)
+    ax.set_ylabel('Readout Disp. (pixels)', fontsize=fs)
+    ax.set_xlim([-f_max, f_max])
+    ax.set_ylim([-f_max / net_pbw, f_max / net_pbw])
+    plt.legend(title='Readout BW', fontsize=fs)
+    plt.grid()
+    plt.savefig(path.join(save_dir, 'validation_distortion_summary.png'), dpi=300)
 
     plt.show()
