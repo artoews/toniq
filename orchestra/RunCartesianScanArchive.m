@@ -57,8 +57,11 @@ for i = 1:archive.ControlCount
             % Get Info
             info = GERecon('Archive.Info', archive, pass, slice);
 
+            % Apply Gradwarp
+            gradwarpedImage = GERecon('Gradwarp', magnitudeImage, info.Corners);
+
             % Orient the image
-            finalImage = GERecon('Orient', magnitudeImage, info.Orientation);
+            finalImage = GERecon('Orient', gradwarpedImage, info.Orientation);
 
             % Display
             imagesc(finalImage);
