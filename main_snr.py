@@ -129,7 +129,7 @@ if __name__ == '__main__':
     num_trials = len(images) // 2
 
     for i in range(num_trials):
-        # continue
+        continue
 
         image1 = images[2*i]
         image2 = images[2*i+1]
@@ -146,26 +146,31 @@ if __name__ == '__main__':
         titles = ('Image 1', 'Image 2', 'Difference (5x)', 'Sum (0.5x)', 'Signal Mask')
         fig2, tracker2 = plotVolumes(volumes, 1, len(volumes), titles=titles, figsize=(16, 8))
     
-    # sns.set_theme(style="darkgrid")
-
-    # sns.lineplot(x="timepoint", y="signal",
-    #             hue="region", style="event",
-    #             data=fmri)
-
-    fig, ax = plt.subplots(figsize=(16, 8))
-    prop_cycle = plt.rcParams['axes.prop_cycle']
-    colors = prop_cycle.by_key()['color']
-    ax.axline((0, 0), (1, 1))
+    fig3, ax3 = plt.subplots(figsize=(6, 6))
+    fig4, ax4 = plt.subplots(figsize=(6, 6))
+    colors = ['black', 'red', 'blue']
+    ax3.axline((0, 0), (1, 1), color='gray', linestyle='--')
+    ax4.axline((0, 0), (1, 1), color='gray', linestyle='--')
+    fs = 15
     for i in range(1, num_trials):
         expected_factor = np.sqrt(rbw[0] / rbw[i])
-        print('expected factor', expected_factor)
-        ax.scatter(expected_factor * snrs[0], snrs[i], c=colors[i], label='+/-{} kHz'.format(rbw[i]/2))
-    ax.set_xlabel('Expected SNR')
-    ax.set_ylabel('Measured SNR')
-    plt.legend()
+        expected_snr_rounded = np.round(expected_factor * snrs[0])
+        sns.lineplot(x=expected_snr_rounded.ravel(), y=snrs[i].ravel(), ax=ax3, legend='brief', label='{:.3g}kHz'.format(rbw[i]), color=colors[i-1])  # plots mean line and 95% confidence band
+        ax4.scatter(expected_factor * snrs[0], snrs[i], c=colors[i-1], label='{:.3g}kHz'.format(rbw[i]), s=0.01, marker='.')
+    for ax in (ax3, ax4):
+        ax.set_xlim([10, 55])
+        ax.set_ylim([10, 55])
+        ax.set_xlabel('Expected SNR', fontsize=fs)
+        ax.set_ylabel('Measured SNR', fontsize=fs)
+        ax.set_xticks('font')
+        ax.set_aspect('equal', 'box')
+        ax.legend(title='Readout BW', fontsize=fs)
+        ax.grid()
+    fig3.savefig(path.join(save_dir, 'validation_snr.png'), dpi=300)
+    fig4.savefig(path.join(save_dir, 'snr_pixel_cloud.png'), dpi=300)
 
-    volumes = [snrs[i+1] / snrs[0] / np.sqrt(rbw[0] / rbw[i+1]) for i in range(0, num_trials-1)]
-    titles = ['+/-{} kHz'.format(b/2) for b in rbw[1:]]
-    fig3, tracker3 = plotVolumes(volumes, titles=titles, cbar=True, cmap='RdBu', vmin=0, vmax=2, figsize=(16, 8))
+    # volumes = [snrs[i+1] / snrs[0] / np.sqrt(rbw[0] / rbw[i+1]) for i in range(0, num_trials-1)]
+    # titles = ['{:.3g}kHz'.format(b) for b in rbw[1:]]
+    # fig3, tracker3 = plotVolumes(volumes, titles=titles, cbar=True, cmap='RdBu', vmin=0, vmax=2, figsize=(16, 8))
 
     plt.show()
