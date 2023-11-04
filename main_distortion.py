@@ -157,7 +157,6 @@ if __name__ == '__main__':
 
     # true_field = np.load(path.join(args.root, 'field', 'field.npy'))  # kHz
     true_field = np.load(path.join(args.root, 'field', 'field-metal.npy')) - np.load(path.join(args.root, 'field', 'field-plastic.npy'))  # kHz
-    true_field = -true_field
     true_field = ndi.median_filter(true_field, footprint=morphology.ball(4))
     # true_field = ndi.generic_filter(true_field, np.mean, footprint=morphology.ball(3))
     true_field = true_field[slc[1:]] * 1000  # Hz
@@ -209,7 +208,7 @@ if __name__ == '__main__':
     # abstract validation figure panel B: field result
 
     fig, axes = plt.subplots(nrows=num_trials, ncols=4, figsize=(12, 8), gridspec_kw={'width_ratios': [1, 1, 1, 0.1]})
-    kwargs = {'cmap': 'RdBu', 'vmin': -4, 'vmax': 4}
+    kwargs = {'cmap': 'RdBu_r', 'vmin': -4, 'vmax': 4}
     fs = 20
     for ax in axes.ravel():
         ax.set_xticks([])
@@ -219,7 +218,7 @@ if __name__ == '__main__':
         result_mask = (results_masked[i] != 0)
         moving_image_masked = masked_copy(images[2+i], masks_register[1+i])
         simulated_deformation = true_field / net_pbw
-        measured_deformation = deformation_fields[i][..., 0]
+        measured_deformation = -deformation_fields[i][..., 0]
         axes[i, 0].imshow(simulated_deformation * result_mask, **kwargs)
         axes[i, 1].imshow(measured_deformation * result_mask, **kwargs)
         im = axes[i, 2].imshow((simulated_deformation - measured_deformation) * result_mask, **kwargs)
@@ -243,7 +242,7 @@ if __name__ == '__main__':
     for i in range(num_trials):
         result_mask = (results_masked[i] != 0)
         net_pbw = distortion.net_pixel_bandwidth(pbw[1+i], pbw[0])
-        measured_deformation = deformation_fields[i][..., 0]
+        measured_deformation = -deformation_fields[i][..., 0]
         field_bins = np.round(true_field / 100) * 100
         # measured_deformation = np.abs(measured_deformation)
         # field_bins = np.abs(field_bins)
