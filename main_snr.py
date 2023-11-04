@@ -129,15 +129,14 @@ if __name__ == '__main__':
     num_trials = len(images) // 2
 
     for i in range(num_trials):
-        continue
 
         image1 = images[2*i]
         image2 = images[2*i+1]
 
         # volumes = (image1, image2, 10 * noise_stds[i] + 0.5, signals[i], snrs[i] / 80)
         # titles = ('Image 1 of pair', 'Image 2 of pair', 'Noise St. Dev. (10x)', 'Signal Mean', 'SNR (0 to 80)')
-        volumes = (image1, image2, signals[i], snrs[i] / 80)
-        titles = ('Image 1 of pair', 'Image 2 of pair', 'Signal Mean', 'SNR (0 to 80)')
+        volumes = (image1, image2, signals[i], snrs[i] / 200)
+        titles = ('Image 1 of pair', 'Image 2 of pair', 'Signal Mean', 'SNR (0 to 200)')
         fig1, tracker1 = plotVolumes(volumes, 1, len(volumes), titles=titles, figsize=(16, 8))
 
         image_diff = 5 * (image2 - image1) + 0.5
@@ -162,15 +161,10 @@ if __name__ == '__main__':
         ax.set_ylim([10, 55])
         ax.set_xlabel('Expected SNR', fontsize=fs)
         ax.set_ylabel('Measured SNR', fontsize=fs)
-        ax.set_xticks('font')
         ax.set_aspect('equal', 'box')
         ax.legend(title='Readout BW', fontsize=fs)
         ax.grid()
     fig3.savefig(path.join(save_dir, 'validation_snr.png'), dpi=300)
     fig4.savefig(path.join(save_dir, 'snr_pixel_cloud.png'), dpi=300)
-
-    # volumes = [snrs[i+1] / snrs[0] / np.sqrt(rbw[0] / rbw[i+1]) for i in range(0, num_trials-1)]
-    # titles = ['{:.3g}kHz'.format(b) for b in rbw[1:]]
-    # fig3, tracker3 = plotVolumes(volumes, titles=titles, cbar=True, cmap='RdBu', vmin=0, vmax=2, figsize=(16, 8))
 
     plt.show()

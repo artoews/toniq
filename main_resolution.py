@@ -84,6 +84,9 @@ if __name__ == '__main__':
         slc_y = (slice(182, 214), slice(151, 183), 15)
         fig_x, axes_x = plt.subplots(nrows=1, ncols=len(images)-1, figsize=(12, 3))
         fig_y, axes_y = plt.subplots(nrows=1, ncols=len(images)-1, figsize=(12, 3))
+        if len(images) == 2:
+            axes_x = np.array([axes_x])
+            axes_y = np.array([axes_y])
         plot_kwargs = {'vmin': 0, 'vmax': 1, 'cmap': 'gray'}
         for i in range(len(images)-1):
             j = i + 1
@@ -99,10 +102,8 @@ if __name__ == '__main__':
             axes_x[i].set_yticks([])
             axes_y[i].set_xticks([])
             axes_y[i].set_yticks([])
-        plt.show()
         fig_x.savefig(path.join(save_dir, 'line_pairs_x.png'))
         fig_y.savefig(path.join(save_dir, 'line_pairs_y.png'))
-        quit()
 
         # compute masks
         if args.verbose:
@@ -173,8 +174,6 @@ if __name__ == '__main__':
 
     for i in range(num_trials):
 
-        continue
-
         mask = (fwhms[i][..., 0] > 0)
         fwhm_median = tuple(np.median(fwhms[i][..., j][mask]) for j in range(3))
         fwhm_std = tuple(np.std(fwhms[i][..., j][mask]) for j in range(3))
@@ -193,7 +192,7 @@ if __name__ == '__main__':
         titles = ('PSF with FWHM {} pixels'.format(fwhms[i][slc]), 'Same')
         fig1, tracker1 = plotVolumes(volumes, titles=titles, figsize=(16, 8))
 
-        volumes = (images[0], images[i], mask_psf)
+        volumes = (images[0], images[1+i], mask_psf)
         titles = ('Input image', 'Output image', 'PSF mask')
         fig2, tracker2 = plotVolumes(volumes, titles=titles, figsize=(16, 8))
 
