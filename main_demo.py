@@ -103,10 +103,11 @@ for i in range(len(dirs)):
     plt.colorbar(im, cax=axes[i, 3], ticks=[-1, 0, 1], label='Relative Error')
     axes[i, 3].yaxis.set_label_position('left')
     artifacts_all += [maps_artifact[0].ravel()]
-    if i == 0:
-        mask_artifact = (np.abs(artifacts_all[0]) > 0.3)
-    else:
-        mask_artifact = np.logical_or(mask_artifact, np.abs(artifacts_all[0]) > 0.3)
+    mask_artifact = np.ones(artifacts_all[-1].shape, dtype=np.bool)
+    # if i == 0:
+    #     mask_artifact = (np.abs(artifacts_all[0]) > 0.3)
+    # else:
+    #     mask_artifact = np.logical_or(mask_artifact, np.abs(artifacts_all[0]) > 0.3)
 
     load_outputs(dirs[i], 'distortion')
     print('loaded distortion outputs for {} @ RBW={:.3g}kHz'.format(seqs[i], rbw[1]))
@@ -116,6 +117,7 @@ for i in range(len(dirs)):
     im = axes[i, 4].imshow(measured_deformation, vmin=-4, vmax=4, cmap='RdBu_r')
     plt.colorbar(im, cax=axes[i, 5], ticks=[-4, -2, 0, 2, 4], label='Readout Displacement (pixels)')
     axes[i, 5].yaxis.set_label_position('left')
+    # axes[-1, 4].hist(np.abs(measured_deformation[np.abs(measured_deformation)>0].ravel()), bins=np.linspace(0, 2, 21), alpha=0.5, label=seqs[i])
     axes[-1, 4].hist(measured_deformation[np.abs(measured_deformation)>0].ravel(), bins=np.linspace(-2, 2, 21), alpha=0.5, label=seqs[i])
 
     load_outputs(dirs[i], 'resolution')
@@ -135,7 +137,8 @@ for i in range(len(dirs)):
     axes[-1, 8].hist(snr[snr>0].ravel() / scan_times[i], bins=np.linspace(0, 1, 21), alpha=0.5, label=seqs[i])
 
 for i in range(len(dirs)):
-    axes[-1, 2].hist(artifacts_all[i][mask_artifact].ravel(), bins=np.linspace(-1, 1, 21), alpha=0.5, label=seqs[i])
+    axes[-1, 2].hist(np.abs(artifacts_all[i][mask_artifact].ravel()), bins=np.linspace(0, 1, 21), alpha=0.5, label=seqs[i])
+    # axes[-1, 2].hist(artifacts_all[i][mask_artifact].ravel(), bins=np.linspace(-1, 1, 21), alpha=0.5, label=seqs[i])
 axes[-1, 2].legend()
 axes[-1, 2].set_ylabel('Voxels')
 axes[-1, 2].set_xlabel('Relative Error')
