@@ -7,6 +7,7 @@ from multiprocessing import Pool
 from util import safe_divide
 
 def batch_with_overlap(volume, overlap, num_batches, axis=-1):
+    # TODO add some smart handling for when the number of batches exceeds the number of slices
     starts = np.arange(0, volume.shape[axis] - overlap)
     starts_of_batches = np.array_split(starts, num_batches)
     indices_of_batches = tuple(np.arange(starts_of_batch[0], starts_of_batch[-1] + overlap + 1) for starts_of_batch in starts_of_batches)
