@@ -66,4 +66,6 @@ def fwhm(x, im=None):
 
 def find_root(x1, y1, x2, y2):
     # find zero-crossing of line through points (x1, y1) and (x2, y2)
+    if y1 == y2:
+        print('find_root division by zero')
     return x1 - y1 * (x2 - x1) / (y2 - y1)
