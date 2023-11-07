@@ -4,6 +4,7 @@ import numpy as np
 from os import path, makedirs
 from pathlib import Path
 import scipy.ndimage as ndi
+import scipy.stats as stats
 from skimage import morphology
 import seaborn as sns
 import sigpy as sp
@@ -30,11 +31,12 @@ def load_outputs(root, subfolder):
 # MSL @ 125 kHz = 6:44 (404s)
 
 # identify the data folders
-fse_dir = '/Users/artoews/root/code/projects/metal-phantom/demo-msl-250'
-msl_dir = '/Users/artoews/root/code/projects/metal-phantom/demo-msl-125'
-seqs = ['250 kHz', '125 kHz']
-short_seqs = ['250', '125']
-scan_times = [404, 269]
+fse_dir = '/Users/artoews/root/code/projects/metal-phantom/demo-fse-250'
+msl_dir = ['/Users/artoews/root/code/projects/metal-phantom/demo-msl-250', '/Users/artoews/root/code/projects/metal-phantom/demo-msl-125']
+seqs = ['FSE 250kHz', 'MSL 250kHz', 'MSL 125kHz']
+short_seqs = ['F250', 'M250', 'M125']
+scan_times = [81, 269, 404]
+colors = ['black', 'red', 'blue']
 
 # fse_dir = '/Users/artoews/root/code/projects/metal-phantom/demo-fse-125'
 # msl_dir = '/Users/artoews/root/code/projects/metal-phantom/demo-msl-125'
@@ -43,12 +45,12 @@ scan_times = [404, 269]
 # seqs = ['2D FSE', 'MAVRIC-SL']
 # short_seqs = ['FSE', 'MSL']
 # scan_times = [81, 269]
-dirs = [fse_dir, msl_dir]
+dirs = [fse_dir] + msl_dir
 
 # setup the figure
 fig, axes = plt.subplots(   nrows=len(dirs)+1,
                             ncols=10,
-                            figsize=(22, 10),
+                            figsize=(24, 12),
                             gridspec_kw={'width_ratios': [1, 1, 1, 0.1, 1, 0.1, 1, 0.1, 1, 0.1]})
 
 for i in range(axes.shape[0]):
@@ -57,12 +59,17 @@ for i in range(axes.shape[0]):
             continue
         axes[i, j].set_xticks([])
         axes[i, j].set_yticks([])
+for i in range(1, axes.shape[0]):
+    plt.delaxes(axes[i, 3])
+    plt.delaxes(axes[i, 5])
+    plt.delaxes(axes[i, 7])
+    plt.delaxes(axes[i, 9])
 plt.delaxes(axes[-1, 0])
 plt.delaxes(axes[-1, 1])
-plt.delaxes(axes[-1, 3])
-plt.delaxes(axes[-1, 5])
-plt.delaxes(axes[-1, 7])
-plt.delaxes(axes[-1, 9])
+# plt.delaxes(axes[-1, 3])
+# plt.delaxes(axes[-1, 5])
+# plt.delaxes(axes[-1, 7])
+# plt.delaxes(axes[-1, 9])
 # axes[-1, 2].axvspan(-0.3, 0.3, facecolor='0.8', alpha=0.5, zorder=-100)
 axes[-1, 2].set_yticks([])
 axes[-1, 4].set_yticks([])
@@ -87,7 +94,7 @@ for i in range(len(dirs)):
         axes[i, 2].set_title('Artifact', fontsize=fs)
         axes[i, 4].set_title('Distortion', fontsize=fs)
         axes[i, 6].set_title('Resolution', fontsize=fs)
-        axes[i, 8].set_title('SNR', fontsize=fs)
+        axes[i, 8].set_title('Noise', fontsize=fs)
 
     plastic_image = images[0][slc]
     print('got plastic image @ RBW={:.3g}kHz'.format(rbw[0]))
@@ -100,8 +107,11 @@ for i in range(len(dirs)):
 
     intensity_map = maps_artifact[0][slc]
     im = axes[i, 2].imshow(intensity_map, vmin=-1, vmax=1, cmap='RdBu_r')
-    plt.colorbar(im, cax=axes[i, 3], ticks=[-1, 0, 1], label='Relative Error')
-    axes[i, 3].yaxis.set_label_position('left')
+    if i == 0:
+        cb = plt.colorbar(im, cax=axes[i, 3], ticks=[-1, 0, 1])
+        cb.set_label(label='Relative Error', size=fs*0.75)
+        axes[i, 3].yaxis.set_label_position('left')
+        axes[i, 3].tick_params(labelsize=fs*0.75)
     artifacts_all += [maps_artifact[0].ravel()]
     mask_artifact = np.ones(artifacts_all[-1].shape, dtype=np.bool)
     # if i == 0:
@@ -114,75 +124,114 @@ for i in range(len(dirs)):
     result_mask = (results_masked[0][slc] != 0)
     measured_deformation = -deformation_fields[0][..., 0][slc]
     measured_deformation = measured_deformation * result_mask
-    im = axes[i, 4].imshow(measured_deformation, vmin=-4, vmax=4, cmap='RdBu_r')
-    plt.colorbar(im, cax=axes[i, 5], ticks=[-4, -2, 0, 2, 4], label='Readout Displacement (pixels)')
-    axes[i, 5].yaxis.set_label_position('left')
-    # axes[-1, 4].hist(np.abs(measured_deformation[np.abs(measured_deformation)>0].ravel()), bins=np.linspace(0, 2, 21), alpha=0.5, label=seqs[i])
-    axes[-1, 4].hist(measured_deformation[np.abs(measured_deformation)>0].ravel(), bins=np.linspace(-2, 2, 21), alpha=0.5, label=seqs[i])
+    im = axes[i, 4].imshow(measured_deformation, vmin=-2, vmax=2, cmap='RdBu_r')
+    if i == 0:
+        cb = plt.colorbar(im, cax=axes[i, 5], ticks=[-2, -1, 0, 1, 2])
+        cb.set_label(label='Displacement (pixels)', size=fs*0.75)
+        axes[i, 5].yaxis.set_label_position('left')
+        axes[i, 5].tick_params(labelsize=fs*0.75)
+    x = np.linspace(-2, 2, 50)
+    y = measured_deformation[np.abs(measured_deformation)>0].ravel()
+    # axes[-1, 4].hist(np.abs(y), bins=np.linspace(0, 2, 21), alpha=0.5, label=seqs[i])
+    density = stats.gaussian_kde(y)
+    axes[-1, 4].plot(x, density(x), c=colors[i], label=seqs[i])
+    axes[-1, 4].set_xticks([-2, -1, 0, 1, 2])
+    axes[-1, 4].tick_params(labelsize=fs*0.75)
 
     load_outputs(dirs[i], 'resolution')
     print('loaded resolution outputs')
     res_x = fwhms[0][..., 0][slc]
     im = axes[i, 6].imshow(res_x, vmin=0, vmax=2, cmap='viridis')
-    plt.colorbar(im, cax=axes[i, 7], ticks=[0, 1, 2], label='Readout FWHM (pixels)')
-    axes[i, 7].yaxis.set_label_position('left')
-    axes[-1, 6].hist(res_x[res_x>0].ravel(), bins=np.linspace(0, 2, 21), alpha=0.5, label=seqs[i])
+    if i == 0:
+        cb = plt.colorbar(im, cax=axes[i, 7], ticks=[0, 1, 2])
+        cb.set_label(label='FWHM (pixels)', size=fs*0.75)
+        axes[i, 7].yaxis.set_label_position('left')
+        axes[i, 7].tick_params(labelsize=fs*0.75)
+    x = np.linspace(0, 2, 50)
+    y = res_x[res_x>0].ravel()
+    # axes[-1, 6].hist(y, bins=np.linspace(0, 2, 21), alpha=0.5, label=seqs[i])
+    density = stats.gaussian_kde(y)
+    axes[-1, 6].plot(x, density(x), c=colors[i], label=seqs[i])
+    axes[-1, 6].set_xticks([0, 0.5, 1, 1.5, 2])
+    axes[-1, 6].tick_params(labelsize=fs*0.75)
 
     load_outputs(dirs[i], 'noise')
     print('loaded noise outputs for {} @ RBW={:.3g}kHz'.format(seqs[i], rbw[0]))
-    snr = snrs[0][slc]
-    im = axes[i, 8].imshow(snr, vmin=0, vmax=150, cmap='viridis')
-    plt.colorbar(im, cax=axes[i, 9], ticks=[0, 50, 100, 150])
-    axes[i, 9].yaxis.set_label_position('left')
-    axes[-1, 8].hist(snr[snr>0].ravel() / scan_times[i], bins=np.linspace(0, 1, 21), alpha=0.5, label=seqs[i])
+    plot_snr=False
+    if plot_snr:
+        snr = snrs[0][slc]
+        im = axes[i, 8].imshow(snr, vmin=0, vmax=150, cmap='viridis')
+        if i == 0:
+            cb = plt.colorbar(im, cax=axes[i, 9], ticks=[0, 50, 100, 150])
+            cb.set_label(label='SNR (a.u.)', size=fs*0.75)
+            axes[i, 9].tick_params(labelsize=fs*0.75)
+            axes[i, 9].yaxis.set_label_position('left')
+        x = np.linspace(0, 10, 50)
+        y = snr[snr>0].ravel() / np.sqrt(scan_times[i])
+    else:
+        # plot noise
+        noise = noise_stds[0][slc] * 40
+        im = axes[i, 8].imshow(noise, vmin=0, vmax=1, cmap='viridis')
+        if i == 0:
+            cb = plt.colorbar(im, cax=axes[i, 9], ticks=[0, 1])
+            cb.set_label(label='St. Dev. (a.u.)', size=fs*0.75)
+            axes[i, 9].tick_params(labelsize=fs*0.75)
+            axes[i, 9].yaxis.set_label_position('left')
+        x = np.linspace(0, 10, 50)
+        y = noise[noise>0].ravel() * np.sqrt(scan_times[i])
+    # axes[-1, 8].hist(y, bins=np.linspace(0, 1, 21), alpha=0.5, label=seqs[i])
+    density = stats.gaussian_kde(y)
+    axes[-1, 8].plot(x, density(x), c=colors[i], label=seqs[i])
+    axes[-1, 8].tick_params(labelsize=fs*0.75)
 
 for i in range(len(dirs)):
-    axes[-1, 2].hist(np.abs(artifacts_all[i][mask_artifact].ravel()), bins=np.linspace(0, 1, 21), alpha=0.5, label=seqs[i])
-    # axes[-1, 2].hist(artifacts_all[i][mask_artifact].ravel(), bins=np.linspace(-1, 1, 21), alpha=0.5, label=seqs[i])
-axes[-1, 2].legend()
-axes[-1, 2].set_ylabel('Voxels')
-axes[-1, 2].set_xlabel('Relative Error')
-axes[-1, 2].set_title('Inside Artifact Region')
+    x = np.linspace(0, 1, 50)
+    y = np.abs(artifacts_all[i][mask_artifact].ravel())
+    # axes[-1, 2].hist(y, bins=np.linspace(0, 1, 21), alpha=0.5, label=seqs[i])
+    density = stats.gaussian_kde(y)
+    axes[-1, 2].plot(x, density(x), c=colors[i], label=seqs[i][:-3])
+    axes[-1, 2].set_xticks([0, 0.5, 1])
+axes[-1, 2].legend(fontsize=fs*0.75)
+axes[-1, 2].set_ylabel('Voxel Distribution', fontsize=fs)
+axes[-1, 2].set_xlabel('Relative Error', fontsize=fs)
+axes[-1, 2].tick_params(labelsize=fs*0.75)
+# axes[-1, 2].set_title('Inside Artifact Region')
 
 # axes[-1, 4].legend()
-axes[-1, 4].set_ylabel('Voxels')
-axes[-1, 4].set_xlabel('Readout Displacement (pixels)')
-axes[-1, 4].set_title('Outside Artifact Region')
+# axes[-1, 4].set_ylabel('Voxels', fontsize=fs)
+axes[-1, 4].set_xlabel('Displacement (pixels)', fontsize=fs)
+# axes[-1, 4].set_title('Outside Artifact Region')
 
 # axes[-1, 6].legend()
-axes[-1, 6].set_ylabel('Voxels')
-axes[-1, 6].set_xlabel('Readout FWHM (pixels)')
-axes[-1, 6].set_title('Entire Signal Region')
+# axes[-1, 6].set_ylabel('Voxels', fontsize=fs)
+axes[-1, 6].set_xlabel('FWHM (pixels)', fontsize=fs)
+# axes[-1, 6].set_title('Entire Signal Region')
 
 # axes[-1, 8].legend()
-axes[-1, 8].set_ylabel('Voxels')
-axes[-1, 8].set_xlabel('SNR / seconds of scan time')
-axes[-1, 8].set_title('Entire Signal Region')
+# axes[-1, 8].set_ylabel('Voxels', fontsize=fs)
+axes[-1, 8].set_xlabel('Noise * sqrt(time) (a.u.)', fontsize=fs)
+# axes[-1, 8].set_title('Entire Signal Region')
 
+plt.subplots_adjust(top=0.95, wspace=0.3)
 plt.savefig(path.join(dirs[i], 'demo_comparison_{}_{}.png'.format(*short_seqs)))
 
 
 for i in range(len(dirs)):
     load_outputs(dirs[i], 'artifact')
-    fig, axes = plt.subplots(nrows=1, ncols=4, figsize=(10, 3), gridspec_kw={'width_ratios': [1, 1, 1, 0.1]})
+    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(7, 3))
 
     for ax in axes:
         ax.set_xticks([])
         ax.set_yticks([])
 
-    plastic_image = images[0][slc]
-    axes[0].imshow(plastic_image, vmin=0, vmax=1, cmap='gray')
     metal_image = images[1][slc]
-    axes[1].imshow(metal_image, vmin=0, vmax=1, cmap='gray')
+    axes[0].imshow(metal_image, vmin=0, vmax=1, cmap='gray')
 
     intensity_map = maps_artifact[0][slc]
-    im = axes[2].imshow(intensity_map, vmin=-1, vmax=1, cmap='RdBu_r')
-    plt.colorbar(im, cax=axes[3], ticks=[-1, 0, 1], label='Relative Error')
-    axes[3].yaxis.set_label_position('left')
+    im = axes[1].imshow(intensity_map, vmin=-1, vmax=1, cmap='RdBu_r')
 
-    axes[0].set_title('Plastic', fontsize=fs)
-    axes[1].set_title('Metal', fontsize=fs)
-    axes[2].set_title('Artifact Map', fontsize=fs)
+    axes[0].set_title('Metal', fontsize=fs)
+    axes[1].set_title('Artifact Map', fontsize=fs)
 
     plt.savefig(path.join(dirs[i], 'preview_{}.png'.format(short_seqs[i])))
 
