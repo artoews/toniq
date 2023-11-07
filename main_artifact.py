@@ -173,5 +173,6 @@ if __name__ == '__main__':
         axes[i, 4].imshow(mask_artifact[slc], cmap='RdBu_r', vmin=-1, vmax=1)
         axes[i, 1].set_ylabel('RBW={:.3g}kHz'.format(rbw[i]), fontsize=fs)
         plt.colorbar(im2, cax=axes[i, 5], ticks=[-1, 0, 1])
-    plt.savefig(path.join(save_dir, 'validation_artifact.png'))
+        axes[i, 5].tick_params(labelsize=fs*0.75)
+    plt.savefig(path.join(save_dir, 'validation_artifact.png'), dpi=300)
     plt.show()
