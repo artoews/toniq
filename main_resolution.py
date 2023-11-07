@@ -72,6 +72,12 @@ if __name__ == '__main__':
         #     k = sp.resize(sp.resize(k_full, acqShape), fullShape)
         #     images[i].data = np.abs(sp.ifft(k))
 
+        # hack: interpolate images up to 512 x 512 resolution
+        shape = (512, 512, 64)
+        unit_cell_pixels = 2 * unit_cell_pixels
+        for i in range(1, len(images)):
+            images[i].data = np.abs(sp.ifft(sp.resize(sp.fft(images[i].data), shape)))
+
         images = np.stack([image.data for image in images])
 
         # rescale data for comparison
@@ -80,30 +86,32 @@ if __name__ == '__main__':
             images[i] = analysis.equalize(images[i], images[0])
         
         # plot line pairs
-        slc_x = (slice(182, 214), slice(113, 145), 15)
-        slc_y = (slice(182, 214), slice(151, 183), 15)
-        fig_x, axes_x = plt.subplots(nrows=1, ncols=len(images)-1, figsize=(12, 3))
-        fig_y, axes_y = plt.subplots(nrows=1, ncols=len(images)-1, figsize=(12, 3))
-        if len(images) == 2:
-            axes_x = np.array([axes_x])
-            axes_y = np.array([axes_y])
-        plot_kwargs = {'vmin': 0, 'vmax': 1, 'cmap': 'gray'}
-        for i in range(len(images)-1):
-            j = i + 1
-            print(images.shape)
-            print(images[j].shape)
-            print(slc_x)
-            print(images[j][slc_x].shape)
-            axes_x[i].imshow(images[j][slc_x], **plot_kwargs)
-            axes_x[i].set_title('{} x {}'.format(shapes[j][0], shapes[j][1]))
-            axes_y[i].imshow(images[j][slc_y], **plot_kwargs)
-            axes_y[i].set_title('{} x {}'.format(shapes[j][0], shapes[j][1]))
-            axes_x[i].set_xticks([])
-            axes_x[i].set_yticks([])
-            axes_y[i].set_xticks([])
-            axes_y[i].set_yticks([])
-        fig_x.savefig(path.join(save_dir, 'line_pairs_x.png'))
-        fig_y.savefig(path.join(save_dir, 'line_pairs_y.png'))
+        line_pairs = False
+        if line_pairs:
+            slc_x = (slice(182, 214), slice(113, 145), 15)
+            slc_y = (slice(182, 214), slice(151, 183), 15)
+            fig_x, axes_x = plt.subplots(nrows=1, ncols=len(images)-1, figsize=(12, 3))
+            fig_y, axes_y = plt.subplots(nrows=1, ncols=len(images)-1, figsize=(12, 3))
+            if len(images) == 2:
+                axes_x = np.array([axes_x])
+                axes_y = np.array([axes_y])
+            plot_kwargs = {'vmin': 0, 'vmax': 1, 'cmap': 'gray'}
+            for i in range(len(images)-1):
+                j = i + 1
+                print(images.shape)
+                print(images[j].shape)
+                print(slc_x)
+                print(images[j][slc_x].shape)
+                axes_x[i].imshow(images[j][slc_x], **plot_kwargs)
+                axes_x[i].set_title('{} x {}'.format(shapes[j][0], shapes[j][1]))
+                axes_y[i].imshow(images[j][slc_y], **plot_kwargs)
+                axes_y[i].set_title('{} x {}'.format(shapes[j][0], shapes[j][1]))
+                axes_x[i].set_xticks([])
+                axes_x[i].set_yticks([])
+                axes_y[i].set_xticks([])
+                axes_y[i].set_yticks([])
+            fig_x.savefig(path.join(save_dir, 'line_pairs_x.png'))
+            fig_y.savefig(path.join(save_dir, 'line_pairs_y.png'))
 
         # compute masks
         if args.verbose:
@@ -113,10 +121,16 @@ if __name__ == '__main__':
         mask_lattice = analysis.get_mask_lattice(images[0])
         mask_psf = np.logical_and(mask_lattice, ~mask_implant)
 
-        slc = (slice(35, 155), slice(65, 185), slice(15, 45))
+        #  slc = (slice(35, 155), slice(65, 185), slice(15, 45))
+        # slc = (slice(35*2, 155*2), slice(65*2, 185*2), slice(15, 45))
+        slc = (slice(35*2, 35*2+100), slice(65*2, 65*2+100), slice(5, 55))
 
         mask_psf = mask_psf[slc]
         images = images[(slice(None),) + slc]
+
+        # fig, tracker = plotVolumes((images[0], images[1], images[2], images[3], mask_psf,))
+        # plt.show()
+        # quit()
 
         # compute PSF & FWHM
         num_trials = len(images) - 1
@@ -142,7 +156,6 @@ if __name__ == '__main__':
             shapes=shapes,
             psfs=psfs,
             fwhms=np.stack(fwhms),
-            voxel_size_mm=voxel_size_mm,
             unit_cell_pixels=unit_cell_pixels
          )
     
@@ -162,17 +175,54 @@ if __name__ == '__main__':
         for j in range(3):
             fwhms[i][~mask_psf_eroded, j] = 0
 
-    fwhm_x_masked_list = [fwhms[i][..., 0][fwhms[i][..., 0] > 0] for i in range(num_trials)]
-    plt.figure()
-    sns.violinplot(fwhm_x_masked_list)
-    plt.savefig(path.join(save_dir, 'resolution_x.png'))
+    fs = 18
+    matrix_shapes = ['256x256', '256x172', '256x128', '172x256', '172x172', '172x128', '128x256', '128x172', '128x128',] # TODO automate this
 
+    fwhm_x_masked_list = [fwhms[i][..., 0][fwhms[i][..., 0] > 0] for i in range(num_trials)]
+    fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(10, 12))
+    ax = axes[0]
+    # sns.violinplot(fwhm_x_masked_list, ax=ax)
+    sns.boxplot(fwhm_x_masked_list, ax=ax)
+    ax.set_xlim([-0.5, 8.5])
+    ax.set_ylim([0.9, 2.5])
+    ax.set_yticks([1, 1.5, 2, 2.5])
+    ax.set_xticks(range(len(matrix_shapes)))
+    ax.set_xticklabels(['1'] * 3 + ['1.5'] * 3 + ['2'] * 3)
+    ax.set_xlabel('Voxel Size in X (relative)', fontsize=fs)
+    ax.set_ylabel('Measured FWHM (voxels)', fontsize=fs)
+    ax.tick_params(labelsize=fs)
+    ax.grid(axis='y')
+
+    ax = axes[1]
     fwhm_y_masked_list = [fwhms[i][..., 1][fwhms[i][..., 1] > 0] for i in range(num_trials)]
-    plt.figure()
-    sns.violinplot(fwhm_y_masked_list)
-    plt.savefig(path.join(save_dir, 'resolution_y.png'))
+    # ax = sns.violinplot(fwhm_y_masked_list, ax=ax)
+    sns.boxplot(fwhm_y_masked_list, ax=ax)
+    ax.set_xlim([-0.5, 8.5])
+    ax.set_ylim([0.9, 2.5])
+    ax.set_yticks([1, 1.5, 2, 2.5])
+    ax.set_xticks(range(len(matrix_shapes)))
+    ax.set_xticklabels(['1', '1.5', '2'] * 3)
+    ax.set_xlabel('Voxel Size in Y (relative)', fontsize=fs)
+    ax.set_ylabel('Measured FWHM (voxels)', fontsize=fs)
+    ax.tick_params(labelsize=fs)
+    ax.grid(axis='y')
+
+    newax = ax.twiny()
+    newax.set_frame_on(True)
+    newax.patch.set_visible(False)
+    newax.xaxis.set_ticks_position('bottom')
+    newax.xaxis.set_label_position('bottom')
+    newax.spines['bottom'].set_position(('outward', 70))
+    newax.set_xlim([-0.5, 8.5])
+    newax.set_xticks(range(len(matrix_shapes)))
+    newax.set_xticklabels(matrix_shapes, rotation=30, ha='right', fontsize=fs*0.75)
+    newax.set_xlabel('Matrix Shape   ', fontsize=fs)
+
+    plt.subplots_adjust(hspace=0.3, top=0.95, bottom=0.2)
+    plt.savefig(path.join(save_dir, 'resolution.png'), dpi=300)
 
     for i in range(num_trials):
+        continue
 
         mask = (fwhms[i][..., 0] > 0)
         fwhm_median = tuple(np.median(fwhms[i][..., j][mask]) for j in range(3))
