@@ -85,8 +85,6 @@ if __name__ == '__main__':
         signals = []
         noise_stds = []
 
-        # TODO crop prior to computing SNR to save time
-
         # compute SNR
         if args.verbose:
             print('Computing SNR...')
@@ -95,9 +93,10 @@ if __name__ == '__main__':
             image1 = images[2*i]
             image2 = images[2*i+1]
             snr, signal, noise_std = analysis.signal_to_noise(image1, image2, mask_signal, mask_empty)
+            # noise_std = analysis.noise_std(image1, image2)
             snrs.append(snr)
             signals.append(signal)
-            noise_stds.append(noise_stds)
+            noise_stds.append(noise_std)
 
         # save outputs
         if args.verbose:
@@ -107,8 +106,8 @@ if __name__ == '__main__':
             images=images,
             snrs=np.stack(snrs),
             signals=np.stack(signals),
+            noise_stds=np.stack(noise_stds),
             mask_signal=mask_signal,
-            # noise_stds=np.stack(noise_stds),
             rbw=rbw
          )
 
@@ -135,14 +134,14 @@ if __name__ == '__main__':
 
         # volumes = (image1, image2, 10 * noise_stds[i] + 0.5, signals[i], snrs[i] / 80)
         # titles = ('Image 1 of pair', 'Image 2 of pair', 'Noise St. Dev. (10x)', 'Signal Mean', 'SNR (0 to 80)')
-        volumes = (image1, image2, signals[i], snrs[i] / 200)
-        titles = ('Image 1 of pair', 'Image 2 of pair', 'Signal Mean', 'SNR (0 to 200)')
-        fig1, tracker1 = plotVolumes(volumes, 1, len(volumes), titles=titles, figsize=(16, 8))
+        # volumes = (image1, image2, signals[i], snrs[i] / 200)
+        # titles = ('Image 1 of pair', 'Image 2 of pair', 'Signal Mean', 'SNR (0 to 200)')
+        # fig1, tracker1 = plotVolumes(volumes, 1, len(volumes), titles=titles, figsize=(16, 8))
 
         image_diff = 5 * (image2 - image1) + 0.5
         image_sum = 0.5 * (image2 + image1)
-        volumes = (image1, image2, image_diff, image_sum, mask_signal)
-        titles = ('Image 1', 'Image 2', 'Difference (5x)', 'Sum (0.5x)', 'Signal Mask')
+        volumes = (image1, image2, image_diff, image_sum)
+        titles = ('Image 1', 'Image 2', 'Difference (5x)', 'Sum (0.5x)')
         fig2, tracker2 = plotVolumes(volumes, 1, len(volumes), titles=titles, figsize=(16, 8))
     
     fig3, ax3 = plt.subplots(figsize=(6, 6))
@@ -150,19 +149,26 @@ if __name__ == '__main__':
     colors = ['black', 'red', 'blue']
     ax3.axline((0, 0), (1, 1), color='gray', linestyle='--')
     ax4.axline((0, 0), (1, 1), color='gray', linestyle='--')
-    fs = 15
+    fs = 20
+    # noise_stds *= 100
     for i in range(1, num_trials):
         expected_factor = np.sqrt(rbw[0] / rbw[i])
         expected_snr_rounded = np.round(expected_factor * snrs[0])
-        sns.lineplot(x=expected_snr_rounded.ravel(), y=snrs[i].ravel(), ax=ax3, legend='brief', label='{:.3g}kHz'.format(rbw[i]), color=colors[i-1])  # plots mean line and 95% confidence band
-        ax4.scatter(expected_factor * snrs[0], snrs[i], c=colors[i-1], label='{:.3g}kHz'.format(rbw[i]), s=0.01, marker='.')
+        sns.lineplot(x=expected_snr_rounded.ravel(), y=snrs[i].ravel(), ax=ax3, legend='brief', label='RBW={:.3g}kHz'.format(rbw[i]), color=colors[i-1])  # plots mean line and 95% confidence band
+        ax4.scatter(expected_factor * snrs[0], snrs[i], c=colors[i-1], label='RBW={:.3g}kHz'.format(rbw[i]), s=0.01, marker='.')
+        # expected_noise_rounded = np.round(noise_stds[0] / expected_factor)
+        # sns.lineplot(x=expected_noise_rounded.ravel(), y=noise_stds[i].ravel(), ax=ax3, legend='brief', label='{:.3g}kHz'.format(rbw[i]), color=colors[i-1])  # plots mean line and 95% confidence band
+        # ax4.scatter(noise_stds[0] / expected_factor, noise_stds[i], c=colors[i-1], label='RBW={:.3g}kHz'.format(rbw[i]), s=0.01, marker='.')
     for ax in (ax3, ax4):
         ax.set_xlim([10, 55])
         ax.set_ylim([10, 55])
+        ax.set_xticks(range(10, 51, 10))
+        ax.set_yticks(range(10, 51, 10))
         ax.set_xlabel('Expected SNR', fontsize=fs)
         ax.set_ylabel('Measured SNR', fontsize=fs)
+        ax.tick_params(labelsize=fs*0.75)
         ax.set_aspect('equal', 'box')
-        ax.legend(title='Readout BW', fontsize=fs)
+        ax.legend(fontsize=fs)
         ax.grid()
     fig3.savefig(path.join(save_dir, 'validation_snr.png'), dpi=300)
     fig4.savefig(path.join(save_dir, 'snr_pixel_cloud.png'), dpi=300)
