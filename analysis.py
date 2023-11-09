@@ -84,8 +84,8 @@ def get_typical_level(image, signal_mask, implant_mask, filter_size=5):
 
 def get_mask_register(mask_empty, mask_implant, mask_artifact, filter_radius=3):
     mask = (mask_implant + mask_empty + mask_artifact) == 0
-    mask = ndi.binary_closing(mask, structure=morphology.ball(filter_radius))
-    mask = ndi.binary_opening(mask, structure=morphology.ball(2 * filter_radius))
+    mask = ndi.binary_closing(mask, structure=morphology.ball(filter_radius)) # dilation then erosion
+    mask = ndi.binary_opening(mask, structure=morphology.ball(2 * filter_radius)) # erosion then dilation
     return mask
 
 def get_mask_artifact(error):
