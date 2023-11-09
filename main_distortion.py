@@ -247,7 +247,7 @@ if __name__ == '__main__':
         axes[i, 0].set_ylabel('RBW={:.3g}kHz'.format(rbw[1+i]), fontsize=fs)
         cb = plt.colorbar(im, cax=axes[i, 3], ticks=[-4, -2, 0, 2, 4])
         axes[i, 3].tick_params(labelsize=fs*0.75)
-        cb.set_label(label='Readout Disp. (pixels)', size=fs)
+        cb.set_label(label='Displacement (pixels)', size=fs)
     axes[0, 0].set_title('Reference', fontsize=fs)
     axes[0, 1].set_title('Registration', fontsize=fs)
     axes[0, 2].set_title('Error', fontsize=fs)
@@ -258,7 +258,11 @@ if __name__ == '__main__':
     fig, ax = plt.subplots(figsize=(8, 7))
     f_max = 1.5
     fs = 20
-    colors = ['black', 'red', 'blue']
+    # colors = ['black', 'red', 'blue']
+    prop_cycle = plt.rcParams['axes.prop_cycle']
+    colors = prop_cycle.by_key()['color']
+    styles = ['dotted', 'solid', 'dashed']
+    loosely_dashed = (0, (5, 10))
     for i in range(num_trials):
         if pbw[1+i] == pbw[0]:
             continue
@@ -271,13 +275,13 @@ if __name__ == '__main__':
         # plots mean line and 95% confidence band
         sns.lineplot(x=(field_bins * result_mask).ravel(),
                      y=(measured_deformation * result_mask).ravel(),
-                     ax=ax, legend='brief', label='RBW={0:.3g}kHz'.format(rbw[i+1]), color=colors[i])
+                     ax=ax, legend='brief', label='RBW={0:.3g}kHz'.format(rbw[i+1]), color=colors[i], linestyle=styles[i])
         # ax.scatter((field_bins * result_mask).ravel(), (np.abs(measured_deformation) * result_mask).ravel(), c=colors[i], s=0.1, marker='.')
-        ax.axline((-f_max, -f_max / net_pbw), (f_max, f_max / net_pbw), color=colors[i], linestyle='--')
+        ax.axline((-f_max, -f_max / net_pbw), (f_max, f_max / net_pbw), color=colors[i], linestyle=loosely_dashed)
         ax.set_xlim([-f_max, f_max])
         ax.set_ylim([-f_max / net_pbw, f_max / net_pbw])
     ax.set_xlabel('Off-Resonance (kHz)', fontsize=fs)
-    ax.set_ylabel('Readout Displacement (pixels)', fontsize=fs)
+    ax.set_ylabel('Displacement (pixels)', fontsize=fs)
     ax.tick_params(labelsize=fs)
     plt.legend(fontsize=fs)
     plt.grid()

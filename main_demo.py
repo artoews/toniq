@@ -34,9 +34,13 @@ def load_outputs(root, subfolder):
 fse_dir = '/Users/artoews/root/code/projects/metal-phantom/demo-fse-250'
 msl_dir = ['/Users/artoews/root/code/projects/metal-phantom/demo-msl-250', '/Users/artoews/root/code/projects/metal-phantom/demo-msl-125']
 seqs = ['FSE 250kHz', 'MSL 250kHz', 'MSL 125kHz']
+seqs2 = ['FSE\nRBW=250kHz', 'MAVRIC-SL\nRBW=250kHz', 'MAVRIC-SL\nRBW=125kHz']
 short_seqs = ['F250', 'M250', 'M125']
 scan_times = [81, 269, 404]
-colors = ['black', 'red', 'blue']
+# colors = ['black', 'red', 'blue']
+prop_cycle = plt.rcParams['axes.prop_cycle']
+colors = prop_cycle.by_key()['color']
+styles = ['dotted', 'solid', 'dashed']
 
 # fse_dir = '/Users/artoews/root/code/projects/metal-phantom/demo-fse-125'
 # msl_dir = '/Users/artoews/root/code/projects/metal-phantom/demo-msl-125'
@@ -91,16 +95,16 @@ for i in range(len(dirs)):
     if i == 0:
         axes[i, 0].set_title('Plastic', fontsize=fs)
         axes[i, 1].set_title('Metal', fontsize=fs)
-        axes[i, 2].set_title('Artifact', fontsize=fs)
-        axes[i, 4].set_title('Distortion', fontsize=fs)
-        axes[i, 6].set_title('Resolution', fontsize=fs)
-        axes[i, 8].set_title('Noise', fontsize=fs)
+        axes[i, 2].set_title('Intensity\nArtifact', fontsize=fs)
+        axes[i, 4].set_title('Geometric\nDistortion', fontsize=fs)
+        axes[i, 6].set_title('Resolution\n(with plastic)', fontsize=fs)
+        axes[i, 8].set_title('Noise \n(Diff. Method)', fontsize=fs)
 
     plastic_image = images[0][slc]
     print('got plastic image @ RBW={:.3g}kHz'.format(rbw[0]))
     axes[i, 0].imshow(plastic_image, vmin=0, vmax=1, cmap='gray')
 
-    axes[i, 0].set_ylabel(seqs[i], fontsize=fs)
+    axes[i, 0].set_ylabel(seqs2[i], fontsize=fs)
     
     metal_image = images[1][slc]
     axes[i, 1].imshow(metal_image, vmin=0, vmax=1, cmap='gray')
@@ -130,17 +134,17 @@ for i in range(len(dirs)):
         cb.set_label(label='Displacement (pixels)', size=fs*0.75)
         axes[i, 5].yaxis.set_label_position('left')
         axes[i, 5].tick_params(labelsize=fs*0.75)
-    x = np.linspace(-2, 2, 50)
-    y = measured_deformation[np.abs(measured_deformation)>0].ravel()
+    x = np.linspace(0, 2, 50)
+    y = np.abs(measured_deformation[np.abs(measured_deformation)>0].ravel())
     # axes[-1, 4].hist(np.abs(y), bins=np.linspace(0, 2, 21), alpha=0.5, label=seqs[i])
     density = stats.gaussian_kde(y)
-    axes[-1, 4].plot(x, density(x), c=colors[i], label=seqs[i])
-    axes[-1, 4].set_xticks([-2, -1, 0, 1, 2])
+    axes[-1, 4].plot(x, density(x), c=colors[i], label=seqs[i], linestyle=styles[i])
+    axes[-1, 4].set_xticks([0, 1, 2])
     axes[-1, 4].tick_params(labelsize=fs*0.75)
 
     load_outputs(dirs[i], 'resolution')
     print('loaded resolution outputs')
-    res_x = fwhms[0][..., 0][slc]
+    res_x = fwhms[0][..., 0][slc[:2] + (fwhms[0].shape[2] // 2 - 1,)]
     im = axes[i, 6].imshow(res_x, vmin=0, vmax=2, cmap='viridis')
     if i == 0:
         cb = plt.colorbar(im, cax=axes[i, 7], ticks=[0, 1, 2])
@@ -151,8 +155,9 @@ for i in range(len(dirs)):
     y = res_x[res_x>0].ravel()
     # axes[-1, 6].hist(y, bins=np.linspace(0, 2, 21), alpha=0.5, label=seqs[i])
     density = stats.gaussian_kde(y)
-    axes[-1, 6].plot(x, density(x), c=colors[i], label=seqs[i])
-    axes[-1, 6].set_xticks([0, 0.5, 1, 1.5, 2])
+    axes[-1, 6].plot(x, density(x), c=colors[i], label=seqs[i], linestyle=styles[i])
+    axes[-1, 6].set_xlim([1, 2])
+    axes[-1, 6].set_xticks([1, 1.5, 2])
     axes[-1, 6].tick_params(labelsize=fs*0.75)
 
     load_outputs(dirs[i], 'noise')
@@ -170,18 +175,18 @@ for i in range(len(dirs)):
         y = snr[snr>0].ravel() / np.sqrt(scan_times[i])
     else:
         # plot noise
-        noise = noise_stds[0][slc] * 40
+        noise = noise_stds[0][slc] * np.sqrt(scan_times[i]) * 4
         im = axes[i, 8].imshow(noise, vmin=0, vmax=1, cmap='viridis')
         if i == 0:
-            cb = plt.colorbar(im, cax=axes[i, 9], ticks=[0, 1])
-            cb.set_label(label='St. Dev. (a.u.)', size=fs*0.75)
+            cb = plt.colorbar(im, cax=axes[i, 9], ticks=[0, 0.5, 1])
+            cb.set_label(label=r'St. Dev. * $\sqrt{time}$ (a.u.)', size=fs*0.7)
             axes[i, 9].tick_params(labelsize=fs*0.75)
             axes[i, 9].yaxis.set_label_position('left')
-        x = np.linspace(0, 10, 50)
-        y = noise[noise>0].ravel() * np.sqrt(scan_times[i])
+        x = np.linspace(0, 1, 50)
+        y = noise[noise>0].ravel()
     # axes[-1, 8].hist(y, bins=np.linspace(0, 1, 21), alpha=0.5, label=seqs[i])
     density = stats.gaussian_kde(y)
-    axes[-1, 8].plot(x, density(x), c=colors[i], label=seqs[i])
+    axes[-1, 8].plot(x, density(x), c=colors[i], label=seqs[i], linestyle=styles[i])
     axes[-1, 8].tick_params(labelsize=fs*0.75)
 
 for i in range(len(dirs)):
@@ -189,36 +194,36 @@ for i in range(len(dirs)):
     y = np.abs(artifacts_all[i][mask_artifact].ravel())
     # axes[-1, 2].hist(y, bins=np.linspace(0, 1, 21), alpha=0.5, label=seqs[i])
     density = stats.gaussian_kde(y)
-    axes[-1, 2].plot(x, density(x), c=colors[i], label=seqs[i][:-3])
+    axes[-1, 2].plot(x, density(x), c=colors[i], label=seqs[i][:-3], linestyle=styles[i])
     axes[-1, 2].set_xticks([0, 0.5, 1])
 axes[-1, 2].legend(fontsize=fs*0.75)
 axes[-1, 2].set_ylabel('Voxel Distribution', fontsize=fs)
-axes[-1, 2].set_xlabel('Relative Error', fontsize=fs)
+axes[-1, 2].set_xlabel('Abs. Relative\nError', fontsize=fs)
 axes[-1, 2].tick_params(labelsize=fs*0.75)
 # axes[-1, 2].set_title('Inside Artifact Region')
 
 # axes[-1, 4].legend()
 # axes[-1, 4].set_ylabel('Voxels', fontsize=fs)
-axes[-1, 4].set_xlabel('Displacement (pixels)', fontsize=fs)
+axes[-1, 4].set_xlabel('Abs. Displacement \n (pixels)', fontsize=fs)
 # axes[-1, 4].set_title('Outside Artifact Region')
 
 # axes[-1, 6].legend()
 # axes[-1, 6].set_ylabel('Voxels', fontsize=fs)
-axes[-1, 6].set_xlabel('FWHM (pixels)', fontsize=fs)
+axes[-1, 6].set_xlabel('FWHM\n(pixels)', fontsize=fs)
 # axes[-1, 6].set_title('Entire Signal Region')
 
 # axes[-1, 8].legend()
 # axes[-1, 8].set_ylabel('Voxels', fontsize=fs)
-axes[-1, 8].set_xlabel('Noise * sqrt(time) (a.u.)', fontsize=fs)
+axes[-1, 8].set_xlabel(r'St. Dev. * $\sqrt{time}$' + '\n(a.u.)', fontsize=fs)
 # axes[-1, 8].set_title('Entire Signal Region')
 
-plt.subplots_adjust(top=0.95, wspace=0.3)
-plt.savefig(path.join(dirs[i], 'demo_comparison_{}_{}.png'.format(*short_seqs)))
+plt.subplots_adjust(top=0.90, wspace=0.3)
+plt.savefig(path.join(dirs[i], 'demo_comparison_{}_{}.png'.format(*short_seqs)), dpi=300)
 
 
 for i in range(len(dirs)):
     load_outputs(dirs[i], 'artifact')
-    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(7, 3))
+    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(6, 4))
 
     for ax in axes:
         ax.set_xticks([])
@@ -231,8 +236,9 @@ for i in range(len(dirs)):
     im = axes[1].imshow(intensity_map, vmin=-1, vmax=1, cmap='RdBu_r')
 
     axes[0].set_title('Metal', fontsize=fs)
-    axes[1].set_title('Artifact Map', fontsize=fs)
+    axes[1].set_title('Artifact', fontsize=fs)
 
-    plt.savefig(path.join(dirs[i], 'preview_{}.png'.format(short_seqs[i])))
+    plt.tight_layout()
+    plt.savefig(path.join(dirs[i], 'preview_{}.png'.format(short_seqs[i])), dpi=300)
 
 plt.show()
