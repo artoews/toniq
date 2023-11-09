@@ -41,13 +41,13 @@ def map_psf(image_in, image_out, mask, patch_shape, psf_shape, stride, mode, num
         return psf
 
     if mode == 'iterative':
-        psf_init = np.zeros(psf_shape, dtype=np.complex128)
+        psf_init = np.zeros(psf_shape)
     strides = np.roll((1, stride, stride), batch_axis)
     patch_locs = tuple(np.arange(0, image_in.shape[i] - patch_shape[i] - psf_shape[i] + 1, strides[i]) for i in range(3))
     num_locs = tuple(len(p) for p in patch_locs)
     if mode == 'kspace':
         psf_shape = patch_shape
-    psf = np.zeros(num_locs + psf_shape, dtype=np.complex128)
+    psf = np.zeros(num_locs + psf_shape)
     if mode == 'kspace':
         psf_shape = (1, 1, 1)
     for patch_loc in itertools.product(*patch_locs):
@@ -55,7 +55,7 @@ def map_psf(image_in, image_out, mask, patch_shape, psf_shape, stride, mode, num
         patch_in = image_in[slc]
         patch_out = image_out[slc]
         if mask is not None and not np.all(mask[slc]):
-            soln = np.zeros(psf_shape, dtype=np.complex128)
+            soln = np.zeros(psf_shape)
         elif mode == 'iterative':
             tol = 1e-4  # was 1e-6
             max_iter = 1e3
@@ -64,16 +64,17 @@ def map_psf(image_in, image_out, mask, patch_shape, psf_shape, stride, mode, num
             soln = estimate_psf_direct(patch_in, patch_out, psf_shape)
         elif mode == 'kspace':
             soln = estimate_psf_kspace(patch_in, patch_out)
+            # if np.median(np.abs(soln)) > np.max(np.abs(soln)) * 0.9:
+            #     print('bad patch', slc)
         idx = tuple(patch_loc[i] // strides[i] for i in range(3))
         psf[idx] = soln
     return psf
 
 def estimate_psf_kspace(patch_in, patch_out):
-    # TODO set thresh based on noise std?
     kspace_in = sp.fft(patch_in)
     kspace_out = sp.fft(patch_out)
-    kspace_quotient = safe_divide(kspace_out, kspace_in, thresh=0)
-    psf = np.abs(sp.ifft(kspace_quotient))
+    kspace_quotient = safe_divide(kspace_out, kspace_in, thresh=1e-3)  # TODO set thresh adaptively, say based on noise std?
+    psf = np.real(sp.ifft(kspace_quotient))
     return psf
 
 def estimate_psf_iterative(image_in, image_out, psf_shape, psf_init, tol, max_iter, verbose=True):
