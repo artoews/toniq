@@ -31,8 +31,9 @@ def load_outputs(root, subfolder):
 # MSL @ 125 kHz = 6:44 (404s)
 
 # identify the data folders
-fse_dir = '/Users/artoews/root/code/projects/metal-phantom/demo-fse-250'
-msl_dir = ['/Users/artoews/root/code/projects/metal-phantom/demo-msl-250', '/Users/artoews/root/code/projects/metal-phantom/demo-msl-125']
+fse_dir = '/Users/artoews/root/code/projects/metal-phantom/abstract/demo-fse-250'
+msl_dir = ['/Users/artoews/root/code/projects/metal-phantom/abstract/demo-msl-250',
+           '/Users/artoews/root/code/projects/metal-phantom/abstract/demo-msl-125']
 seqs = ['FSE 250kHz', 'MSL 250kHz', 'MSL 125kHz']
 seqs2 = ['FSE\nRBW=250kHz', 'MAVRIC-SL\nRBW=250kHz', 'MAVRIC-SL\nRBW=125kHz']
 short_seqs = ['F250', 'M250', 'M125']
@@ -137,7 +138,7 @@ for i in range(len(dirs)):
     x = np.linspace(0, 2, 50)
     y = np.abs(measured_deformation[np.abs(measured_deformation)>0].ravel())
     # axes[-1, 4].hist(np.abs(y), bins=np.linspace(0, 2, 21), alpha=0.5, label=seqs[i])
-    density = stats.gaussian_kde(y)
+    density = stats.gaussian_kde(y)  # TODO could use kdeplot in seaborn!
     axes[-1, 4].plot(x, density(x), c=colors[i], label=seqs[i], linestyle=styles[i])
     axes[-1, 4].set_xticks([0, 1, 2])
     axes[-1, 4].tick_params(labelsize=fs*0.75)
