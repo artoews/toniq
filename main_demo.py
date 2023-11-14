@@ -9,14 +9,14 @@ def load_outputs(root, subfolder):
         globals()[var] = data[var]
 
 ## general plot settings
-SMALL_SIZE = 16
-MEDIUM_SIZE = 18
-LARGE_SIZE = 20
+SMALL_SIZE = 7
+MEDIUM_SIZE = 9
+LARGE_SIZE = 11
 plt.rc('font', size=MEDIUM_SIZE)          # controls default text sizes
 plt.rc('axes', titlesize=LARGE_SIZE)     # fontsize of the axes title
-plt.rc('axes', labelsize=LARGE_SIZE)    # fontsize of the x and y labels
-plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the x tick labels
+plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the y tick labels
 plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
 plt.rc('figure', titlesize=LARGE_SIZE)   # fontsize of the figure title
 styles = ['dotted', 'solid', 'dashed']
@@ -48,7 +48,7 @@ dirs = [fse_dir] + msl_dir
 slc = (slice(None), slice(None), 15)
 
 ## figure setup 
-fig, axs = plt.subplots(nrows=len(dirs)+1, ncols=6, figsize=(20, 12), layout='constrained')
+fig, axs = plt.subplots(nrows=len(dirs)+1, ncols=6, figsize=(10, 6), layout='constrained')
 plt.delaxes(axs[-1, 0])
 plt.delaxes(axs[-1, 1])
 for ax in axs.flat:
@@ -75,7 +75,7 @@ for i in range(len(dirs)):
     intensity_map = maps_artifact[0]
     print('loaded artifact outputs for {} @ RBW={:.3g}kHz'.format(seq_names[i], rbw_i))
     print('got plastic image @ RBW={:.3g}kHz'.format(rbw_i))
-    axs[i, 0].set_ylabel('{}\nRBW={:.3g}kHz'.format(seq_names[i], rbw_i))
+    axs[i, 0].set_ylabel('{}\nRBW={:.3g}kHz'.format(seq_names[i], rbw_i), fontsize=LARGE_SIZE)
     axs[i, 0].imshow(plastic_image[slc], **image_kwargs)
     axs[i, 1].imshow(metal_image[slc], **image_kwargs)
     im = axs[i, 2].imshow(intensity_map[slc], **artifact_kwargs)
@@ -123,7 +123,6 @@ cb = fig.colorbar(im, ax=axs[0, 3], ticks=[-2, -1, 0, 1, 2], label='Displacement
 for i in range(len(dirs)):
     load_outputs(dirs[i], 'resolution')
     print('loaded resolution outputs')
-    # res_x = fwhms[0][..., 0][slc[:2] + (fwhms[0].shape[2] // 2 - 1,)]
     res_x = fwhms[0][..., 0]
     im = axs[i, 4].imshow(res_x[slc], **resolution_kwargs)
     x = np.linspace(0, 2, 50)
