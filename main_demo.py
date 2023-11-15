@@ -9,9 +9,9 @@ def load_outputs(root, subfolder):
         globals()[var] = data[var]
 
 ## general plot settings
-SMALL_SIZE = 7
-MEDIUM_SIZE = 9
-LARGE_SIZE = 11
+SMALL_SIZE = 10
+MEDIUM_SIZE = 12
+LARGE_SIZE = 14
 plt.rc('font', size=MEDIUM_SIZE)          # controls default text sizes
 plt.rc('axes', titlesize=LARGE_SIZE)     # fontsize of the axes title
 plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
@@ -19,6 +19,7 @@ plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the x tick labels
 plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the y tick labels
 plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
 plt.rc('figure', titlesize=LARGE_SIZE)   # fontsize of the figure title
+plt.rc('lines', linewidth=1.0)
 styles = ['dotted', 'solid', 'dashed']
 
 ## imshow keyword arguments
@@ -48,9 +49,9 @@ dirs = [fse_dir] + msl_dir
 slc = (slice(None), slice(None), 15)
 
 ## figure setup 
-fig, axs = plt.subplots(nrows=len(dirs)+1, ncols=6, figsize=(10, 6), layout='constrained')
-plt.delaxes(axs[-1, 0])
-plt.delaxes(axs[-1, 1])
+fig, axs = plt.subplots(nrows=len(dirs)+1, ncols=6, figsize=(13, 8), layout='constrained')
+axs[-1, 0].set_axis_off()
+axs[-1, 1].set_axis_off()
 for ax in axs.flat:
     ax.set_xticks([])
     ax.set_yticks([])
@@ -90,14 +91,14 @@ axs[-1, 2].legend()
 axs[-1, 2].set_xticks([0, 0.5, 1])
 axs[-1, 2].set_xlabel('Abs. Relative\nError')
 cb = fig.colorbar(im, ax=axs[0, 2], ticks=[-1, 0, 1], label='Relative Error')
-axs[0, 0].annotate("read",
-                    color='white',
-                    xy=(0.85, 0.75),
-                    xytext=(0.85, 0.25),
+axs[-1, 0].annotate("readout",
+                    color='black',
+                    xy=(0.5, 0.7),
+                    xytext=(0.5, 0.1),
                     xycoords='axes fraction',
                     verticalalignment='bottom',
                     horizontalalignment='center',
-                    arrowprops=dict(facecolor='white', edgecolor='black', shrink=0.05)
+                    arrowprops=dict(width=2, headwidth=8, headlength=8, color='black')
                     )
 
 ## distortion column
@@ -146,9 +147,9 @@ for i in range(len(dirs)):
     y = noise[noise>0].ravel()
     density = stats.gaussian_kde(y)
     axs[-1, 5].plot(x, density(x), linestyle=styles[i])
-axs[-1, 5].set_xticks([0, 0.5, 1.0])
+axs[-1, 5].set_xticks([0, 0.5, 1])
 axs[-1, 5].set_xlabel(r'St. Dev. * $\sqrt{time}$' + '\n(a.u.)')
-cb = fig.colorbar(im, ax=axs[0, 5], ticks=[0, 0.5, 1], label=r'St. Dev. * $\sqrt{time}$' + '\n(a.u.)')
+cb = fig.colorbar(im, ax=axs[0, 5], ticks=[0, 1], label=r'St. Dev. * $\sqrt{time}$ (a.u.)')
 
 ## save & show
 plt.savefig(path.join(dirs[i], 'demo_revised.png'), dpi=300)
