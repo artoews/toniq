@@ -15,6 +15,7 @@ import dicom
 import fwhm as fwh
 from plot import plotVolumes
 import psf
+import psf_new
 from util import safe_divide
 
 
@@ -87,7 +88,7 @@ if __name__ == '__main__':
             images[i] = analysis.equalize(images[i], images[0])
         
         # plot line pairs
-        line_pairs = True
+        line_pairs = False
         if line_pairs:
             slc_x = (slice(182, 214), slice(113, 145), 15)
             slc_y = (slice(182, 214), slice(151, 183), 15)
@@ -115,8 +116,6 @@ if __name__ == '__main__':
             axes[1, 0].set_ylabel('Y Line Pairs', fontsize=20)
             plt.tight_layout()
             fig.savefig(path.join(save_dir, 'line_pairs.png'), dpi=300)
-        plt.show()
-        quit()
 
         # compute masks
         if args.verbose:
@@ -155,7 +154,8 @@ if __name__ == '__main__':
         for i in range(num_trials):
             if args.verbose:
                 print('on trial {} with acquired matrix shapes {} and {} Hz'.format(i, shapes[0], shapes[1+i]))
-            psf_i = psf.map_psf(images[0], images[1+i], mask_psf, patch_shape, None, args.stride, 'kspace', num_workers=8)
+            # psf_i = psf.map_psf(images[0], images[1+i], mask_psf, patch_shape, None, args.stride, 'kspace', num_workers=8)
+            psf_i = psf_new.estimate_psf(images[0], images[1+i], mask_psf, patch_shape, args.stride, 8)
             fwhm_i = fwh.get_FWHM_in_parallel(psf_i)
             for j in range(3):
                 fwhm_i[..., j] = ndi.median_filter(fwhm_i[..., j], size=int(unit_cell_pixels * 0.8), mode='reflect')
