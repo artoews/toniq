@@ -16,7 +16,7 @@ def batch_for_filter(arr, filter_size, axis, num_batches):
     """ split array into batches for parallelized filtering """
     starts = np.arange(0, arr.shape[axis] - filter_size + 1)
     if len(starts) < num_batches:
-        print('Warning: batching into {} sections cannot be done with {} trials. Returning {} batches instead.'.format(num_batches, len(starts), len(starts)))
+        print('Warning: batching into {} sections cannot be done with {} positions. Returning {} batches instead.'.format(num_batches, len(starts), len(starts)))
         num_batches = len(starts)
     batches = []
     for batch_starts in np.array_split(starts, num_batches):
@@ -53,6 +53,16 @@ def generic_filter(image, function, shape, stride, batch_axis, num_batches=1):
                 output[idx] = function(patch)
         return output
 
+def estimate_psf(image_in, image_out, mask, patch_shape, stride, num_batches, mode='regularized'):
+    images_stack = np.stack((image_in, image_out), axis=-1)
+    images_stack[~mask, ...] = np.nan
+    batch_axis = 2
+    if mode == 'division':
+        func = estimate_psf_kspace
+    elif mode == 'regularized':
+        func = estimate_psf_reg
+    return generic_filter(images_stack, func, patch_shape, stride, batch_axis, num_batches=num_batches)
+
 def estimate_psf_kspace(patch_pair):
     kspace_pair = sp.fft(patch_pair, axes=(0, 1, 2))
     kspace_in, kspace_out = kspace_pair[..., 0], kspace_pair[..., 1]
@@ -60,8 +70,35 @@ def estimate_psf_kspace(patch_pair):
     psf = np.real(sp.ifft(kspace_quotient))
     return psf
 
-def estimate_psf(image_in, image_out, mask, patch_shape, stride, num_batches):
-    images_stack = np.stack((image_in, image_out), axis=-1)
-    images_stack[~mask, ...] = np.nan
-    batch_axis = 2
-    return generic_filter(images_stack, estimate_psf_kspace, patch_shape, stride, batch_axis, num_batches)
+# def estimate_psf_reg(patch_pair, psf_shape=(7, 7, 7), lamda=1e-1, tol=1e-6, max_iter=1e3, verbose=False):
+def estimate_psf_reg(patch_pair, psf_shape=(9, 9, 9), lamda=1, tol=1e-6, max_iter=1e3, verbose=False):
+    kspace_pair = sp.fft(patch_pair, axes=(0, 1, 2))
+    kspace_in, kspace_out = kspace_pair[..., 0], kspace_pair[..., 1]
+    shape = kspace_in.shape
+    size = kspace_in.size
+    mask = 1 - sp.resize(np.ones(psf_shape), shape)  # select pixels outside PSF support
+    D = sp.linop.Multiply(shape, kspace_in)
+    F = sp.linop.IFFT(shape)
+    M = sp.linop.Multiply(shape, mask)
+    A = sp.linop.Vstack((D, lamda * M * F))
+    y = np.concatenate((kspace_out, np.zeros(size)), axis=None)  # flattening happens implicitly
+    app = sp.app.LinearLeastSquares(A, y, x=np.zeros(shape, dtype=np.complex128), tol=tol, max_iter=max_iter, show_pbar=verbose)
+    soln = app.run()
+    psf = np.real(sp.ifft(soln))
+    return psf
+
+def estimate_psf_reg_2(patch_pair, psf_shape=(7, 7, 7), lamda=1e-1, tol=1e-4, max_iter=1e3, verbose=False):
+    kspace_pair = sp.fft(patch_pair, axes=(0, 1, 2))
+    kspace_in, kspace_out = kspace_pair[..., 0], kspace_pair[..., 1]
+    shape = kspace_in.shape
+    size = kspace_in.size
+    mask = 1 - sp.resize(np.ones(psf_shape), shape)  # select pixels outside PSF support
+    F = sp.linop.FFT(shape)
+    D = sp.linop.Multiply(shape, kspace_in)
+    M = sp.linop.Multiply(shape, mask)
+    A = sp.linop.Vstack((D * F, lamda * M))
+    y = np.concatenate((kspace_out, np.zeros(size)), axis=None)  # flattening happens implicitly
+    app = sp.app.LinearLeastSquares(A, y, x=np.zeros(shape, dtype=np.complex128), tol=tol, max_iter=max_iter, show_pbar=verbose)
+    soln = app.run()
+    psf = np.real(soln)
+    return psf

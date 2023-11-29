@@ -66,13 +66,16 @@ if __name__ == '__main__':
         print('From voxel size {} mm, compute unit cell size is {} pixels'.format(voxel_size_mm, unit_cell_pixels))
 
         # hack: overwrite images to be copies of the reference with masked k-space 
-        # k_full = sp.fft(images[0].data)
-        # fullShape = k_full.shape
-        # for i in range(1, len(images)):
-        #     acqShape = images[i].meta.acqMatrixShape
-        #     print('hacking image {} to be copy of reference image {} with k-space shape {}'.format(i, fullShape, acqShape))
-        #     k = sp.resize(sp.resize(k_full, acqShape), fullShape)
-        #     images[i].data = np.abs(sp.ifft(k))
+        k_full = sp.fft(images[0].data)
+        fullShape = k_full.shape
+        for i in range(1, len(images)):
+            acqShape = images[i].meta.acqMatrixShape
+            print('hacking image {} to be copy of reference image {} with k-space shape {}'.format(i, fullShape, acqShape))
+            # noise = np.random.normal(size=acqShape, scale=8e2)
+            # k = sp.resize(sp.resize(k_full, acqShape) + noise, fullShape)
+            k = sp.resize(sp.resize(k_full, acqShape), fullShape)
+            # k = sp.resize(sp.fft(images[i].data), fullShape)  # or just zero-pad original data to match reference
+            images[i].data = np.abs(sp.ifft(k))
 
         # hack: interpolate images up to 512 x 512 resolution
         # shape = (512, 512, 64)
@@ -118,24 +121,34 @@ if __name__ == '__main__':
             fig.savefig(path.join(save_dir, 'line_pairs.png'), dpi=300)
 
         # compute masks
-        if args.verbose:
-            print('Computing masks...')
-        mask_empty = analysis.get_mask_empty(images[0])
-        mask_implant = analysis.get_mask_implant(mask_empty)
-
-        metal = False
-        if metal:
-            mask_signal = analysis.get_mask_signal(images[0])
-            signal_ref = analysis.get_typical_level(images[0], mask_signal, mask_implant)
-            error = images[1] - images[0]
-            normalized_error = safe_divide(error, signal_ref)
-            mask_artifact = analysis.get_mask_artifact(normalized_error)
-            mask_psf = analysis.get_mask_register(mask_empty, mask_implant, mask_artifact)
+        load_mask = True
+        if load_mask:
+            mask_psf = np.load(path.join(save_dir, 'mask_psf.npy'))
+            print('mask shape', mask_psf.shape)
         else:
-            mask_lattice = analysis.get_mask_lattice(images[0])
-            mask_psf = np.logical_and(mask_lattice, ~mask_implant)
+            if args.verbose:
+                print('Computing masks...')
+            mask_empty = analysis.get_mask_empty(images[0])
+            mask_implant = analysis.get_mask_implant(mask_empty)
+
+            metal = False
+            if metal:
+                mask_signal = analysis.get_mask_signal(images[0])
+                signal_ref = analysis.get_typical_level(images[0], mask_signal, mask_implant)
+                error = images[1] - images[0]
+                normalized_error = safe_divide(error, signal_ref)
+                mask_artifact = analysis.get_mask_artifact(normalized_error)
+                mask_psf = analysis.get_mask_register(mask_empty, mask_implant, mask_artifact)
+            else:
+                mask_lattice = analysis.get_mask_lattice(images[0])
+                mask_psf = np.logical_and(mask_lattice, ~mask_implant)
+            np.save(path.join(save_dir, 'mask_psf.npy'), mask_psf)
 
         slc = (slice(35, 155), slice(65, 185), slice(15, 45))
+        slc = (slice(35, 95), slice(65, 125), slice(20, 40))
+        # slc = (slice(35, 65), slice(65, 95), slice(20, 40))
+        # slc = (slice(35*2, 65*2), slice(65*2, 95*2), slice(20, 40))
+        slc = (slice(35*2, 95*2), slice(65*2, 125*2), slice(20, 40))
         # slc = (slice(35*2, 155*2), slice(65*2, 185*2), slice(15, 45))
         # slc = (slice(35*2, 35*2+100), slice(65*2, 65*2+100), slice(5, 55))
 
@@ -144,7 +157,6 @@ if __name__ == '__main__':
 
         # fig, tracker = plotVolumes((images[0], images[1], images[2], images[3], mask_psf,))
         # plt.show()
-        # quit()
 
         # compute PSF & FWHM
         num_trials = len(images) - 1
@@ -155,13 +167,14 @@ if __name__ == '__main__':
             if args.verbose:
                 print('on trial {} with acquired matrix shapes {} and {} Hz'.format(i, shapes[0], shapes[1+i]))
             # psf_i = psf.map_psf(images[0], images[1+i], mask_psf, patch_shape, None, args.stride, 'kspace', num_workers=8)
-            psf_i = psf_new.estimate_psf(images[0], images[1+i], mask_psf, patch_shape, args.stride, 8)
+            psf_i = psf_new.estimate_psf(images[0], images[1+i], mask_psf, patch_shape, args.stride, 8)  # TODO PSF shape is hard-coded rn
             fwhm_i = fwh.get_FWHM_in_parallel(psf_i)
             for j in range(3):
-                fwhm_i[..., j] = ndi.median_filter(fwhm_i[..., j], size=int(unit_cell_pixels * 0.8), mode='reflect')
+                continue
+                fwhm_i[..., j] = ndi.median_filter(fwhm_i[..., j], size=int(unit_cell_pixels * 0.3), mode='reflect')
                 mask = (fwhm_i[..., j] > 0)
                 # mask = ndi.generic_filter(mask, np.max, size=int(unit_cell_pixels * 0.4), mode='constant', cval=1) 
-                mask = ndi.generic_filter(mask, np.min, size=int(unit_cell_pixels * 0.8), mode='constant', cval=1)  # erosion to remove edge effects from use of mean filter above (using generic instead of canonical binary_erosion for control over boundary conditions)
+                mask = ndi.generic_filter(mask, np.min, size=int(unit_cell_pixels * 0.3), mode='constant', cval=1)  # erosion to remove edge effects from use of mean filter above (using generic instead of canonical binary_erosion for control over boundary conditions)
                 fwhm_i[~mask, j] = 0
             psfs.append(psf_i)
             fwhms.append(fwhm_i)
@@ -199,12 +212,14 @@ if __name__ == '__main__':
     # sns.violinplot(fwhm_x_masked_list, ax=ax)
     sns.boxplot(fwhm_x_masked_list, ax=ax)
     ax.set_xlim([-0.5, 8.5])
-    ax.set_ylim([0.9, 2.5])
-    ax.set_yticks([1, 1.5, 2, 2.5])
+    # ax.set_ylim([0.9, 3])
+    # ax.set_yticks([1, 1.7, 2.4])
+    ax.set_ylim([0.9, 6])
+    ax.set_yticks([1, 1.7, 2.4, 3.6, 4.8])
     ax.set_xticks(range(len(matrix_shapes)))
     # ax.set_xticklabels(['1'] * 3 + ['1.5'] * 3 + ['2'] * 3)
     ax.set_xticklabels(['{:.1f}'.format(shapes[0][0] / shape[0]) for shape in shapes[1:]])
-    ax.set_xlabel('Voxel Size in X (relative)', fontsize=fs)
+    ax.set_xlabel('Relative Voxel Size in X (voxels)', fontsize=fs)
     ax.set_ylabel('Measured FWHM (voxels)', fontsize=fs)
     ax.tick_params(labelsize=fs)
     ax.grid(axis='y')
@@ -214,11 +229,13 @@ if __name__ == '__main__':
     # ax = sns.violinplot(fwhm_y_masked_list, ax=ax)
     sns.boxplot(fwhm_y_masked_list, ax=ax)
     ax.set_xlim([-0.5, 8.5])
-    ax.set_ylim([0.9, 2.5])
-    ax.set_yticks([1, 1.5, 2, 2.5])
+    # ax.set_ylim([0.9, 3])
+    # ax.set_yticks([1, 1.68, 2.43])
+    ax.set_ylim([0.9, 6])
+    ax.set_yticks([1, 1.7, 2.4, 3.6, 4.8])
     ax.set_xticks(range(len(matrix_shapes)))
     ax.set_xticklabels(['{:.1f}'.format(shapes[0][1] / shape[1]) for shape in shapes[1:]])
-    ax.set_xlabel('Voxel Size in Y (relative)', fontsize=fs)
+    ax.set_xlabel('Relative Voxel Size in Y (voxels)', fontsize=fs)
     ax.set_ylabel('Measured FWHM (voxels)', fontsize=fs)
     ax.tick_params(labelsize=fs)
     ax.grid(axis='y')
@@ -248,48 +265,48 @@ if __name__ == '__main__':
             print('{:.2f} +/- {:.2f}'.format(m, s))
         print('--------------------------')
 
-        shape = psfs[i].shape
-        # slc = (int(shape[0] * 0.25), int(shape[1] * 0.25), int(shape[2] * 0.25))
-        idx = np.argmin(fwhms[i][..., 0])
-        slc = np.unravel_index(idx, fwhms[i].shape[:3])
-        print('fwhm min at {} with value {}'.format(slc, fwhms[i][..., 0][slc]))
-        print('psf', psfs[i].shape)
-        print('slc', slc)
-        print('psf sliced', psfs[i][35, 49, 13, ...].shape)
-        # psf_slc = np.abs(psfs[i][35, 49, 13, ...])
-        slc = (35, 49, 13)
-        psfi = psfs[i][slc]
-        fwhm_x, _, _ = fwh.get_FWHM_from_psf_3D(psfi / np.max(psfi))
-        print('psfi stats', np.median(np.abs(psfi)), np.max(psfi))
-        print('fwhm_x', fwhm_x)
-        # slc = (30, 9, 9)
-        psf_slc = np.abs(psfs[i][slc])
-        psf_slc = psf_slc / np.max(psf_slc)
+        # shape = psfs[i].shape
+        # # slc = (int(shape[0] * 0.25), int(shape[1] * 0.25), int(shape[2] * 0.25))
+        # idx = np.argmin(fwhms[i][..., 0])
+        # slc = np.unravel_index(idx, fwhms[i].shape[:3])
+        # print('fwhm min at {} with value {}'.format(slc, fwhms[i][..., 0][slc]))
+        # print('psf', psfs[i].shape)
+        # print('slc', slc)
+        # print('psf sliced', psfs[i][35, 49, 13, ...].shape)
+        # # psf_slc = np.abs(psfs[i][35, 49, 13, ...])
+        # slc = (35, 49, 13)
+        # psfi = psfs[i][slc]
+        # fwhm_x, _, _ = fwh.get_FWHM_from_psf_3D(psfi / np.max(psfi))
+        # print('psfi stats', np.median(np.abs(psfi)), np.max(psfi))
+        # print('fwhm_x', fwhm_x)
+        # # slc = (30, 9, 9)
+        # psf_slc = np.abs(psfs[i][slc])
+        # psf_slc = psf_slc / np.max(psf_slc)
 
-        volumes = (psf_slc, psf_slc)
-        titles = ('PSF with FWHM {} pixels'.format(fwhms[i][slc]), 'Same')
-        fig1, tracker1 = plotVolumes(volumes, titles=titles, figsize=(16, 8))
+        # volumes = (psf_slc, psf_slc)
+        # titles = ('PSF with FWHM {} pixels'.format(fwhms[i][slc]), 'Same')
+        # fig1, tracker1 = plotVolumes(volumes, titles=titles, figsize=(16, 8))
 
-        # slc = (slice(78, 88, None), slice(90, 100, None), slice(2, 12, None))
-        slc = (slice(70, 80, None), slice(98, 108, None), slice(13, 23, None))
-        im0 = images[0][slc]
-        im1 = images[1+i][slc]
-        k0 = np.abs(sp.fft(im0))
-        k0 = k0 / np.max(k0)
-        k1 = np.abs(sp.fft(im1))
-        k1 = k1 / np.max(k1)
-        q = np.abs(safe_divide(k1, k0, thresh=1e-2))
-        q = q / np.max(q)
-        p = psf.estimate_psf_kspace(im0, im1)
-        qq = np.real(sp.ifft(q))
-        qq = qq / np.max(np.abs(qq))
-        volumes = (im0, im1, p / np.max(np.abs(p)), psfi / np.max(np.abs(psfi)), k0, k1, q, qq)
-        titles = ('Input image', 'Output image', 'PSF now', 'PSF got')
-        fig2, tracker2 = plotVolumes(volumes, titles=titles, figsize=(16, 8))
+        # # slc = (slice(78, 88, None), slice(90, 100, None), slice(2, 12, None))
+        # slc = (slice(70, 80, None), slice(98, 108, None), slice(13, 23, None))
+        # im0 = images[0][slc]
+        # im1 = images[1+i][slc]
+        # k0 = np.abs(sp.fft(im0))
+        # k0 = k0 / np.max(k0)
+        # k1 = np.abs(sp.fft(im1))
+        # k1 = k1 / np.max(k1)
+        # q = np.abs(safe_divide(k1, k0, thresh=1e-2))
+        # q = q / np.max(q)
+        # p = psf.estimate_psf_kspace(im0, im1)
+        # qq = np.real(sp.ifft(q))
+        # qq = qq / np.max(np.abs(qq))
+        # volumes = (im0, im1, p / np.max(np.abs(p)), psfi / np.max(np.abs(psfi)), k0, k1, q, qq)
+        # titles = ('Input image', 'Output image', 'PSF now', 'PSF got')
+        # fig2, tracker2 = plotVolumes(volumes, titles=titles, figsize=(16, 8))
 
         volumes = (fwhms[i][..., 0], fwhms[i][..., 1], fwhms[i][..., 2])
         titles = ('FWHM in x', 'FWHM in y', 'FWHM in z')
         # fig3, tracker3 = plotVolumes(volumes, titles=titles, figsize=(16, 8), vmin=0, vmax=10, cmap='tab20c', cbar=True)
-        fig3, tracker3 = plotVolumes(volumes, titles=titles, figsize=(16, 5), vmin=0, vmax=2, cmap='viridis', cbar=True)
+        fig3, tracker3 = plotVolumes(volumes, titles=titles, figsize=(16, 5), vmin=0, vmax=6, cmap='viridis', cbar=True)
     
     plt.show()

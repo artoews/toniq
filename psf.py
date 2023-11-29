@@ -68,8 +68,8 @@ def map_psf(image_in, image_out, mask, patch_shape, psf_shape, stride, mode, num
             #     print('bad patch', slc)
         idx = tuple(patch_loc[i] // strides[i] for i in range(3))
         psf[idx] = soln
-    return psf
 
+    return psf
 def estimate_psf_kspace(patch_in, patch_out):
     kspace_in = sp.fft(patch_in)
     kspace_out = sp.fft(patch_out)
