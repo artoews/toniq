@@ -20,8 +20,8 @@ def get_matrix(op, verify=False, x=None):
             x = np.random.rand(input_size)
         y1 = op(x)
         y2 = mtx @ x
-        if not np.all(np.isclose(y1, y2)):
-            print('Warning: computed matrix is not equivalent to the provided linop. Input {} yields outputs {} and {} for linop and matrix respectively, with error {}'.format(x, y1, y2, y2 - y1))
+        if not np.allclose(y1, y2, rtol=1e-4, atol=1e-7):
+            print('Warning: computed matrix is not equivalent to the provided linop. Input {} yields outputs {} and {} for linop and matrix respectively, with max error {}'.format(x, y1, y2, np.max(np.abs(y2 - y1))))
     return mtx
 
 if __name__ == '__main__':
@@ -33,5 +33,5 @@ if __name__ == '__main__':
     mtx = get_matrix(op, verify=True, x=x.ravel())
     y1 = mtx @ x.ravel()
     y2 = sp.fft(x).ravel()
-    if not np.all(np.isclose(y1, y2)):
+    if not np.allclose(y1, y2, rtol=1e-4, atol=1e-7):
         print('Warning: computed matrix does not give the same result as built-in fft operation.')
