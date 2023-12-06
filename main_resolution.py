@@ -71,9 +71,9 @@ if __name__ == '__main__':
         for i in range(1, len(images)):
             acqShape = images[i].meta.acqMatrixShape
             print('hacking image {} to be copy of reference image {} with k-space shape {}'.format(i, fullShape, acqShape))
-            # noise = np.random.normal(size=acqShape, scale=8e2)
-            # k = sp.resize(sp.resize(k_full, acqShape) + noise, fullShape)
-            k = sp.resize(sp.resize(k_full, acqShape), fullShape)
+            noise = np.random.normal(size=acqShape, scale=8e2)
+            k = sp.resize(sp.resize(k_full, acqShape) + noise, fullShape)
+            # k = sp.resize(sp.resize(k_full, acqShape), fullShape)
             # k = sp.resize(sp.fft(images[i].data), fullShape)  # or just zero-pad original data to match reference
             images[i].data = np.abs(sp.ifft(k))
 
@@ -160,7 +160,7 @@ if __name__ == '__main__':
 
         # compute PSF & FWHM
         num_trials = len(images) - 1
-        patch_shape = (unit_cell_pixels,) * 3
+        patch_shape = (unit_cell_pixels,) * 3  # might want to double for better noise robustness
         psfs = []
         fwhms = []
         for i in range(num_trials):
