@@ -70,35 +70,20 @@ def estimate_psf_kspace(patch_pair):
     psf = np.real(sp.ifft(kspace_quotient))
     return psf
 
-# def estimate_psf_reg(patch_pair, psf_shape=(7, 7, 7), lamda=1e-1, tol=1e-6, max_iter=1e3, verbose=False):
-def estimate_psf_reg(patch_pair, psf_shape=(9, 9, 9), lamda=1, tol=1e-6, max_iter=1e3, verbose=False):
-    kspace_pair = sp.fft(patch_pair, axes=(0, 1, 2))
-    kspace_in, kspace_out = kspace_pair[..., 0], kspace_pair[..., 1]
-    shape = kspace_in.shape
-    size = kspace_in.size
-    mask = 1 - sp.resize(np.ones(psf_shape), shape)  # select pixels outside PSF support
-    D = sp.linop.Multiply(shape, kspace_in)
-    F = sp.linop.IFFT(shape)
-    M = sp.linop.Multiply(shape, mask)
-    A = sp.linop.Vstack((D, lamda * M * F))
-    y = np.concatenate((kspace_out, np.zeros(size)), axis=None)  # flattening happens implicitly
-    app = sp.app.LinearLeastSquares(A, y, x=np.zeros(shape, dtype=np.complex128), tol=tol, max_iter=max_iter, show_pbar=verbose)
-    soln = app.run()
-    psf = np.real(sp.ifft(soln))
-    return psf
-
-def estimate_psf_reg_2(patch_pair, psf_shape=(7, 7, 7), lamda=1e-1, tol=1e-4, max_iter=1e3, verbose=False):
-    kspace_pair = sp.fft(patch_pair, axes=(0, 1, 2))
-    kspace_in, kspace_out = kspace_pair[..., 0], kspace_pair[..., 1]
-    shape = kspace_in.shape
-    size = kspace_in.size
-    mask = 1 - sp.resize(np.ones(psf_shape), shape)  # select pixels outside PSF support
+def model(input_kspace, psf_shape):
+    shape = input_kspace.shape
+    Z = sp.linop.Resize(shape, psf_shape)
     F = sp.linop.FFT(shape)
-    D = sp.linop.Multiply(shape, kspace_in)
-    M = sp.linop.Multiply(shape, mask)
-    A = sp.linop.Vstack((D * F, lamda * M))
-    y = np.concatenate((kspace_out, np.zeros(size)), axis=None)  # flattening happens implicitly
-    app = sp.app.LinearLeastSquares(A, y, x=np.zeros(shape, dtype=np.complex128), tol=tol, max_iter=max_iter, show_pbar=verbose)
+    D = sp.linop.Multiply(shape, input_kspace)
+    return D * F * Z
+
+def estimate_psf_reg(patch_pair, psf_shape=(7, 7, 7), lamda=1e-2, tol=1e-8, max_iter=1e5, verbose=False):
+    kspace_pair = sp.fft(patch_pair, axes=(0, 1, 2))
+    kspace_in, kspace_out = kspace_pair[..., 0], kspace_pair[..., 1]
+    A = model(kspace_in, psf_shape)
+    y = kspace_out
+    app = sp.app.LinearLeastSquares(A, y, x=np.zeros(psf_shape, dtype=np.complex128), tol=tol, max_iter=max_iter, show_pbar=verbose, lamda=lamda)
     soln = app.run()
-    psf = np.real(soln)
+    psf = np.abs(soln)  # was real before, does that make more sense?
+    psf = sp.resize(psf, kspace_in.shape)
     return psf
