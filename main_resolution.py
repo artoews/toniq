@@ -38,11 +38,15 @@ def load_dicom_series(path):
 if __name__ == '__main__':
 
     args = p.parse_args()
-    
+
     # set up directory structure
     save_dir = path.join(args.root, 'resolution')
     if not path.exists(save_dir):
         makedirs(save_dir)
+
+    print(args.series_list)
+    print(args.exam_root)
+    print(save_dir)
 
     if args.exam_root is not None and args.series_list is not None:
 
@@ -85,36 +89,6 @@ if __name__ == '__main__':
         for i in range(1, len(images)):
             images[i] = analysis.equalize(images[i], images[0])
         
-        # plot line pairs
-        line_pairs = False
-        if line_pairs:
-            slc_x = (slice(182, 214), slice(113, 145), 15)
-            slc_y = (slice(182, 214), slice(151, 183), 15)
-            fig, axes = plt.subplots(nrows=2, ncols=len(images)-1, figsize=(12, 5))
-            # if len(images) == 2:
-            #     axes_x = np.array([axes_x])
-            #     axes_y = np.array([axes_y])
-            plot_kwargs = {'vmin': 0, 'vmax': 1, 'cmap': 'gray'}
-            for i in range(len(images)-1):
-                j = i + 1
-                print(images.shape)
-                print(images[j].shape)
-                print(slc_x)
-                print(images[j][slc_x].shape)
-                axes[0, i].imshow(images[j][slc_x], **plot_kwargs)
-                axes[0, i].set_title('{} x {}\n'.format(shapes[j][0], shapes[j][1]), fontsize=16)
-                axes[0, i].set_xlabel('{:.1f}'.format(shapes[0][0] / shapes[1+i][0]), fontsize=20)
-                axes[1, i].imshow(images[j][slc_y], **plot_kwargs)
-                axes[1, i].set_xlabel('{:.1f}'.format(shapes[0][1] / shapes[1+i][1]), fontsize=20)
-                axes[0, i].set_xticks([])
-                axes[0, i].set_yticks([])
-                axes[1, i].set_xticks([])
-                axes[1, i].set_yticks([])
-            axes[0, 0].set_ylabel('X Line Pairs', fontsize=20)
-            axes[1, 0].set_ylabel('Y Line Pairs', fontsize=20)
-            plt.tight_layout()
-            fig.savefig(path.join(save_dir, 'line_pairs.png'), dpi=300)
-
         # compute masks
         load_mask = True
         if load_mask:
