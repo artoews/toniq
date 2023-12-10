@@ -16,6 +16,7 @@ import fwhm as fwh
 from plot import plotVolumes
 import psf
 import psf_new
+import resolution
 from util import safe_divide
 
 
@@ -77,12 +78,6 @@ if __name__ == '__main__':
             # k = sp.resize(sp.fft(images[i].data), fullShape)  # or just zero-pad original data to match reference
             images[i].data = np.abs(sp.ifft(k))
 
-        # hack: interpolate images up to 512 x 512 resolution
-        # shape = (512, 512, 64)
-        # unit_cell_pixels = 2 * unit_cell_pixels
-        # for i in range(1, len(images)):
-        #     images[i].data = np.abs(sp.ifft(sp.resize(sp.fft(images[i].data), shape)))
-
         images = np.stack([image.data for image in images])
 
         # rescale data for comparison
@@ -123,26 +118,11 @@ if __name__ == '__main__':
         # compute masks
         load_mask = True
         if load_mask:
-            mask_psf = np.load(path.join(save_dir, 'mask_psf.npy'))
-            print('mask shape', mask_psf.shape)
+            mask = np.load(path.join(save_dir, 'mask_psf.npy'))
         else:
-            if args.verbose:
-                print('Computing masks...')
-            mask_empty = analysis.get_mask_empty(images[0])
-            mask_implant = analysis.get_mask_implant(mask_empty)
-
             metal = False
-            if metal:
-                mask_signal = analysis.get_mask_signal(images[0])
-                signal_ref = analysis.get_typical_level(images[0], mask_signal, mask_implant)
-                error = images[1] - images[0]
-                normalized_error = safe_divide(error, signal_ref)
-                mask_artifact = analysis.get_mask_artifact(normalized_error)
-                mask_psf = analysis.get_mask_register(mask_empty, mask_implant, mask_artifact)
-            else:
-                mask_lattice = analysis.get_mask_lattice(images[0])
-                mask_psf = np.logical_and(mask_lattice, ~mask_implant)
-            np.save(path.join(save_dir, 'mask_psf.npy'), mask_psf)
+            mask = resolution.get_mask(images[0], images[1], metal=metal)
+            np.save(path.join(save_dir, 'mask_psf.npy'), mask)
 
         slc = (slice(35, 155), slice(65, 185), slice(15, 45))
         slc = (slice(35, 95), slice(65, 125), slice(20, 40))
@@ -152,30 +132,24 @@ if __name__ == '__main__':
         # slc = (slice(35*2, 155*2), slice(65*2, 185*2), slice(15, 45))
         # slc = (slice(35*2, 35*2+100), slice(65*2, 65*2+100), slice(5, 55))
 
-        mask_psf = mask_psf[slc]
+        mask = mask[slc]
         images = images[(slice(None),) + slc]
-
-        # fig, tracker = plotVolumes((images[0], images[1], images[2], images[3], mask_psf,))
-        # plt.show()
 
         # compute PSF & FWHM
         num_trials = len(images) - 1
-        patch_shape = (unit_cell_pixels,) * 3  # might want to double for better noise robustness
         psfs = []
         fwhms = []
         for i in range(num_trials):
             if args.verbose:
                 print('on trial {} with acquired matrix shapes {} and {} Hz'.format(i, shapes[0], shapes[1+i]))
-            # psf_i = psf.map_psf(images[0], images[1+i], mask_psf, patch_shape, None, args.stride, 'kspace', num_workers=8)
-            psf_i = psf_new.estimate_psf(images[0], images[1+i], mask_psf, patch_shape, args.stride, 8)  # TODO PSF shape is hard-coded rn
-            fwhm_i = fwh.get_FWHM_in_parallel(psf_i)
-            for j in range(3):
-                continue
-                fwhm_i[..., j] = ndi.median_filter(fwhm_i[..., j], size=int(unit_cell_pixels * 0.3), mode='reflect')
-                mask = (fwhm_i[..., j] > 0)
-                # mask = ndi.generic_filter(mask, np.max, size=int(unit_cell_pixels * 0.4), mode='constant', cval=1) 
-                mask = ndi.generic_filter(mask, np.min, size=int(unit_cell_pixels * 0.3), mode='constant', cval=1)  # erosion to remove edge effects from use of mean filter above (using generic instead of canonical binary_erosion for control over boundary conditions)
-                fwhm_i[~mask, j] = 0
+            psf_i, fwhm_i = resolution.map_resolution(
+                images[0],
+                images[1+i],
+                unit_cell_pixels,
+                stride=args.stride,
+                num_batches=8,
+                mask=mask
+                )
             psfs.append(psf_i)
             fwhms.append(fwhm_i)
 
@@ -265,48 +239,8 @@ if __name__ == '__main__':
             print('{:.2f} +/- {:.2f}'.format(m, s))
         print('--------------------------')
 
-        # shape = psfs[i].shape
-        # # slc = (int(shape[0] * 0.25), int(shape[1] * 0.25), int(shape[2] * 0.25))
-        # idx = np.argmin(fwhms[i][..., 0])
-        # slc = np.unravel_index(idx, fwhms[i].shape[:3])
-        # print('fwhm min at {} with value {}'.format(slc, fwhms[i][..., 0][slc]))
-        # print('psf', psfs[i].shape)
-        # print('slc', slc)
-        # print('psf sliced', psfs[i][35, 49, 13, ...].shape)
-        # # psf_slc = np.abs(psfs[i][35, 49, 13, ...])
-        # slc = (35, 49, 13)
-        # psfi = psfs[i][slc]
-        # fwhm_x, _, _ = fwh.get_FWHM_from_psf_3D(psfi / np.max(psfi))
-        # print('psfi stats', np.median(np.abs(psfi)), np.max(psfi))
-        # print('fwhm_x', fwhm_x)
-        # # slc = (30, 9, 9)
-        # psf_slc = np.abs(psfs[i][slc])
-        # psf_slc = psf_slc / np.max(psf_slc)
-
-        # volumes = (psf_slc, psf_slc)
-        # titles = ('PSF with FWHM {} pixels'.format(fwhms[i][slc]), 'Same')
-        # fig1, tracker1 = plotVolumes(volumes, titles=titles, figsize=(16, 8))
-
-        # # slc = (slice(78, 88, None), slice(90, 100, None), slice(2, 12, None))
-        # slc = (slice(70, 80, None), slice(98, 108, None), slice(13, 23, None))
-        # im0 = images[0][slc]
-        # im1 = images[1+i][slc]
-        # k0 = np.abs(sp.fft(im0))
-        # k0 = k0 / np.max(k0)
-        # k1 = np.abs(sp.fft(im1))
-        # k1 = k1 / np.max(k1)
-        # q = np.abs(safe_divide(k1, k0, thresh=1e-2))
-        # q = q / np.max(q)
-        # p = psf.estimate_psf_kspace(im0, im1)
-        # qq = np.real(sp.ifft(q))
-        # qq = qq / np.max(np.abs(qq))
-        # volumes = (im0, im1, p / np.max(np.abs(p)), psfi / np.max(np.abs(psfi)), k0, k1, q, qq)
-        # titles = ('Input image', 'Output image', 'PSF now', 'PSF got')
-        # fig2, tracker2 = plotVolumes(volumes, titles=titles, figsize=(16, 8))
-
         volumes = (fwhms[i][..., 0], fwhms[i][..., 1], fwhms[i][..., 2])
         titles = ('FWHM in x', 'FWHM in y', 'FWHM in z')
-        # fig3, tracker3 = plotVolumes(volumes, titles=titles, figsize=(16, 8), vmin=0, vmax=10, cmap='tab20c', cbar=True)
         fig3, tracker3 = plotVolumes(volumes, titles=titles, figsize=(16, 5), vmin=0, vmax=6, cmap='viridis', cbar=True)
     
     plt.show()
