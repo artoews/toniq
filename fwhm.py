@@ -1,5 +1,6 @@
 from multiprocessing import Pool
 import numpy as np
+import sigpy as sp
 from scipy.ndimage import map_coordinates
 
 def interpolate(psf, factor):
@@ -70,3 +71,8 @@ def find_root(x1, y1, x2, y2):
     if y1 == y2:
         print('find_root division by zero')
     return x1 - y1 * (x2 - x1) / (y2 - y1)
+
+def sinc(in_shape, out_shape):
+    k = sp.resize(np.ones(out_shape), in_shape)
+    psf = sp.ifft(k)
+    return get_FWHM_from_psf_3D(psf)

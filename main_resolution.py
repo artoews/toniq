@@ -2,22 +2,15 @@ import argparse
 import json
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy.ndimage as ndi
+import sigpy as sp
 from os import path, makedirs
 from pathlib import Path
-import seaborn as sns
-import sigpy as sp
-from skimage import morphology
-from time import time
 
 import analysis
 import dicom
-import fwhm as fwh
-from plot import plotVolumes
-import psf
-import psf_new
 import resolution
-from util import safe_divide
+from plot import plotVolumes
+from plot_resolution import box_plots
 
 
 p = argparse.ArgumentParser(description='Resolution analysis of image volumes with common dimensions.')
@@ -146,52 +139,8 @@ if __name__ == '__main__':
         data = np.load(path.join(save_dir, 'outputs.npz'))
         for var in data:
             globals()[var] = data[var]
-
-    num_trials = len(images) - 1
-
-    fs = 18
-    matrix_shapes = ['{}x{}'.format(shape[0], shape[1]) for shape in shapes[1:]]
-
-    fwhm_x_masked_list = [fwhms[i][..., 0][fwhms[i][..., 0] > 0] for i in range(num_trials)]
-    fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(10, 12))
-    ax = axes[0]
-    sns.boxplot(fwhm_x_masked_list, ax=ax)
-    ax.set_xlim([-0.5, 8.5])
-    ax.set_ylim([0.9, 6])
-    ax.set_yticks([1, 1.7, 2.4, 3.6, 4.8])
-    ax.set_xticks(range(len(matrix_shapes)))
-    ax.set_xticklabels(['{:.1f}'.format(shapes[0][0] / shape[0]) for shape in shapes[1:]])
-    ax.set_xlabel('Relative Voxel Size in X (voxels)', fontsize=fs)
-    ax.set_ylabel('Measured FWHM (voxels)', fontsize=fs)
-    ax.tick_params(labelsize=fs)
-    ax.grid(axis='y')
-
-    ax = axes[1]
-    fwhm_y_masked_list = [fwhms[i][..., 1][fwhms[i][..., 1] > 0] for i in range(num_trials)]
-    sns.boxplot(fwhm_y_masked_list, ax=ax)
-    ax.set_xlim([-0.5, 8.5])
-    ax.set_ylim([0.9, 6])
-    ax.set_yticks([1, 1.7, 2.4, 3.6, 4.8])
-    ax.set_xticks(range(len(matrix_shapes)))
-    ax.set_xticklabels(['{:.1f}'.format(shapes[0][1] / shape[1]) for shape in shapes[1:]])
-    ax.set_xlabel('Relative Voxel Size in Y (voxels)', fontsize=fs)
-    ax.set_ylabel('Measured FWHM (voxels)', fontsize=fs)
-    ax.tick_params(labelsize=fs)
-    ax.grid(axis='y')
-
-    newax = ax.twiny()
-    newax.set_frame_on(True)
-    newax.patch.set_visible(False)
-    newax.xaxis.set_ticks_position('bottom')
-    newax.xaxis.set_label_position('bottom')
-    newax.spines['bottom'].set_position(('outward', 70))
-    newax.set_xlim([-0.5, 8.5])
-    newax.set_xticks(range(len(matrix_shapes)))
-    newax.set_xticklabels(matrix_shapes, rotation=30, ha='right', fontsize=fs*0.75)
-    newax.set_xlabel('Matrix Shape   ', fontsize=fs)
-
-    plt.subplots_adjust(hspace=0.3, top=0.95, bottom=0.2)
-    plt.savefig(path.join(save_dir, 'resolution.png'), dpi=300)
+    
+    box_plots(fwhms, shapes, save_dir=save_dir)
 
     for i in range(num_trials):
 
