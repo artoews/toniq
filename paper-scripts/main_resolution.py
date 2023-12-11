@@ -107,7 +107,7 @@ if __name__ == '__main__':
                 images[1+i],
                 unit_cell_pixels,
                 stride=args.stride,
-                num_batches=8,
+                num_workers=8,
                 mask=mask
                 )
             psfs.append(psf_i)

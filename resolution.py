@@ -2,7 +2,7 @@ import numpy as np
 
 import analysis
 from psf import estimate_psf
-from fwhm import get_FWHM_in_parallel
+from fwhm import get_FWHM_from_image, get_FWHM_from_image_new
 from util import safe_divide
 
 def get_mask(reference, target, metal=False):
@@ -20,11 +20,13 @@ def get_mask(reference, target, metal=False):
         mask = np.logical_and(mask_lattice, ~mask_implant)
     return mask
 
-def map_resolution(reference, target, unit_cell, stride=8, num_batches=8, mask=None):
+def map_resolution(reference, target, unit_cell, stride=8, num_workers=8, mask=None):
     num_dims = target.ndim
     patch_shape = (unit_cell,) * num_dims # might want to double for better noise robustness
     if mask is None:
         mask = get_mask(reference, target)
-    psf = estimate_psf(reference, target, mask, patch_shape, stride, num_batches)
-    fwhm = get_FWHM_in_parallel(psf)
+    psf = estimate_psf(reference, target, mask, patch_shape, stride, num_workers)
+    fwhm = get_FWHM_from_image(psf, num_workers=num_workers)
+    # fwhm = get_FWHM_from_image_new(psf, num_workers)
+    print('map resolution out shapes', psf.shape, fwhm.shape)
     return psf, fwhm
