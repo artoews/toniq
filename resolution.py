@@ -1,7 +1,7 @@
 import numpy as np
 
 import analysis
-from psf_new import estimate_psf
+from psf import estimate_psf
 from fwhm import get_FWHM_in_parallel
 from util import safe_divide
 
