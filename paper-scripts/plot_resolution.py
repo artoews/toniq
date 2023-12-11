@@ -6,7 +6,7 @@ from os import path
 
 import fwhm
 
-def box_plots(fwhms, shapes, save_dir=None, figsize=(10, 12), fontsize=18):
+def box_plots(fwhms, shapes, save_dir=None, figsize=(10, 8), fontsize=18):
 
     num_trials = len(shapes) - 1
 
@@ -18,8 +18,6 @@ def box_plots(fwhms, shapes, save_dir=None, figsize=(10, 12), fontsize=18):
     expected_fwhm = np.round(expected_fwhm, 2)
     y_ticks = list(set(expected_fwhm.ravel()))
     y_lim = [0, int(np.max(expected_fwhm))+1]
-    print(y_ticks)
-    print(y_lim)
 
     fwhm_x_nonzero = [fwhms[i][..., 0][fwhms[i][..., 0] > 0] for i in range(num_trials)]
     fwhm_y_nonzero = [fwhms[i][..., 1][fwhms[i][..., 1] > 0] for i in range(num_trials)]

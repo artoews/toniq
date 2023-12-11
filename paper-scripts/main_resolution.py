@@ -90,11 +90,7 @@ if __name__ == '__main__':
 
         slc = (slice(35, 155), slice(65, 185), slice(15, 45))
         slc = (slice(35, 95), slice(65, 125), slice(20, 40))
-        # slc = (slice(35, 65), slice(65, 95), slice(20, 40))
-        # slc = (slice(35*2, 65*2), slice(65*2, 95*2), slice(20, 40))
         slc = (slice(35*2, 95*2), slice(65*2, 125*2), slice(20, 40))
-        # slc = (slice(35*2, 155*2), slice(65*2, 185*2), slice(15, 45))
-        # slc = (slice(35*2, 35*2+100), slice(65*2, 65*2+100), slice(5, 55))
 
         mask = mask[slc]
         images = images[(slice(None),) + slc]
@@ -143,18 +139,8 @@ if __name__ == '__main__':
     box_plots(fwhms, shapes, save_dir=save_dir)
 
     for i in range(num_trials):
-
-        mask = (fwhms[i][..., 0] > 0)
-        fwhm_median = tuple(np.median(fwhms[i][..., j][mask]) for j in range(3))
-        fwhm_std = tuple(np.std(fwhms[i][..., j][mask]) for j in range(3))
-        print('--------------------------')
-        print('FWHM median +/- std')
-        for m, s in zip(fwhm_median, fwhm_std):
-            print('{:.2f} +/- {:.2f}'.format(m, s))
-        print('--------------------------')
-
         volumes = (fwhms[i][..., 0], fwhms[i][..., 1], fwhms[i][..., 2])
         titles = ('FWHM in x', 'FWHM in y', 'FWHM in z')
-        fig3, tracker3 = plotVolumes(volumes, titles=titles, figsize=(16, 5), vmin=0, vmax=6, cmap='viridis', cbar=True)
+        fig, tracker = plotVolumes(volumes, titles=titles, figsize=(12, 4), vmin=0, vmax=6, cmap='viridis', cbar=True)
     
     plt.show()
