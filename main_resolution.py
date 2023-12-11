@@ -26,14 +26,10 @@ p.add_argument('-e', '--exam_root', type=str, default=None, help='directory wher
 p.add_argument('-s', '--series_list', type=str, nargs='+', default=None, help='list of exam_root subdirectories to be analyzed, with the first serving as reference')
 p.add_argument('-c', '--unit_cell_mm', type=float, default=12.0, help='size of lattice unit cell (in mm)')
 p.add_argument('-t', '--stride', type=int, default=2, help='window stride length for stepping between PSF measurements')
+p.add_argument('-n', '--noise', type=float, default=0, help='st. dev. of noise added to overwritten k-space; default = 0')
+p.add_argument('-w', '--overwrite', action='store_true', help='overwrite target k-space with samples from reference')
+p.add_argument('-m', '--mask', action='store_true', help='re-use mask if one exists')
 p.add_argument('-v', '--verbose', action='count', default=0, help='verbosity level')
-
-def load_dicom_series(path):
-    if path is None:
-        return None
-    files = Path(path).glob('*MRDC*')
-    image = dicom.load_series(files)
-    return image
 
 if __name__ == '__main__':
 
@@ -44,10 +40,6 @@ if __name__ == '__main__':
     if not path.exists(save_dir):
         makedirs(save_dir)
 
-    print(args.series_list)
-    print(args.exam_root)
-    print(save_dir)
-
     if args.exam_root is not None and args.series_list is not None:
 
         with open(path.join(save_dir, 'args.txt'), 'w') as f:
@@ -56,7 +48,8 @@ if __name__ == '__main__':
         # load data
         images = []
         for series_name in args.series_list:
-            image = load_dicom_series(path.join(args.exam_root, series_name))
+            files = Path(path.join(args.exam_root, series_name)).glob('*MRDC*')
+            image = dicom.load_series(files)
             images.append(image)
             if args.verbose:
                 print('Found DICOM series {}; loaded data with shape {}'.format(series_name, image.shape))
@@ -70,17 +63,20 @@ if __name__ == '__main__':
         unit_cell_pixels = int(args.unit_cell_mm / voxel_size_mm)
         print('From voxel size {} mm, compute unit cell size is {} pixels'.format(voxel_size_mm, unit_cell_pixels))
 
-        # hack: overwrite images to be copies of the reference with masked k-space 
-        k_full = sp.fft(images[0].data)
-        fullShape = k_full.shape
-        for i in range(1, len(images)):
-            acqShape = images[i].meta.acqMatrixShape
-            print('hacking image {} to be copy of reference image {} with k-space shape {}'.format(i, fullShape, acqShape))
-            noise = np.random.normal(size=acqShape, scale=8e2)
-            k = sp.resize(sp.resize(k_full, acqShape) + noise, fullShape)
-            # k = sp.resize(sp.resize(k_full, acqShape), fullShape)
-            # k = sp.resize(sp.fft(images[i].data), fullShape)  # or just zero-pad original data to match reference
-            images[i].data = np.abs(sp.ifft(k))
+        ref_shape = images[0].data.shape
+        if args.overwrite:
+            k_ref = sp.fft(images[0].data)
+            for i in range(1, len(images)):
+                acqShape = images[i].meta.acqMatrixShape
+                k_acq = sp.resize(k_ref, acqShape)
+                if args.noise != 0:
+                    noise = np.random.normal(size=acqShape, scale=args.noise)
+                    k_acq += noise
+                images[i].data = np.abs(sp.ifft(sp.resize(k_acq, ref_shape)))
+        else:
+            for i in range(1, len(images)):
+                k_acq = sp.fft(images[i].data)
+                images[i].data = np.abs(sp.ifft(sp.resize(k_acq, ref_shape)))
 
         images = np.stack([image.data for image in images])
 
@@ -90,13 +86,14 @@ if __name__ == '__main__':
             images[i] = analysis.equalize(images[i], images[0])
         
         # compute masks
-        load_mask = True
-        if load_mask:
-            mask = np.load(path.join(save_dir, 'mask_psf.npy'))
+        mask_file = path.join(save_dir, 'mask.npy')
+        if args.mask and path.isfile(mask_file):
+            print('Loading pre-computed mask...')
+            mask = np.load(mask_file)
         else:
-            metal = False
-            mask = resolution.get_mask(images[0], images[1], metal=metal)
-            np.save(path.join(save_dir, 'mask_psf.npy'), mask)
+            print('Computing mask...')
+            mask = resolution.get_mask(images[0], images[1], metal=False)
+            np.save(mask_file, mask)
 
         slc = (slice(35, 155), slice(65, 185), slice(15, 45))
         slc = (slice(35, 95), slice(65, 125), slice(20, 40))
@@ -126,16 +123,18 @@ if __name__ == '__main__':
                 )
             psfs.append(psf_i)
             fwhms.append(fwhm_i)
+        
+        psfs = np.stack(fwhms)
+        fwhms = np.stack(fwhms)
 
         # save outputs
         if args.verbose:
             print('Saving outputs...')
         np.savez(path.join(save_dir, 'outputs.npz'),
             images=images,
-            # erosion_mask=erosion_mask,
             shapes=shapes,
             psfs=psfs,
-            fwhms=np.stack(fwhms),
+            fwhms=fwhms,
             unit_cell_pixels=unit_cell_pixels
          )
     
@@ -151,21 +150,16 @@ if __name__ == '__main__':
     num_trials = len(images) - 1
 
     fs = 18
-    # matrix_shapes = ['256x256', '256x172', '256x128', '172x256', '172x172', '172x128', '128x256', '128x172', '128x128'] # TODO automate this
     matrix_shapes = ['{}x{}'.format(shape[0], shape[1]) for shape in shapes[1:]]
 
     fwhm_x_masked_list = [fwhms[i][..., 0][fwhms[i][..., 0] > 0] for i in range(num_trials)]
     fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(10, 12))
     ax = axes[0]
-    # sns.violinplot(fwhm_x_masked_list, ax=ax)
     sns.boxplot(fwhm_x_masked_list, ax=ax)
     ax.set_xlim([-0.5, 8.5])
-    # ax.set_ylim([0.9, 3])
-    # ax.set_yticks([1, 1.7, 2.4])
     ax.set_ylim([0.9, 6])
     ax.set_yticks([1, 1.7, 2.4, 3.6, 4.8])
     ax.set_xticks(range(len(matrix_shapes)))
-    # ax.set_xticklabels(['1'] * 3 + ['1.5'] * 3 + ['2'] * 3)
     ax.set_xticklabels(['{:.1f}'.format(shapes[0][0] / shape[0]) for shape in shapes[1:]])
     ax.set_xlabel('Relative Voxel Size in X (voxels)', fontsize=fs)
     ax.set_ylabel('Measured FWHM (voxels)', fontsize=fs)
@@ -174,11 +168,8 @@ if __name__ == '__main__':
 
     ax = axes[1]
     fwhm_y_masked_list = [fwhms[i][..., 1][fwhms[i][..., 1] > 0] for i in range(num_trials)]
-    # ax = sns.violinplot(fwhm_y_masked_list, ax=ax)
     sns.boxplot(fwhm_y_masked_list, ax=ax)
     ax.set_xlim([-0.5, 8.5])
-    # ax.set_ylim([0.9, 3])
-    # ax.set_yticks([1, 1.68, 2.43])
     ax.set_ylim([0.9, 6])
     ax.set_yticks([1, 1.7, 2.4, 3.6, 4.8])
     ax.set_xticks(range(len(matrix_shapes)))
