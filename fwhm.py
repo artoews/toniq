@@ -3,33 +3,15 @@ import numpy as np
 import sigpy as sp
 from psf import generic_filter
 
-def get_FWHM_from_image_new(psf, num_workers, stride=1, batch_axis=2):
-    # TODO figure out why this isn't working
+def get_FWHM_from_image(psf, num_workers, stride=1, batch_axis=2):
     func = get_FWHM_from_pixel
     patch_shape = (1, 1, 1)
     out_shape = (3,)
     return generic_filter(psf, func, patch_shape, out_shape, stride, batch_axis, num_batches=num_workers)
 
-def get_FWHM_from_image(psf, num_workers=1):
-    if num_workers > 1:
-        psf_splits = np.array_split(psf, num_workers, axis=0)
-        with Pool(num_workers) as p:
-            result = p.map(get_FWHM_from_image, psf_splits) 
-        result = np.concatenate(result, axis=0)
-    else:
-        nx, ny, nz = psf.shape[:3]
-        ndim = len(psf.shape[3:])
-        fwhm = np.zeros((nx, ny, nz, ndim))
-        for ix in np.arange(nx): 
-            for iy in np.arange(ny):
-                for iz in np.arange(nz):
-                    fwhm[ix, iy, iz, :] = get_FWHM_from_pixel(psf[ix, iy, iz, ...])
-        result = fwhm
-    return result
-
 def get_FWHM_from_pixel(psf):
-    psf = np.abs(psf)
-    ndim = np.squeeze(psf).ndim
+    psf = np.abs(np.squeeze(psf))
+    ndim = psf.ndim
     i_max = np.unravel_index(np.argmax(psf), psf.shape)
     if psf[i_max] == 0:
         return (0,) * ndim

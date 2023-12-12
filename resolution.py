@@ -2,7 +2,7 @@ import numpy as np
 
 import analysis
 from psf import estimate_psf
-from fwhm import get_FWHM_from_image, get_FWHM_from_image_new
+from fwhm import get_FWHM_from_image
 from util import safe_divide
 
 def get_mask(reference, target, metal=False):
@@ -26,7 +26,5 @@ def map_resolution(reference, target, unit_cell, stride=8, num_workers=8, mask=N
     if mask is None:
         mask = get_mask(reference, target)
     psf = estimate_psf(reference, target, mask, patch_shape, stride, num_workers)
-    fwhm = get_FWHM_from_image(psf, num_workers=num_workers)
-    # fwhm = get_FWHM_from_image_new(psf, num_workers)
-    print('map resolution out shapes', psf.shape, fwhm.shape)
+    fwhm = get_FWHM_from_image(psf, num_workers)
     return psf, fwhm
