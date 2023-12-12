@@ -8,6 +8,7 @@ from pathlib import Path
 
 import analysis
 import dicom
+import psf
 import resolution
 from plot import plotVolumes
 from plot_resolution import box_plots
@@ -102,7 +103,7 @@ if __name__ == '__main__':
         for i in range(num_trials):
             if args.verbose:
                 print('on trial {} with acquired matrix shapes {} and {} Hz'.format(i, shapes[0], shapes[1+i]))
-            psf_i, fwhm_i = resolution.map_resolution(
+            psf_i, fwhm_i = psf.map_resolution(
                 images[0],
                 images[1+i],
                 unit_cell_pixels,

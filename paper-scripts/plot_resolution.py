@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 from os import path
 
-import fwhm
+import psf
 
 def box_plots(fwhms, shapes, save_dir=None, figsize=(10, 8), fontsize=18):
 
@@ -14,7 +14,7 @@ def box_plots(fwhms, shapes, save_dir=None, figsize=(10, 8), fontsize=18):
     voxel_size_x = [shapes[0][0] / shape[0] for shape in shapes[1:]]
     voxel_size_y = [shapes[0][1] / shape[1] for shape in shapes[1:]]
 
-    expected_fwhm = np.array([fwhm.sinc(shapes[0], shape_i) for shape_i in shapes[1:]])
+    expected_fwhm = np.array([psf.sinc_fwhm(shapes[0], shape_i) for shape_i in shapes[1:]])
     expected_fwhm = np.round(expected_fwhm, 2)
     y_ticks = list(set(expected_fwhm.ravel()))
     y_lim = [0, int(np.max(expected_fwhm))+1]
