@@ -1,9 +1,28 @@
+import dicom
 import inspect
 import numpy as np
 import sigpy as sp
 
 from os import path
+from pathlib import Path
 from time import time
+
+def load_series(exam_root, series_name):
+    series_path = path.join(exam_root, series_name)
+    files = Path(series_path).glob('*MRDC*')
+    image = dicom.load_series(files)
+    return image
+
+def equalize(images, pct=90):
+    images = np.abs(images)
+    images[0] = normalize(images[0])
+    for i in range(1, len(images)):
+        # TODO find a more principled way
+        images[i] /= np.percentile(images[i], pct) * np.percentile(images[0], pct)
+    return images
+
+def normalize(image, pct=99):
+    return image / np.percentile(np.abs(image), pct)
 
 def resize_image_matrix(image, shape):
     return np.abs(sp.ifft(sp.resize(sp.fft(image), shape)))

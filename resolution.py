@@ -7,7 +7,7 @@ from util import safe_divide
 
 reg_psf_shape = (7, 7, 7)
 
-def map_resolution(reference, target, unit_cell, stride=8, num_workers=8, mask=None):
+def map_resolution(reference, target, unit_cell, stride=1, num_workers=1, mask=None):
     num_dims = target.ndim
     patch_shape = (unit_cell,) * num_dims # might want to double for better noise robustness
     if mask is None:
@@ -16,7 +16,7 @@ def map_resolution(reference, target, unit_cell, stride=8, num_workers=8, mask=N
     fwhm = get_FWHM_from_image(psf, num_workers)
     return psf, fwhm
 
-def get_resolution_mask(reference, target, metal=False):
+def get_resolution_mask(reference, target=None, metal=False):
     mask_empty = analysis.get_mask_empty(reference)
     mask_implant = analysis.get_mask_implant(mask_empty)
     if metal:
