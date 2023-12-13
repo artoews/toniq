@@ -5,14 +5,15 @@ import numpy as np
 from os import path, makedirs
 from pathlib import Path
 import seaborn as sns
-from time import time
 
 import analysis
 import dicom
 from plot import plotVolumes
 
-from util import safe_divide
+from util import equalize, load_series
 
+# TODO systematize this
+slc = (slice(40, 160), slice(65, 185), slice(15, 45))
 
 p = argparse.ArgumentParser(description='Noise analysis of image volume duplicates.')
 p.add_argument('root', type=str, help='path where outputs are saved')
@@ -42,77 +43,50 @@ if __name__ == '__main__':
 
         with open(path.join(save_dir, 'args.txt'), 'w') as f:
             json.dump(args.__dict__, f, indent=4)
-
-        # load data
-        images = []
-        for series_name in args.series_list:
-            image = load_dicom_series(path.join(args.exam_root, series_name))
-            images.append(image)
-            if args.verbose:
-                print('Found DICOM series {}; loaded data with shape {}'.format(series_name, image.shape))
         
-        if images[0].is_isotropic:
-            voxel_size_mm = images[0].meta.resolution_mm[0]
-        else:
-            raise ValueError('Isotropic resolution is required, but got: ', images[0].meta.resolution_mm)
-        unit_cell_pixels = int(args.unit_cell_mm / voxel_size_mm)
+        images = [load_series(args.exam_root, series_name) for series_name in args.series_list]
 
-        # extract relevant metadata and throw away the rest
         rbw = np.array([image.meta.readoutBandwidth_kHz for image in images[::2]])
+
+        unit_cell_pixels = int(args.unit_cell_mm / images[0].meta.resolution_mm[0])
+
         images = np.stack([image.data for image in images])
 
-        # rescale data for comparison
-        images[0] = analysis.normalize(images[0])
-        for i in range(1, len(images)):
-            images[i] = analysis.equalize(images[i], images[0])
-        
-        # compute masks
-        if args.verbose:
-            print('Computing masks...')
+        images = equalize(images)
+          
         mask_empty = analysis.get_mask_empty(images[0])
-        mask_implant = analysis.get_mask_implant(mask_empty)
         mask_signal = analysis.get_mask_signal(images[0])
-        # signal_ref = analysis.get_typical_level(images[0], mask_signal, mask_implant)
 
-        slc = (slice(40, 160), slice(65, 185), slice(15, 45))
-        images = images[(slice(None),) + slc]
-        mask_empty = mask_empty[slc]
-        mask_implant = mask_implant[slc]
-        mask_signal = mask_signal[slc]
+        if slc is not None:
+            images = images[(slice(None),) + slc]
+            mask_empty = mask_empty[slc]
+            mask_signal = mask_signal[slc]
 
-        num_trials = len(images) // 2
         snrs = []
         signals = []
         noise_stds = []
 
-        # compute SNR
-        if args.verbose:
-            print('Computing SNR...')
-        for i in range(num_trials):
-            print('trial', i)
-            image1 = images[2*i]
-            image2 = images[2*i+1]
+        for i in range(0, len(images), 2):
+            print('trial', i // 2)
+            image1 = images[i]
+            image2 = images[i+1]
             snr, signal, noise_std = analysis.signal_to_noise(image1, image2, mask_signal, mask_empty)
-            # noise_std = analysis.noise_std(image1, image2)
             snrs.append(snr)
             signals.append(signal)
             noise_stds.append(noise_std)
-
-        # save outputs
-        if args.verbose:
-            print('Saving outputs...')
+        snrs = np.stack(snrs)
+        signals = np.stack(signals)
+        noise_stds = np.stack(noise_stds)
 
         np.savez(path.join(save_dir, 'outputs.npz'),
             images=images,
-            snrs=np.stack(snrs),
-            signals=np.stack(signals),
-            noise_stds=np.stack(noise_stds),
+            snrs=snrs,
+            signals=signals,
+            noise_stds=noise_stds,
             mask_signal=mask_signal,
             rbw=rbw
          )
 
-        print('done saving outputs')
-    
     else:
 
         with open(path.join(save_dir, 'args_post.txt'), 'w') as f:
@@ -122,21 +96,10 @@ if __name__ == '__main__':
         for var in data:
             globals()[var] = data[var]
     
-    if args.verbose:
-        print('Begin plotting...')
+    for i in range(0, len(images), 2):
 
-    num_trials = len(images) // 2
-
-    for i in range(num_trials):
-
-        image1 = images[2*i]
-        image2 = images[2*i+1]
-
-        # volumes = (image1, image2, 10 * noise_stds[i] + 0.5, signals[i], snrs[i] / 80)
-        # titles = ('Image 1 of pair', 'Image 2 of pair', 'Noise St. Dev. (10x)', 'Signal Mean', 'SNR (0 to 80)')
-        # volumes = (image1, image2, signals[i], snrs[i] / 200)
-        # titles = ('Image 1 of pair', 'Image 2 of pair', 'Signal Mean', 'SNR (0 to 200)')
-        # fig1, tracker1 = plotVolumes(volumes, 1, len(volumes), titles=titles, figsize=(16, 8))
+        image1 = images[i]
+        image2 = images[i+1]
 
         image_diff = 5 * (image2 - image1) + 0.5
         image_sum = 0.5 * (image2 + image1)
@@ -157,7 +120,7 @@ if __name__ == '__main__':
     ax4.axline((0, 0), (1, 1), color='k', linestyle=loosely_dashed)
     fs = 20
     # noise_stds *= 100
-    for i in range(1, num_trials):
+    for i in range(1, len(images) // 2):
         expected_factor = np.sqrt(rbw[0] / rbw[i])
         expected_snr_rounded = np.round(expected_factor * snrs[0])
         sns.lineplot(x=expected_snr_rounded.ravel(), y=snrs[i].ravel(), ax=ax3, legend='brief', label='RBW={:.3g}kHz'.format(rbw[i]), color=colors[i-1], linestyle=styles[i-1])  # plots mean line and 95% confidence band
