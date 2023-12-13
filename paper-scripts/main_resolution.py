@@ -8,7 +8,7 @@ from os import path, makedirs
 from resolution import map_resolution, get_resolution_mask
 from plot import plotVolumes
 from plot_resolution import box_plots
-from util import equalize, load_series, resize_image_matrix
+from util import equalize, load_series
 
 # TODO systematize this
 slc = (slice(35, 155), slice(65, 185), slice(15, 45))
