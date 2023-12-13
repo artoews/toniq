@@ -18,7 +18,7 @@ def equalize(images, pct=90):
     images[0] = normalize(images[0])
     for i in range(1, len(images)):
         # TODO find a more principled way
-        images[i] /= np.percentile(images[i], pct) * np.percentile(images[0], pct)
+        images[i] *= np.percentile(images[0], pct) / np.percentile(images[i], pct)
     return images
 
 def normalize(image, pct=99):
