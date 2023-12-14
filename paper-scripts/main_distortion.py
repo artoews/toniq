@@ -3,12 +3,13 @@ import json
 import matplotlib.pyplot as plt
 import numpy as np
 from os import path, makedirs
-import scipy.ndimage as ndi
-from skimage import morphology
+
+from distortion import get_true_field
 from plot import plotVolumes
 import register
 
-from plot_distortion import image_results, field_results, summary_results
+# from plot_distortion import image_results, field_results, summary_results
+from plot_distortion import plot_image_results, plot_field_results, plot_summary_results
 from register import map_distortion, get_registration_masks
 from util import equalize, load_series
 
@@ -93,21 +94,13 @@ if __name__ == '__main__':
         data = np.load(path.join(save_dir, 'outputs.npz'))
         for var in data:
             globals()[var] = data[var]
+
+    true_field = get_true_field(path.join(args.root, 'field'))[slc]  # kHz
     
-    # true_field = np.load(path.join(args.root, 'field', 'field.npy'))  # kHz
-    # true_field = np.load(path.join(args.root, 'field-metal', 'field.npy')) - np.load(path.join(args.root, 'field-plastic', 'field.npy'))  # kHz
-    metal_field = np.load(path.join(args.root, 'field', 'field-metal.npy'))
-    plastic_field = np.load(path.join(args.root, 'field', 'field-plastic.npy'))  # kHz
-    true_field = metal_field - plastic_field
-    true_field = ndi.median_filter(true_field, footprint=morphology.ball(4))
-    # true_field = ndi.generic_filter(true_field, np.mean, footprint=morphology.ball(3))
-    # true_field = true_field[slc][slc2[1:]] * 1000  # Hz
-    true_field = true_field[slc] # kHz
-
-    # fig4, tracker4 = plotVolumes((images[0] * 24e3 - 12e3, true_field), titles=('trial 0', 'true_field'), vmin=-12e3, vmax=12e3)
-    # true_field_masked = masked_copy(true_field, fixed_mask)
-
-    fig1, axes1 = image_results(images, masks_register, results, rbw, save_dir=save_dir)
-    fig2, axes2 = field_results(true_field, deformation_fields, results, rbw, pbw, save_dir=save_dir)
-    fig3, axes3 = summary_results(true_field, deformation_fields, results, rbw, pbw, save_dir=save_dir)
+    plot_image_results(plt.figure(figsize=(14, 5)), masks_register, images, results, rbw)
+    plt.savefig(path.join(save_dir, 'images.png'), dpi=300)
+    plot_field_results(plt.figure(figsize=(8, 5)), results, true_field, deformation_fields, rbw, pbw)
+    plt.savefig(path.join(save_dir, 'fields.png'), dpi=300)
+    plot_summary_results(plt.figure(), results, true_field, deformation_fields, rbw, pbw)
+    plt.savefig(path.join(save_dir, 'summary.png'), dpi=300)
     plt.show()

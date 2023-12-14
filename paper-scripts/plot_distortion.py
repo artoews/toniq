@@ -1,70 +1,125 @@
-import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
-
+import matplotlib.pyplot as plt
 from os import path
+import seaborn as sns
+import scipy.ndimage as ndi
+from skimage import morphology
 
-from distortion import net_pixel_bandwidth
+from distortion import net_pixel_bandwidth, get_true_field
 from plot import overlay_mask
 from util import masked_copy
 
-def image_results(images, masks_register, results, rbw, fontsize=20, save_dir=None):
-    ''' abstract validation figure panel A: image result '''
-    num_trials = len(rbw) - 1
-    fixed_image = images[1]
-    fixed_mask = masks_register[1]
-    fixed_image_masked = masked_copy(fixed_image, fixed_mask)
-    fig, axes = plt.subplots(nrows=num_trials, ncols=5, figsize=(20, 8))
+SMALL_SIZE = 10
+MEDIUM_SIZE = 12
+LARGE_SIZE = 14
+plt.rc('font', size=MEDIUM_SIZE)          # controls default text sizes
+plt.rc('axes', titlesize=LARGE_SIZE)     # fontsize of the axes title
+plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the x tick labels
+plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the y tick labels
+plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
+plt.rc('figure', titlesize=LARGE_SIZE)   # fontsize of the figure title
+plt.rc('lines', linewidth=1.0)
+styles = ['dotted', 'solid', 'dashed']
+
+def letter_annotation(ax, xoffset, yoffset, letter):
+    ax.text(xoffset, yoffset, letter, transform=ax.transAxes, size=18, weight='bold')
+
+def plot_image(ax, image, mask, xlabel=None, ylabel=None):
+    im = ax.imshow(image, vmin=0, vmax=1, cmap='gray')
+    overlay_mask(ax, mask)
+    if xlabel is not None:
+        ax.set_xlabel(xlabel)
+    if ylabel is not None:
+        ax.set_ylabel(ylabel)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    return im
+
+def plot_image_results(fig, masks, images, results, rbw):
+    axes = fig.subplots(nrows=len(results), ncols=5)
+    error_multiplier = 3
+    num_trials = len(results)
     if num_trials == 1:
         axes = axes[None, :]
-    fontsize = 20
-    kwargs = {'cmap': 'gray', 'vmin': 0, 'vmax': 1}
-    axes[0, 0].imshow(fixed_image_masked, **kwargs)
-    overlay_mask(axes[0, 0], ~fixed_mask)
-    error_multiplier = 3
-    for ax in axes.ravel():
-        ax.set_xticks([])
-        ax.set_yticks([])
+
+    titles = ('Fixed Image',
+              'Moving Image',
+              'Registration',
+              'Initial Error ({}x)'.format(error_multiplier),
+              'Final Error ({}x)'.format(error_multiplier)
+              )
+    for ax, title in zip(axes[0, :], titles):
+        ax.set_title(title)
+    
+    fixed_image = images[1]
+    fixed_mask = masks[1]
+    fixed_image_masked = masked_copy(fixed_image, fixed_mask)
+
     for i in range(num_trials):
-        moving_mask = masks_register[1+i]
+        moving_mask = masks[1+i]
         moving_image_masked = masked_copy(images[2+i], moving_mask)
-        init_error = np.abs(moving_image_masked - fixed_image_masked) * error_multiplier
-        result_error = np.abs(results[i] - fixed_image_masked) * error_multiplier
+        init_error = np.abs(moving_image_masked - fixed_image_masked)
+        result_error = np.abs(results[i] - fixed_image_masked)
         init_mask =  (moving_image_masked != 0) * (fixed_image_masked != 0)
         result_mask = (results[i] != 0)
-        # color_mask = np.zeros(result_error.shape + (4,), dtype=np.uint8)
-        # color_mask[~result_mask, :] = np.array([0, 0, 255, 255], dtype=np.uint8)
-        axes[i, 1].imshow(moving_image_masked, **kwargs)
-        axes[i, 2].imshow(results[i], **kwargs)
-        axes[i, 3].imshow(init_error * init_mask, **kwargs)
-        axes[i, 4].imshow(result_error * result_mask, **kwargs)
-        overlay_mask(axes[i, 1], ~moving_mask)
-        overlay_mask(axes[i, 2], ~result_mask)
-        overlay_mask(axes[i, 3], ~init_mask)
-        overlay_mask(axes[i, 4], ~result_mask)
-        axes[i, 1].set_ylabel('RBW={:.3g}kHz'.format(rbw[1+i]), fontsize=fontsize)
-        if i > 0:
-            plt.delaxes(axes[i, 0])
-    axes[0, 0].set_title('Fixed Image', fontsize=fontsize)
-    axes[0, 1].set_title('Moving Image', fontsize=fontsize)
-    axes[0, 2].set_title('Registration', fontsize=fontsize)
-    axes[0, 3].set_title('Initial Error (3x)', fontsize=fontsize)
-    axes[0, 4].set_title('Final Error (3x)', fontsize=fontsize)
-    axes[0, 0].set_ylabel('RBW={:.3g}kHz'.format(rbw[0]), fontsize=fontsize)
-    if save_dir is not None:
-        plt.savefig(path.join(save_dir, 'validation_distortion_images.png'), dpi=300)
-    return fig, axes
+        if i == 0:
+            plot_image(axes[i, 0],
+                       fixed_image_masked,
+                       ~fixed_mask,
+                       ylabel='RBW={:.3g}kHz'.format(rbw[0]))
+        else:
+            axes[i, 0].set_axis_off()
+        plot_image(axes[i, 1],
+                   moving_image_masked,
+                   ~moving_mask,
+                   ylabel='RBW={:.3g}kHz'.format(rbw[1+i]))
+        plot_image(axes[i, 2],
+                   results[i],
+                   ~result_mask)
+        plot_image(axes[i, 3],
+                   init_error * error_multiplier * init_mask,
+                   ~init_mask)
+        im = plot_image(axes[i, 4],
+                   result_error * error_multiplier * result_mask,
+                   ~result_mask)
 
-def field_results(true_field, deformation_fields, results, rbw, pbw, fontsize=20, save_dir=None):
-    ''' abstract validation figure panel B: field result '''
-    num_trials = len(pbw) - 1
-    fig, axes = plt.subplots(nrows=num_trials, ncols=4, figsize=(12, 8), gridspec_kw={'width_ratios': [1, 1, 1, 0.1]})
-    kwargs = {'cmap': 'RdBu_r', 'vmin': -4, 'vmax': 4}
-    for ax in axes.ravel():
-        ax.set_xticks([])
-        ax.set_yticks([])
+    axes[1, 0].annotate("readout",
+                        color='black',
+                        xy=(0.5, 0.7),
+                        xytext=(0.5, 0.1),
+                        xycoords='axes fraction',
+                        verticalalignment='bottom',
+                        horizontalalignment='center',
+                        arrowprops=dict(width=2, headwidth=8, headlength=8, color='black')
+                        )
+    fig.colorbar(im, ax=axes, ticks=[0, 1], label='Pixel Intensity (a.u.)', location='right')
+    return axes
+
+def plot_field(ax, image, mask, xlabel=None, ylabel=None):
+    im = ax.imshow(image, vmin=-4, vmax=4, cmap='RdBu_r')
+    overlay_mask(ax, mask)
+    if xlabel is not None:
+        ax.set_xlabel(xlabel)
+    if ylabel is not None:
+        ax.set_ylabel(ylabel)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    return im
+
+def plot_field_results(fig, results, true_field, deformation_fields, rbw, pbw):
+    axes = fig.subplots(nrows=len(results), ncols=3)
+    num_trials = len(results)
     if num_trials == 1:
-        axes = axes[None, :]
+        axes = axes[None, :] 
+
+    titles = ('Reference',
+              'Registration',
+              'Error'
+              )
+    for ax, title in zip(axes[0, :], titles):
+        ax.set_title(title)
+
     for i in range(num_trials):
         if pbw[1+i] == pbw[0]:
             continue
@@ -72,55 +127,68 @@ def field_results(true_field, deformation_fields, results, rbw, pbw, fontsize=20
         result_mask = (results[i] != 0)
         simulated_deformation = true_field * 1000 / net_pbw
         measured_deformation = -deformation_fields[i][..., 0]
-        axes[i, 0].imshow(simulated_deformation * result_mask, **kwargs)
-        axes[i, 1].imshow(measured_deformation * result_mask, **kwargs)
-        im = axes[i, 2].imshow((simulated_deformation - measured_deformation) * result_mask, **kwargs)
-        overlay_mask(axes[i, 0], ~result_mask)
-        overlay_mask(axes[i, 1], ~result_mask)
-        overlay_mask(axes[i, 2], ~result_mask)
-        axes[i, 0].set_ylabel('RBW={:.3g}kHz'.format(rbw[1+i]), fontsize=fontsize)
-        cb = plt.colorbar(im, cax=axes[i, 3], ticks=[-4, -2, 0, 2, 4])
-        axes[i, 3].tick_params(labelsize=fontsize*0.75)
-        cb.set_label(label='Displacement (pixels)', size=fontsize)
-    axes[0, 0].set_title('Reference', fontsize=fontsize)
-    axes[0, 1].set_title('Registration', fontsize=fontsize)
-    axes[0, 2].set_title('Error', fontsize=fontsize)
-    if save_dir is not None:
-        plt.savefig(path.join(save_dir, 'validation_distortion_fields.png'), dpi=300)
-    return fig, axes
+        plot_field(axes[i, 0],
+                   simulated_deformation * result_mask,
+                   ~result_mask,
+                   ylabel='RBW={:.3g}kHz'.format(rbw[1+i]))
+        plot_field(axes[i, 1],
+                   measured_deformation * result_mask,
+                   ~result_mask)
+        im = plot_field(axes[i, 2],
+                   (simulated_deformation - measured_deformation) * result_mask,
+                   ~result_mask)
+    fig.colorbar(im, ax=axes, ticks=[-4, -2, 0, 2, 4], label='Readout Displacement (pixels)', location='right')
+    return axes
 
-def summary_results(true_field, deformation_fields, results, rbw, pbw, fontsize=20, save_dir=None):
-    ''' abstract validation figure panel C: line plots '''
-    num_trials = len(pbw) - 1
-    fig, ax = plt.subplots(figsize=(8, 7))
+def plot_summary_results(fig, results, true_field, deformation_fields, rbw, pbw):
+    axes = fig.subplots()
     f_max = 1.5
-    # colors = ['black', 'red', 'blue']
-    prop_cycle = plt.rcParams['axes.prop_cycle']
-    colors = prop_cycle.by_key()['color']
+    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
     styles = ['dotted', 'solid', 'dashed']
     loosely_dashed = (0, (5, 10))
-    for i in range(num_trials):
+    for i in range(len(results)):
         if pbw[1+i] == pbw[0]:
             continue
         result_mask = (results[i] != 0)
         net_pbw = net_pixel_bandwidth(pbw[1+i], pbw[0]) / 1000 # kHz
         measured_deformation = -deformation_fields[i][..., 0]
         field_bins = np.round(true_field * 10) / 10
-        # measured_deformation = np.abs(measured_deformation)
-        # field_bins = np.abs(field_bins)
-        # plots mean line and 95% confidence band
         sns.lineplot(x=(field_bins * result_mask).ravel(),
                      y=(measured_deformation * result_mask).ravel(),
-                     ax=ax, legend='brief', label='RBW={0:.3g}kHz'.format(rbw[i+1]), color=colors[i], linestyle=styles[i])
-        # ax.scatter((field_bins * result_mask).ravel(), (np.abs(measured_deformation) * result_mask).ravel(), c=colors[i], s=0.1, marker='.')
-        ax.axline((-f_max, -f_max / net_pbw), (f_max, f_max / net_pbw), color=colors[i], linestyle=loosely_dashed)
-        ax.set_xlim([-f_max, f_max])
-        ax.set_ylim([-f_max / net_pbw, f_max / net_pbw])
-    ax.set_xlabel('Off-Resonance (kHz)', fontsize=fontsize)
-    ax.set_ylabel('Displacement (pixels)', fontsize=fontsize)
-    ax.tick_params(labelsize=fontsize)
-    plt.legend(fontsize=fontsize)
+                     ax=axes, legend='brief', label='RBW={0:.3g}kHz'.format(rbw[i+1]), color=colors[i], linestyle=styles[i])
+        # ax.scatter((field_bins * result_mask).ravel(), (measured_deformation * result_mask).ravel(), c=colors[i], s=0.1, marker='.')
+        axes.axline((-f_max, -f_max / net_pbw), (f_max, f_max / net_pbw), color=colors[i], linestyle=loosely_dashed)
+        axes.set_xlim([-f_max, f_max])
+        axes.set_ylim([-f_max / net_pbw, f_max / net_pbw])
+    axes.set_xlabel('Off-Resonance (kHz)')
+    axes.set_ylabel('Readout Displacement (pixels)')
+    plt.legend()
     plt.grid()
-    if save_dir is None:
-        plt.savefig(path.join(save_dir, 'validation_distortion_summary.png'), dpi=300)
-    return fig, ax
+    return axes
+
+if __name__ == '__main__':
+
+    # Load & Pre-processing
+    root_dir = '/Users/artoews/root/code/projects/metal-phantom/tmp/'
+    slc = (slice(None), slice(35, 155), slice(65, 185), 30)
+    data = np.load(path.join(root_dir, 'distortion', 'outputs.npz'))
+    for var in data:
+        globals()[var] = data[var]
+    true_field = get_true_field(path.join(root_dir, 'field'))[slc]  # kHz
+
+    ## Setup
+    fig = plt.figure(figsize=(11, 8), layout='constrained')
+    fig_A, fig_BC = fig.subfigures(2, 1, hspace=0.1, height_ratios=[1, 1])
+    fig_B, fig_C = fig_BC.subfigures(1, 2, wspace=0.1, width_ratios = (2, 1))
+
+    ## Plot
+    axes_A = plot_image_results(fig_A, masks_register, images, results, rbw)
+    letter_annotation(axes_A[0][0], -0.2, 1.1, 'A')
+    axes_B = plot_field_results(fig_B, results, true_field, deformation_fields, rbw, pbw)
+    letter_annotation(axes_B[0][0], -0.2, 1.1, 'B')
+    axes_C = plot_summary_results(fig_C, results, true_field, deformation_fields, rbw, pbw)
+    letter_annotation(axes_C, -0.2, 1.1, 'C')
+
+    ## Save
+    plt.savefig(path.join(root_dir, 'distortion', 'distortion-summary.png'), dpi=300)
+    plt.show()
