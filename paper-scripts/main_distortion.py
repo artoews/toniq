@@ -4,13 +4,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 from os import path, makedirs
 
-from distortion import get_true_field
 from plot import plotVolumes
-import register
 
 # from plot_distortion import image_results, field_results, summary_results
 from plot_distortion import plot_image_results, plot_field_results, plot_summary_results
-from register import map_distortion, get_registration_masks
+from distortion import map_distortion, get_registration_masks, setup_nonrigid
 from util import equalize, load_series
 
 # TODO systematize this
@@ -61,7 +59,7 @@ if __name__ == '__main__':
         results = []
         deformation_fields = []
         fixed_mask = masks_register[0]
-        itk_parameters = register.setup_nonrigid()
+        itk_parameters = setup_nonrigid()
         for i in range(2, len(images)):
             print('on trial {} with PBWs {:.1f} and {:.1f} Hz'.format(i, pbw[0], pbw[i-1]))
             fixed_image = images[1]
