@@ -167,3 +167,5 @@ abstract/
 tmp/
 sandbox/
 *.stl
+orchestra/Data
+orchestra/DICOMs
