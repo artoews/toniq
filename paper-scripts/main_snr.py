@@ -4,8 +4,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from os import path, makedirs
 
-import analysis
 import plot_snr
+
+from masks import get_mask_signal
+from noise import map_snr
 from plot import plotVolumes
 
 from util import equalize, load_series
@@ -43,13 +45,11 @@ if __name__ == '__main__':
 
         images = equalize(images)
           
-        mask_empty = analysis.get_mask_empty(images[0])
-        mask_signal = analysis.get_mask_signal(images[0])
+        mask = get_mask_signal(images[0])
 
         if slc is not None:
             images = images[(slice(None),) + slc]
-            mask_empty = mask_empty[slc]
-            mask_signal = mask_signal[slc]
+            mask = mask[slc]
 
         snrs = []
         signals = []
@@ -58,7 +58,7 @@ if __name__ == '__main__':
             print('trial', i // 2)
             image1 = images[i]
             image2 = images[i+1]
-            snr, signal, noise_std = analysis.signal_to_noise(image1, image2, mask_signal, mask_empty)
+            snr, signal, noise_std = map_snr(image1, image2, mask=mask)
             snrs.append(snr)
             signals.append(signal)
             noise_stds.append(noise_std)
@@ -71,7 +71,7 @@ if __name__ == '__main__':
             snrs=snrs,
             signals=signals,
             noise_stds=noise_stds,
-            mask_signal=mask_signal,
+            mask=mask,
             rbw=rbw
          )
 

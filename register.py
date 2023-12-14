@@ -82,3 +82,15 @@ def get_jacobian(moving_image, transform):
     spatial_jacobian = np.asarray(jacobians[0]).astype(np.float)
     det_spatial_jacobian = np.asarray(jacobians[1]).astype(np.float)
     return spatial_jacobian, det_spatial_jacobian
+
+# this function was copied over from analysis.py - not sure if it is still relevant as it was last used in main.py
+def estimate_geometric_distortion(fixed_image, moving_image, fixed_mask, moving_mask):
+    fixed_image_masked = fixed_image.copy()
+    fixed_image_masked[~fixed_mask] = 0
+    moving_image_masked = moving_image.copy()
+    moving_image_masked[~moving_mask] = 0
+    result, transform = nonrigid(fixed_image, moving_image, fixed_mask, moving_mask)
+    result_masked = transform(moving_image_masked, transform)
+    deformation_field = get_deformation_field(moving_image, transform)
+    _, jacobian_det = get_jacobian(moving_image, transform)
+    return deformation_field, jacobian_det, result, result_masked

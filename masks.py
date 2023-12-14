@@ -1,7 +1,6 @@
 import numpy as np
 import scipy.ndimage as ndi
-from skimage import filters, morphology, restoration, util
-import register
+from skimage import filters, morphology, util
 
 
 def get_mask_lattice(image, diff_size=5, morph_size=10):
@@ -123,7 +122,6 @@ def get_all_masks(image_clean, image_distorted, combine=False, denoise=False):
     if denoise:
         error = denoise(error)
 
-
     signal_ref = get_typical_level(image_clean, signal, implant)
     hyper = get_mask_hyper(error, signal_ref)
     hypo = get_mask_hypo(error, signal_ref)
@@ -157,42 +155,3 @@ def combine_masks(implant, empty, hyper, hypo, artifact):
     mask[empty] = 0
     mask[implant] = 1
     return mask / 5
-
-def signal_to_noise(image1, image2, mask_signal, mask_empty, filter_radius=10):
-    # "Difference Method" from Reeder et al 2005, extended to include a mask reducing signal bias from lattice
-    footprint = morphology.ball(filter_radius)
-    # footprint = morphology.cube(filter_size)
-    image_sum = np.abs(image2) + np.abs(image1)
-    image_diff = np.abs(image2) - np.abs(image1)
-    filter_sum = ndi.generic_filter(image_sum * mask_signal, np.sum, footprint=footprint)
-    filter_count = ndi.generic_filter(mask_signal, np.sum, footprint=footprint, output=float)
-    signal =  np.divide(filter_sum, filter_count, out=np.zeros_like(filter_sum), where=filter_count > 0) / 2
-    # signal = ndi.generic_filter(image_sum, np.mean, footprint=footprint) / 2
-    noise = ndi.generic_filter(image_diff, np.std, footprint=footprint) / np.sqrt(2)
-    snr = np.divide(signal * np.logical_not(mask_empty), noise, out=np.zeros_like(signal), where=noise > 0)
-    return snr, signal, noise
-
-def noise_std(image1, image2, filter_radius=10):
-    footprint = morphology.ball(filter_radius)
-    image_diff = np.abs(image2) - np.abs(image1)
-    noise = ndi.generic_filter(image_diff, np.std, footprint=footprint) / np.sqrt(2)
-    return noise
-
-def estimate_psf(clean_image, blurred_image, reg=0.1):
-    # https://scikit-image.org/docs/stable/api/skimage.restoration.html#skimage.restoration.wiener
-    max_val = np.max(clean_image)
-    blurred_image = blurred_image / max_val
-    clean_image = clean_image / max_val
-    psf = restoration.wiener(blurred_image, clean_image, reg)
-    return psf
-
-def estimate_geometric_distortion(fixed_image, moving_image, fixed_mask, moving_mask):
-    fixed_image_masked = fixed_image.copy()
-    fixed_image_masked[~fixed_mask] = 0
-    moving_image_masked = moving_image.copy()
-    moving_image_masked[~moving_mask] = 0
-    result, transform = register.nonrigid(fixed_image, moving_image, fixed_mask, moving_mask)
-    result_masked = register.transform(moving_image_masked, transform)
-    deformation_field = register.get_deformation_field(moving_image, transform)
-    _, jacobian_det = register.get_jacobian(moving_image, transform)
-    return deformation_field, jacobian_det, result, result_masked
