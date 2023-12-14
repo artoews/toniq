@@ -10,7 +10,7 @@ import register
 
 from plot_distortion import image_results, field_results, summary_results
 from register import map_distortion, get_registration_masks
-from util import masked_copy, equalize, load_series
+from util import equalize, load_series
 
 # TODO systematize this
 slc = (slice(35, 155), slice(65, 185), 30)
