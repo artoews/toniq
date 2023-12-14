@@ -62,19 +62,6 @@ def remove_smaller_than(mask, size):
             print(label_count)
     return refined_mask
 
-def get_typical_level(image, signal_mask, implant_mask, filter_size=5):
-    # fill in implant area
-    filled_image = np.abs(image)
-    median_signal = np.median(filled_image[signal_mask])
-    # mean_signal = np.sum(image * signal_mask) / np.sum(signal_mask)
-    implant_mask = ndi.maximum_filter(implant_mask, size=filter_size)
-    # image[implant_mask] = mean_signal
-    filled_image[implant_mask] = median_signal
-    signal_sum = ndi.uniform_filter(filled_image * signal_mask, size=filter_size)
-    signal_count = ndi.uniform_filter(signal_mask, size=filter_size, output=float)
-    signal_mean =  np.divide(signal_sum, signal_count, out=np.zeros_like(signal_sum), where=signal_count > 0)
-    return signal_mean
-
 def get_mask_register(mask_empty, mask_implant, mask_artifact, filter_radius=3):
     mask = (mask_implant + mask_empty + mask_artifact) == 0
     mask = ndi.binary_closing(mask, structure=morphology.ball(filter_radius)) # dilation then erosion
