@@ -2,6 +2,9 @@ import itk
 import numpy as np
 from time import time
 
+import masks
+from util import masked_copy, safe_divide
+
 def elastix_registration(fixed_image, moving_image, fixed_mask, moving_mask, parameter_object, verbose=False):
     t0 = time()
     # good change these to image_view_from_array to pass by reference? I don't *think* they are modified
@@ -40,7 +43,7 @@ def setup_nonrigid(verbose=True):
     if verbose:
         print('Beginning ITK setup...')
     t0 = time()
-    parameter_object = itk.ParameterObject.New()  # this is the slow line
+    parameter_object = itk.ParameterObject.New()  # slow
     default_bspline_parameter_map = parameter_object.GetDefaultParameterMap('bspline', 1)
     # 20-30 seems to work well empirically; but below 30, start to see some displacement showing up in y & z maps when they should be zero
     default_bspline_parameter_map['FinalGridSpacingInPhysicalUnits'] = ['30']  
@@ -53,21 +56,13 @@ def setup_nonrigid(verbose=True):
         print('Done ITK setup. {:.2f} seconds elapsed'.format(time() - t0))
     return parameter_object
 
-def nonrigid(fixed_image, moving_image, fixed_mask, moving_mask, verbose=True):
-    parameter_object = setup_nonrigid(verbose=verbose)
-    print(fixed_image.shape, fixed_image.dtype)
-    print(moving_image.shape, moving_image.dtype)
-    print(fixed_mask.shape, fixed_mask.dtype)
-    print(moving_mask.shape, moving_mask.dtype)
-    return elastix_registration(fixed_image, moving_image, fixed_mask, moving_mask, parameter_object, verbose=False)
-
-def rigid(fixed_image, moving_image, fixed_mask, moving_mask, verbose=False):
+def setup_rigid(verbose=True):
     parameter_object = itk.ParameterObject.New()  # slow
     default_affine_parameter_map = parameter_object.GetDefaultParameterMap('rigid', 1)
     parameter_object.AddParameterMap(default_affine_parameter_map)
     if verbose:
         print(parameter_object)
-        return elastix_registration(fixed_image, moving_image, fixed_mask, moving_mask, parameter_object, verbose=False)
+    return parameter_object
 
 def get_deformation_field(moving_image, transform):
     # from https://github.com/InsightSoftwareConsortium/ITKElastix/blob/main/examples/ITK_Example11_Transformix_DeformationField.ipynb
@@ -83,14 +78,30 @@ def get_jacobian(moving_image, transform):
     det_spatial_jacobian = np.asarray(jacobians[1]).astype(np.float)
     return spatial_jacobian, det_spatial_jacobian
 
-# this function was copied over from analysis.py - not sure if it is still relevant as it was last used in main.py
-def estimate_geometric_distortion(fixed_image, moving_image, fixed_mask, moving_mask):
-    fixed_image_masked = fixed_image.copy()
-    fixed_image_masked[~fixed_mask] = 0
+def map_distortion(fixed_image, moving_image, fixed_mask=None, moving_mask=None, thresh=0.1, itk_parameters=None):
+    if itk_parameters is None:
+        itk_parameters = setup_nonrigid()
+    if fixed_mask is None or moving_mask is None:
+        fixed_mask, moving_mask = get_registration_masks([fixed_image, moving_image])
     moving_image_masked = moving_image.copy()
     moving_image_masked[~moving_mask] = 0
-    result, transform = nonrigid(fixed_image, moving_image, fixed_mask, moving_mask)
-    result_masked = transform(moving_image_masked, transform)
-    deformation_field = get_deformation_field(moving_image, transform)
-    _, jacobian_det = get_jacobian(moving_image, transform)
-    return deformation_field, jacobian_det, result, result_masked
+    result, transfrm = elastix_registration(fixed_image, moving_image, fixed_mask, moving_mask, itk_parameters)
+    deformation_field = get_deformation_field(moving_image, transfrm)
+    result_masked = transform(moving_image_masked, transfrm)
+    result_mask = np.logical_and(np.abs(result_masked) > thresh, fixed_mask)
+    result_masked = masked_copy(result_masked, result_mask)
+    return result, result_masked, deformation_field
+
+def get_registration_masks(images):
+    mask_empty = masks.get_mask_empty(images[0])
+    mask_implant = masks.get_mask_implant(mask_empty)
+    mask_signal = masks.get_mask_signal(images[0])
+    signal_ref = masks.get_typical_level(images[0], mask_signal, mask_implant)
+    masks_register = []
+    for image in images[1:]:
+        error = image - images[0]
+        normalized_error = safe_divide(error, signal_ref)
+        mask_artifact = masks.get_mask_artifact(normalized_error)
+        mask_register = masks.get_mask_register(mask_empty, mask_implant, mask_artifact)
+        masks_register.append(mask_register)
+    return masks_register

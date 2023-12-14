@@ -21,7 +21,6 @@ p.add_argument('-e', '--exam_root', type=str, default=None, help='directory wher
 p.add_argument('-s', '--series_list', type=str, nargs='+', default=None, help='list of exam_root subdirectories to be analyzed, ordered by pairs')
 p.add_argument('-c', '--unit_cell_mm', type=float, default=12.0, help='size of lattice unit cell (in mm)')
 p.add_argument('-l', '--lattice_shape', type=int, nargs='+', default=[13, 13, 4], help='number of unit cells along each axis of lattice')
-p.add_argument('-v', '--verbose', action='count', default=0, help='verbosity level')
 
 if __name__ == '__main__':
 
@@ -56,9 +55,7 @@ if __name__ == '__main__':
         noise_stds = []
         for i in range(0, len(images), 2):
             print('trial', i // 2)
-            image1 = images[i]
-            image2 = images[i+1]
-            snr, signal, noise_std = map_snr(image1, image2, mask=mask)
+            snr, signal, noise_std = map_snr(images[i], images[i+1], mask=mask)
             snrs.append(snr)
             signals.append(signal)
             noise_stds.append(noise_std)
