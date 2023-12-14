@@ -3,11 +3,9 @@ import json
 import matplotlib.pyplot as plt
 import numpy as np
 from os import path, makedirs
-from pathlib import Path
-import seaborn as sns
 
 import analysis
-import dicom
+import plot_snr
 from plot import plotVolumes
 
 from util import equalize, load_series
@@ -23,18 +21,9 @@ p.add_argument('-c', '--unit_cell_mm', type=float, default=12.0, help='size of l
 p.add_argument('-l', '--lattice_shape', type=int, nargs='+', default=[13, 13, 4], help='number of unit cells along each axis of lattice')
 p.add_argument('-v', '--verbose', action='count', default=0, help='verbosity level')
 
-def load_dicom_series(path):
-    if path is None:
-        return None
-    files = Path(path).glob('*MRDC*')
-    image = dicom.load_series(files)
-    return image
-
 if __name__ == '__main__':
 
     args = p.parse_args()
-    
-    # set up directory structure
     save_dir = path.join(args.root, 'noise')
     if not path.exists(save_dir):
         makedirs(save_dir)
@@ -65,7 +54,6 @@ if __name__ == '__main__':
         snrs = []
         signals = []
         noise_stds = []
-
         for i in range(0, len(images), 2):
             print('trial', i // 2)
             image1 = images[i]
@@ -88,57 +76,20 @@ if __name__ == '__main__':
          )
 
     else:
-
         with open(path.join(save_dir, 'args_post.txt'), 'w') as f:
             json.dump(args.__dict__, f, indent=4)
-
         data = np.load(path.join(save_dir, 'outputs.npz'))
         for var in data:
             globals()[var] = data[var]
     
     for i in range(0, len(images), 2):
-
         image1 = images[i]
         image2 = images[i+1]
-
         image_diff = 5 * (image2 - image1) + 0.5
         image_sum = 0.5 * (image2 + image1)
         volumes = (image1, image2, image_diff, image_sum)
         titles = ('Image 1', 'Image 2', 'Difference (5x)', 'Sum (0.5x)')
-        fig2, tracker2 = plotVolumes(volumes, 1, len(volumes), titles=titles, figsize=(16, 8))
-    
-    fig3, ax3 = plt.subplots(figsize=(8, 5))
-    plt.subplots_adjust(bottom=0.2)
-    fig4, ax4 = plt.subplots(figsize=(8, 5))
-    plt.subplots_adjust(bottom=0.2)
-    # colors = ['black', 'red', 'blue']
-    prop_cycle = plt.rcParams['axes.prop_cycle']
-    colors = prop_cycle.by_key()['color']
-    styles = ['dotted', 'solid', 'dashed']
-    loosely_dashed = (0, (5, 10))
-    ax3.axline((0, 0), (1, 1), color='k', linestyle=loosely_dashed)
-    ax4.axline((0, 0), (1, 1), color='k', linestyle=loosely_dashed)
-    fs = 20
-    # noise_stds *= 100
-    for i in range(1, len(images) // 2):
-        expected_factor = np.sqrt(rbw[0] / rbw[i])
-        expected_snr_rounded = np.round(expected_factor * snrs[0])
-        sns.lineplot(x=expected_snr_rounded.ravel(), y=snrs[i].ravel(), ax=ax3, legend='brief', label='RBW={:.3g}kHz'.format(rbw[i]), color=colors[i-1], linestyle=styles[i-1])  # plots mean line and 95% confidence band
-        ax4.scatter(expected_factor * snrs[0], snrs[i], c=colors[i-1], label='RBW={:.3g}kHz'.format(rbw[i]), s=0.01, marker='.')
-        # expected_noise_rounded = np.round(noise_stds[0] / expected_factor)
-        # sns.lineplot(x=expected_noise_rounded.ravel(), y=noise_stds[i].ravel(), ax=ax3, legend='brief', label='{:.3g}kHz'.format(rbw[i]), color=colors[i-1])  # plots mean line and 95% confidence band
-        # ax4.scatter(noise_stds[0] / expected_factor, noise_stds[i], c=colors[i-1], label='RBW={:.3g}kHz'.format(rbw[i]), s=0.01, marker='.')
-    for ax in (ax3, ax4):
-        ax.set_xlim([10, 55])
-        ax.set_ylim([10, 55])
-        ax.set_xticks(range(10, 51, 10))
-        ax.set_yticks(range(10, 51, 10))
-        ax.set_xlabel('Expected SNR', fontsize=fs)
-        ax.set_ylabel('Measured SNR', fontsize=fs)
-        ax.tick_params(labelsize=fs*0.8)
-        ax.legend(fontsize=fs*0.8)
-        ax.grid()
-    fig3.savefig(path.join(save_dir, 'validation_snr.png'), dpi=300)
-    fig4.savefig(path.join(save_dir, 'snr_pixel_cloud.png'), dpi=300)
-
+        fig, tracker = plotVolumes(volumes, 1, len(volumes), titles=titles, figsize=(16, 8))
+    plot_snr.scatter(snrs, rbw, save_dir=save_dir)
+    plot_snr.lines(snrs, rbw, save_dir=save_dir)
     plt.show()
