@@ -8,7 +8,7 @@ from plot import plotVolumes
 
 # from plot_distortion import image_results, field_results, summary_results
 from plot_distortion import plot_image_results, plot_field_results, plot_summary_results
-from distortion import map_distortion, get_registration_masks, setup_nonrigid
+from distortion import map_distortion, get_registration_masks, setup_nonrigid, get_true_field
 from util import equalize, load_series
 
 # TODO systematize this

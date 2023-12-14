@@ -170,7 +170,7 @@ if __name__ == '__main__':
 
     # Load & Pre-processing
     root_dir = '/Users/artoews/root/code/projects/metal-phantom/tmp/'
-    slc = (slice(None), slice(35, 155), slice(65, 185), 30)
+    slc = (slice(35, 155), slice(65, 185), 30)
     data = np.load(path.join(root_dir, 'distortion', 'outputs.npz'))
     for var in data:
         globals()[var] = data[var]
