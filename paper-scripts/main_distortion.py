@@ -58,7 +58,6 @@ if __name__ == '__main__':
         # run registration
         print('Running registration...')
         results = []
-        results_masked = []
         deformation_fields = []
         fixed_mask = masks_register[0]
         itk_parameters = register.setup_nonrigid()
@@ -67,24 +66,21 @@ if __name__ == '__main__':
             fixed_image = images[1]
             moving_image = images[i]
             moving_mask = masks_register[i-1]
-            result, result_masked, deformation_field = map_distortion(
+            _, result_masked, deformation_field = map_distortion(
                 fixed_image,
                 moving_image,
                 fixed_mask=fixed_mask,
                 moving_mask=moving_mask,
                 itk_parameters=itk_parameters)
-            results.append(result)
-            results_masked.append(result_masked)
+            results.append(result_masked)
             deformation_fields.append(deformation_field)
         results = np.stack(results)
-        results_masked = np.stack(results_masked)
         masks_register = np.stack(masks_register)
         deformation_fields = np.stack(deformation_fields)
 
         np.savez(path.join(save_dir, 'outputs.npz'),
                  images=images,
                  results=results,
-                 results_masked=results_masked,
                  masks_register=masks_register,
                  deformation_fields=deformation_fields,
                  pbw=pbw,
@@ -111,8 +107,8 @@ if __name__ == '__main__':
     # fig4, tracker4 = plotVolumes((images[0] * 24e3 - 12e3, true_field), titles=('trial 0', 'true_field'), vmin=-12e3, vmax=12e3)
     # true_field_masked = masked_copy(true_field, fixed_mask)
 
-    fig1, axes1 = image_results(images, masks_register, results_masked, rbw, save_dir=save_dir)
-    fig2, axes2 = field_results(true_field, deformation_fields, results_masked, rbw, pbw, save_dir=save_dir)
-    fig3, axes3 = summary_results(true_field, deformation_fields, results_masked, rbw, pbw, save_dir=save_dir)
+    fig1, axes1 = image_results(images, masks_register, results, rbw, save_dir=save_dir)
+    fig2, axes2 = field_results(true_field, deformation_fields, results, rbw, pbw, save_dir=save_dir)
+    fig3, axes3 = summary_results(true_field, deformation_fields, results, rbw, pbw, save_dir=save_dir)
 
     plt.show()

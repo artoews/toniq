@@ -8,7 +8,7 @@ from distortion import net_pixel_bandwidth
 from plot import overlay_mask
 from util import masked_copy
 
-def image_results(images, masks_register, results_masked, rbw, fontsize=20, save_dir=None):
+def image_results(images, masks_register, results, rbw, fontsize=20, save_dir=None):
     ''' abstract validation figure panel A: image result '''
     num_trials = len(rbw) - 1
     fixed_image = images[1]
@@ -29,13 +29,13 @@ def image_results(images, masks_register, results_masked, rbw, fontsize=20, save
         moving_mask = masks_register[1+i]
         moving_image_masked = masked_copy(images[2+i], moving_mask)
         init_error = np.abs(moving_image_masked - fixed_image_masked) * error_multiplier
-        result_error = np.abs(results_masked[i] - fixed_image_masked) * error_multiplier
+        result_error = np.abs(results[i] - fixed_image_masked) * error_multiplier
         init_mask =  (moving_image_masked != 0) * (fixed_image_masked != 0)
-        result_mask = (results_masked[i] != 0)
+        result_mask = (results[i] != 0)
         # color_mask = np.zeros(result_error.shape + (4,), dtype=np.uint8)
         # color_mask[~result_mask, :] = np.array([0, 0, 255, 255], dtype=np.uint8)
         axes[i, 1].imshow(moving_image_masked, **kwargs)
-        axes[i, 2].imshow(results_masked[i], **kwargs)
+        axes[i, 2].imshow(results[i], **kwargs)
         axes[i, 3].imshow(init_error * init_mask, **kwargs)
         axes[i, 4].imshow(result_error * result_mask, **kwargs)
         overlay_mask(axes[i, 1], ~moving_mask)
@@ -55,7 +55,7 @@ def image_results(images, masks_register, results_masked, rbw, fontsize=20, save
         plt.savefig(path.join(save_dir, 'validation_distortion_images.png'), dpi=300)
     return fig, axes
 
-def field_results(true_field, deformation_fields, results_masked, rbw, pbw, fontsize=20, save_dir=None):
+def field_results(true_field, deformation_fields, results, rbw, pbw, fontsize=20, save_dir=None):
     ''' abstract validation figure panel B: field result '''
     num_trials = len(pbw) - 1
     fig, axes = plt.subplots(nrows=num_trials, ncols=4, figsize=(12, 8), gridspec_kw={'width_ratios': [1, 1, 1, 0.1]})
@@ -69,7 +69,7 @@ def field_results(true_field, deformation_fields, results_masked, rbw, pbw, font
         if pbw[1+i] == pbw[0]:
             continue
         net_pbw = net_pixel_bandwidth(pbw[1+i], pbw[0])  # Hz
-        result_mask = (results_masked[i] != 0)
+        result_mask = (results[i] != 0)
         simulated_deformation = true_field * 1000 / net_pbw
         measured_deformation = -deformation_fields[i][..., 0]
         axes[i, 0].imshow(simulated_deformation * result_mask, **kwargs)
@@ -89,7 +89,7 @@ def field_results(true_field, deformation_fields, results_masked, rbw, pbw, font
         plt.savefig(path.join(save_dir, 'validation_distortion_fields.png'), dpi=300)
     return fig, axes
 
-def summary_results(true_field, deformation_fields, results_masked, rbw, pbw, fontsize=20, save_dir=None):
+def summary_results(true_field, deformation_fields, results, rbw, pbw, fontsize=20, save_dir=None):
     ''' abstract validation figure panel C: line plots '''
     num_trials = len(pbw) - 1
     fig, ax = plt.subplots(figsize=(8, 7))
@@ -102,7 +102,7 @@ def summary_results(true_field, deformation_fields, results_masked, rbw, pbw, fo
     for i in range(num_trials):
         if pbw[1+i] == pbw[0]:
             continue
-        result_mask = (results_masked[i] != 0)
+        result_mask = (results[i] != 0)
         net_pbw = net_pixel_bandwidth(pbw[1+i], pbw[0]) / 1000 # kHz
         measured_deformation = -deformation_fields[i][..., 0]
         field_bins = np.round(true_field * 10) / 10
