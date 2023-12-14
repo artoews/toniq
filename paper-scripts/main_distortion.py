@@ -110,5 +110,4 @@ if __name__ == '__main__':
     fig1, axes1 = image_results(images, masks_register, results, rbw, save_dir=save_dir)
     fig2, axes2 = field_results(true_field, deformation_fields, results, rbw, pbw, save_dir=save_dir)
     fig3, axes3 = summary_results(true_field, deformation_fields, results, rbw, pbw, save_dir=save_dir)
-
     plt.show()
