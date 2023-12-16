@@ -176,14 +176,17 @@ class ScanArchive:
         with open(file, 'w') as f:
             yaml.dump(p, f, default_flow_style=None)
 
-    def gradwarp(self, img, orient=False):
+    def gradwarp(self, img, orient=False, isotropic=True):
         # for magnitude image with shape (x, y, z)
         img = np.abs(img).astype(np.float32)
-        # fov_scaling = self.archive.GradwarpParams()  # may become useful in case of isotropic resolution?
-        fov_scaling = {'FrequencyPixelScaling': 1.0, 'PhasePixelScaling': 1.0}  # assumes isotropic res?
+        if isotropic:
+            fov_scaling = {'FrequencyPixelScaling': 1.0, 'PhasePixelScaling': 1.0}
+        else:
+            fov_scaling = self.archive.GradwarpParams()
+        # print('fov_scaling', fov_scaling)
         corners = (self.archive.Corners(0), self.archive.Corners(self.nz-1))
-        # TODO check gradient type, spherical harmonic coeffs available?
-        gw_img = Gradwarp().Execute3D(img, corners, fovScalingParams=fov_scaling)
+        # TODO pass gradient coefficients instead, so you don't have to hardcode the gradient type
+        gw_img = Gradwarp().Execute3D(img, corners, fov_scaling, gradient='HRMW')
         if orient:
             gw_img = self.orient(gw_img)
         return gw_img
