@@ -7,12 +7,11 @@ from pathlib import Path
 import sigpy as sp
 from time import time
 
-import analysis
 import dicom
 from comsi.ge import ScanArchive
 from plot import plotVolumes
 
-from util import debug, safe_divide, coord_mats
+from util import debug, safe_divide, coord_mats, normalize, equalize
 
 
 p = argparse.ArgumentParser(description='Field map estimation from MAVRIC-SL data.')
@@ -47,8 +46,8 @@ def load_dicom_series(path):
 def sinc_interpolate(image, shape):
     return np.real(sp.ifft(sp.resize(sp.fft(image), shape)))
 
-def upsample(image, factor):
-    for ax in range(image.ndim):
+def upsample(image, factor, axes):
+    for ax in axes:
         image = np.repeat(image, factor, axis=ax)
     return image
 
@@ -90,7 +89,7 @@ if __name__ == '__main__':
     # ( alternatively, COULD do this: combine coils in image space: compress coil, estimate sensitivity maps, form conjugate coil combination )
     bin_images = sp.ifft(k, axes=(0, 1, 2))
     bin_images = rsos(bin_images, axis=-1)  # combine coils
-    bin_images = analysis.normalize(bin_images)
+    bin_images = normalize(bin_images)
     print('bin images', bin_images.shape, bin_images.dtype)
 
     bin_images_init_size = bin_images.copy()
@@ -131,18 +130,17 @@ if __name__ == '__main__':
     # form composite image from RSOS bin combination
     image = rsos(bin_images, axis=-1)  # combine bins
 
+    # image = upsample(image, 2, (0, 1))
+    # field = upsample(field, 2, (0, 1))
+
     if args.reference is not None:
         # image = sp.resize(image, (128, 128, 32))
         # field = sp.resize(field, (128, 128, 32))
         # image = sinc_interpolate(image, ref_image.shape)
         # field = sinc_interpolate(field, ref_image.shape)
-        image = analysis.normalize(image)
-        ref_image = analysis.equalize(ref_image, image)
+        ref_image, image = equalize(np.stack((ref_image, image)))
     else:
-        image = analysis.normalize(image)
-
-    image = upsample(image, 2)
-    field = upsample(field, 2)
+        image = normalize(image)
 
     np.save(path.join(save_dir, 'image.npy'), image)
     np.save(path.join(save_dir, 'field.npy'), field)
