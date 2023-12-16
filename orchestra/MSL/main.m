@@ -2,9 +2,6 @@ sa = '/Users/artoews/root/data/mri/231021/Series20/ScanArchive_415723SHMR18_2023
 
 [kspace_xyzbc, offsets] = extract(sa);
 image_xyzb = combine_coils(sa, kspace_xyzbc);
-% image_xyzb = correct3D_bins(sa, image_xyzb); % TODO try this instead of
-% correct3D below. Careful, may need to separate gradwarp and orient so that just
-% gradwarp is applied prior to bin correction, not sure.
 image_xyz = combine_bins(image_xyzb, offsets');
 image_xyz = correct3D(sa, image_xyz);
 
