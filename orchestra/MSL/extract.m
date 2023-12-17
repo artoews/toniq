@@ -14,7 +14,7 @@ numPasses = archive.DownloadData.rdb_hdr_rec.rdb_hdr_npasses;
 nb = numEchoes * numPasses;
 
 num_passes = archive.DownloadData.rdb_hdr_rec.rdb_hdr_npasses;
-kspace_xyzbc = zeros(nx, ny, nz, nb, nc, 'single');
+kspace_xyzbc = zeros(nx, ny, nz, nb, nc);
 mask = zeros(ny, nz, nb, 'logical');
 pass = 1;
 bins_per_pass = nb / num_passes;
