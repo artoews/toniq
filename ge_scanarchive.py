@@ -91,4 +91,4 @@ class MavricSL(ScanArchive):
 
     @property
     def b0_offsets(self):
-        return self.header['rdb_hdr_rec']['rdb_hdr_mavric_b0_offset']
+        return self.header['rdb_hdr_rec']['rdb_hdr_mavric_b0_offset'][:self.num_bins]

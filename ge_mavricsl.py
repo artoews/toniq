@@ -11,7 +11,7 @@ def extract_data(archive: MavricSL, verbose=True):
     kspace_xyzbc = np.zeros(archive.shape, dtype=np.complex64)
     mask_yzb = np.zeros(archive.shape[1:4], dtype=bool)
     bins_per_pass = int(archive.num_bins / archive.num_passes)
-    bin_order = np.argsort(archive.b0_offsets[:archive.num_bins]).argsort() # index ordering of bins
+    bin_order = np.argsort(archive.b0_offsets).argsort() # index ordering of bins
     ip = 1
     for ic in range(archive.control_count):  # philip has -1?
         if verbose and np.mod(ic, 1e4) == 0:
