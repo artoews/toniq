@@ -7,9 +7,14 @@ from ge_scanarchive import MavricSL
 
 def extract_data(archive: MavricSL, verbose=True):
     " Get k-space from MAVRIC-SL scan archive as a zero-filled numpy array "
+    shape = (archive.num_readout,
+             archive.num_pe,
+             archive.num_slices,
+             archive.num_bins,
+             archive.num_coils)
     control_table = np.zeros((archive.control_count, 3), dtype=int)
-    kspace_xyzbc = np.zeros(archive.shape, dtype=np.complex64)
-    mask_yzb = np.zeros(archive.shape[1:4], dtype=bool)
+    kspace_xyzbc = np.zeros(shape, dtype=np.complex64)
+    mask_yzb = np.zeros(shape[1:4], dtype=bool)
     bins_per_pass = int(archive.num_bins / archive.num_passes)
     bin_order = np.argsort(archive.b0_offsets).argsort() # index ordering of bins
     ip = 1

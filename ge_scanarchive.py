@@ -44,10 +44,6 @@ class MavricSL(ScanArchive):
         super().__init__(file)
 
     @property
-    def shape(self):
-        return self.num_readout, self.num_pe, self.num_slices, self.num_bins, self.num_coils
-
-    @property
     def num_readout(self):
         """ Size of readout (x) dimension. """
         return self.metadata['acquiredXRes']
