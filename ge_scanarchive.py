@@ -29,6 +29,10 @@ class ScanArchive:
         # start = self.header['rdb_hdr_rec']['rdb_hdr_dab'][0]['start_rcv']
         # return stop - start + 1
     
+    @property
+    def num_echoes(self):
+        return self.header['rdb_hdr_rec']['rdb_hdr_nechoes']
+    
     def NextFrame(self):
         return self.archive.NextFrame()
     
@@ -81,15 +85,10 @@ class MavricSL(ScanArchive):
         return int(self.num_echoes * self.num_passes)
     
     @property
-    def num_echoes(self):
-        return self.header['rdb_hdr_rec']['rdb_hdr_nechoes']
-    
-    @property
     def num_passes(self):
         # return self.header['rdb_hdr_rec']['rdb_hdr_npasses']
         return self.metadata['passes']
 
-    def bin_order(self):
-        """ Returns the index ordering of bins. """
-        b0_offsets = self.header['rdb_hdr_rec']['rdb_hdr_mavric_b0_offset']
-        return np.argsort(b0_offsets[:self.nb]).argsort()
+    @property
+    def b0_offsets(self):
+        return self.header['rdb_hdr_rec']['rdb_hdr_mavric_b0_offset']
