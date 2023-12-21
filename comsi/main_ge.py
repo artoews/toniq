@@ -5,7 +5,7 @@ import numpy as np
 from os import path
 
 from cfl import readcfl
-from ge import ScanArchive
+from ge_scanarchive import ScanArchive
 from util import debug
 
 p = argparse.ArgumentParser(description='extract MAVRIC-SL scans from GE Scan Archives; '

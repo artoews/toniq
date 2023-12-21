@@ -6,11 +6,31 @@ import yaml
 from time import time
 
 from GERecon import Archive, Arc, ChannelCombiner, Gradwarp, Orientation, Transformer, Dicom
+import matplotlib.pyplot as plt
 
+from plot import plotVolumes
 from util import debug
 
 # TODO check all properties are correct
 # TODO explore self.archive for more
+
+def flatten(kspace, verbose=True):
+    if verbose:
+        t0 = debug('start')
+    init_shape = kspace.shape
+    nx, ny, nz, nb, nc = init_shape
+    kspace = kspace[:, mask, :]
+    if verbose:
+        debug('done masking shape {} to shape {}'.format(init_shape, kspace.shape), t0)
+    init_shape = kspace.shape
+    kspace = np.reshape(kspace, (nx, -1, nb, nc))
+    if verbose:
+        debug('done reshaping from {} to {}'.format(init_shape, kspace.shape), t0)
+    init_shape = kspace.shape
+    kspace = np.reshape(kspace, (-1, nb, nc))  # this part is really slow
+    if verbose:
+        debug('done reshaping from {} to {}'.format(init_shape, kspace.shape), t0)
+    return kspace
 
 
 class ScanArchive:
@@ -100,10 +120,10 @@ class ScanArchive:
         bin_order = self.bin_order()
 
         kspace = np.zeros(self.shape, dtype=np.complex64)
-        mask = np.zeros(self.shape[1:4], dtype=np.bool)
+        mask = np.zeros(self.shape[1:4], dtype=bool)
         ip = 1
 
-        control_table = np.zeros((num_control, 3), dtype=np.int)
+        control_table = np.zeros((num_control, 3), dtype=int)
 
         if verbose:
             debug('beginning control loop with {} iterations'.format(num_control), t0)
@@ -137,25 +157,10 @@ class ScanArchive:
             kspace = np.flip(kspace, axis=0)
         print(kspace.shape)
 
-        init_shape = kspace.shape
-        kspace = kspace[:, mask, :]
-        if verbose:
-            debug('done masking shape {} to shape {}'.format(init_shape, kspace.shape), t0)
-
-        init_shape = kspace.shape
-        kspace = np.reshape(kspace, (self.nx, -1, self.nb, self.nc))
-        if verbose:
-            debug('done reshaping from {} to {}'.format(init_shape, kspace.shape), t0)
-
-        init_shape = kspace.shape
-        kspace = np.reshape(kspace, (-1, self.nb, self.nc))  # this part is really slow
-        if verbose:
-            debug('done reshaping from {} to {}'.format(init_shape, kspace.shape), t0)
-
         if verbose:
             debug('end', t0)
-        return kspace, mask, control_table
-
+        return kspace, mask
+    
     def save_params(self, file):
         rx = self.header['rdb_hdr_image']['pixelSizeX']
         ry = self.header['rdb_hdr_image']['pixelSizeY']
@@ -183,7 +188,6 @@ class ScanArchive:
             fov_scaling = {'FrequencyPixelScaling': 1.0, 'PhasePixelScaling': 1.0}
         else:
             fov_scaling = self.archive.GradwarpParams()
-        # print('fov_scaling', fov_scaling)
         corners = (self.archive.Corners(0), self.archive.Corners(self.nz-1))
         # TODO pass gradient coefficients instead, so you don't have to hardcode the gradient type
         gw_img = Gradwarp().Execute3D(img, corners, fov_scaling, gradient='HRMW')
@@ -206,13 +210,17 @@ class ScanArchive:
 
 
 if __name__ == '__main__':
-    file = '/bmrNAS/people/artoews/data/scans/221125/Series15/ScanArchive_415723SHMR18_20221125_143248777.h5'
+    # file = '/bmrNAS/people/artoews/data/scans/221125/Series15/ScanArchive_415723SHMR18_20221125_143248777.h5'
+    file = '/Users/artoews/root/data/mri/231021/Series20/ScanArchive_415723SHMR18_20231021_205205589.h5'
     s = ScanArchive(file, verbose=True)
     s.save_params('seq.yml')
-    kspace, mask, control_table = s.extract_data(flipread=False)
-    np.save('kspace.npy', kspace)
-    np.save()
-    print(control_table)
+    kspace, mask = s.extract_data(flipread=False)
     print(kspace.shape)
-    print(mask.shape)
-    print(np.sum(mask))
+    np.save('kspace.npy', kspace)
+    print('doing ifft')
+    image = np.abs(sp.ifft(kspace, oshape=kspace.shape, axes=(0, 1, 2)))
+    image = image / np.max(image) * 2
+    print('done ifft')
+    fig1, tracker1 = plotVolumes((image[:, :, 16, :, 15],))
+    fig2, tracker2 = plotVolumes((image[:, :, 16, 12, :],))
+    plt.show()
