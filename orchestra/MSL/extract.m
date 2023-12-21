@@ -25,6 +25,7 @@ bin_order = floor(offsets/1000 + nb/2);
 if min(bin_order) == 0
     bin_order = bin_order + 1;
 end
+offsets = sort(offsets);
 
 % Loop through each control, sorting frames if applicable
 fprintf('Beginning control loop with %d iterations\n', archive.ControlCount);
@@ -39,9 +40,6 @@ for i = 1:archive.ControlCount
         iz = control.sliceNum + 1;
         bin_index = bin_order(control.echoNum + (pass - 1) * bins_per_pass + 1);
         data = squeeze(control.Data);
-%         if mod(iz, 2) == 0
-%             data = -data;  % half-FOV shift in z - why is this necessary?
-%         end
         kspace_xyzbc(:, iy, iz, bin_index, :) = data;
         mask(iy, iz, bin_index) = true;
     elseif(control.opcode == 0) % end of pass and/or scan

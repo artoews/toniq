@@ -4,6 +4,7 @@ from GERecon import Archive
 
 class ScanArchive:
     def __init__(self, file):
+        self.file = file
         self.archive = Archive(file)
 
     @property
