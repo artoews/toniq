@@ -169,3 +169,6 @@ sandbox/
 *.stl
 orchestra/Data
 orchestra/DICOMs
+*.cfg
+*.mat
+*.dat
