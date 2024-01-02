@@ -84,15 +84,16 @@ def plot_image_results(fig, masks, images, results, rbw):
                    result_error * error_multiplier * result_mask,
                    ~result_mask)
 
-    axes[1, 0].annotate("readout",
-                        color='black',
-                        xy=(0.5, 0.7),
-                        xytext=(0.5, 0.1),
-                        xycoords='axes fraction',
-                        verticalalignment='bottom',
-                        horizontalalignment='center',
-                        arrowprops=dict(width=2, headwidth=8, headlength=8, color='black')
-                        )
+    if num_trials > 1:
+        axes[1, 0].annotate("readout",
+                            color='black',
+                            xy=(0.5, 0.7),
+                            xytext=(0.5, 0.1),
+                            xycoords='axes fraction',
+                            verticalalignment='bottom',
+                            horizontalalignment='center',
+                            arrowprops=dict(width=2, headwidth=8, headlength=8, color='black')
+                            )
     fig.colorbar(im, ax=axes, ticks=[0, 1], label='Pixel Intensity (a.u.)', location='right')
     return axes
 

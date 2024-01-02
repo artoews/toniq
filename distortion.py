@@ -86,7 +86,7 @@ def get_deformation_field(moving_image, transform):
     # from https://github.com/InsightSoftwareConsortium/ITKElastix/blob/main/examples/ITK_Example11_Transformix_DeformationField.ipynb
     moving_image = itk.image_from_array(moving_image)
     field = itk.transformix_deformation_field(moving_image, transform)
-    return np.asarray(field).astype(np.float)[..., ::-1]  # in 2D, these dimesnions seem to be swapped. not sure about 3D
+    return np.asarray(field).astype(np.float)[..., ::-1]  # in 2D, these dimensions seem to be swapped. not sure about 3D
 
 def get_jacobian(moving_image, transform):
     # from https://github.com/InsightSoftwareConsortium/ITKElastix/blob/main/examples/ITK_Example10_Transformix_Jacobian.ipynb

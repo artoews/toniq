@@ -3,6 +3,25 @@ import scipy.ndimage as ndi
 from skimage import filters, morphology, util
 
 
+def get_typical_level(image, mask_signal=None, mask_implant=None, filter_size=5):
+    if mask_implant is None:
+        mask_empty = get_mask_empty(image)
+        mask_implant = get_mask_implant(mask_empty)
+    if mask_signal is None:
+        mask_signal = get_mask_signal(image)
+    # fill in implant area
+    filled_image = np.abs(image)
+    median_signal = np.median(filled_image[mask_signal])
+    # mean_signal = np.sum(image * signal_mask) / np.sum(signal_mask)
+    mask_implant = ndi.maximum_filter(mask_implant, size=filter_size)
+    # image[implant_mask] = mean_signal
+    filled_image[mask_implant] = median_signal
+    signal_sum = ndi.uniform_filter(filled_image * mask_signal, size=filter_size)
+    signal_count = ndi.uniform_filter(mask_signal, size=filter_size, output=float)
+    signal_mean =  np.divide(signal_sum, signal_count, out=np.zeros_like(signal_sum), where=signal_count > 0)
+    return signal_mean
+
+
 def get_mask_lattice(image, diff_size=5, morph_size=10):
     filtered_diffs = []
     for axis in range(image.ndim):
