@@ -117,9 +117,7 @@ def get_registration_masks(images):
     signal_ref = masks.get_typical_level(images[0], mask_signal, mask_implant)
     masks_register = []
     for image in images[1:]:
-        error = image - images[0]
-        normalized_error = safe_divide(error, signal_ref)
-        mask_artifact = masks.get_mask_artifact(normalized_error)
+        mask_artifact = masks.get_mask_artifact(images[0], image, mask_implant=mask_implant, signal_ref=signal_ref)
         mask_register = masks.get_mask_register(mask_empty, mask_implant, mask_artifact)
         masks_register.append(mask_register)
     return masks_register

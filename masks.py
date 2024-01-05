@@ -2,6 +2,8 @@ import numpy as np
 import scipy.ndimage as ndi
 from skimage import filters, morphology, util
 
+from util import safe_divide
+
 
 def get_typical_level(image, mask_signal=None, mask_implant=None, filter_size=5):
     if mask_implant is None:
@@ -87,7 +89,19 @@ def get_mask_register(mask_empty, mask_implant, mask_artifact, filter_radius=3):
     mask = ndi.binary_opening(mask, structure=morphology.ball(2 * filter_radius)) # erosion then dilation
     return mask
 
-def get_mask_artifact(error):
+def get_mask_artifact(reference, target, mask_implant=None, signal_ref=None):
+    if signal_ref is None:
+        if mask_implant is None:
+            mask_empty = get_mask_empty(reference)
+            mask_implant = get_mask_implant(mask_empty)
+        mask_signal = get_mask_signal(reference)
+        signal_ref = get_typical_level(reference, mask_signal, mask_implant)
+    error = target - reference 
+    normalized_error = safe_divide(error, signal_ref)
+    mask_artifact, _ = get_mask_extrema(normalized_error, 0.3, 'mean', abs_margin=True)
+    return mask_artifact
+
+def get_mask_artifact_old(error):
     mask, _ = get_mask_extrema(error, 0.3, 'mean', abs_margin=True)
     return mask
 
@@ -131,7 +145,7 @@ def get_all_masks(image_clean, image_distorted, combine=False, denoise=False):
     signal_ref = get_typical_level(image_clean, signal, implant)
     hyper = get_mask_hyper(error, signal_ref)
     hypo = get_mask_hypo(error, signal_ref)
-    artifact = get_mask_artifact(error, signal_ref)
+    artifact = get_mask_artifact_old(error, signal_ref)
 
     out = (implant, empty, hyper, hypo, artifact)
 

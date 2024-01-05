@@ -21,11 +21,7 @@ def get_resolution_mask(reference, target=None, metal=False):
     mask_empty = masks.get_mask_empty(reference)
     mask_implant = masks.get_mask_implant(mask_empty)
     if metal:
-        mask_signal = masks.get_mask_signal(reference)
-        signal_ref = masks.get_typical_level(reference, mask_signal, mask_implant)
-        error = target - reference 
-        normalized_error = safe_divide(error, signal_ref)
-        mask_artifact = masks.get_mask_artifact(normalized_error)
+        mask_artifact = masks.get_mask_artifact(reference, target, mask_implant=mask_implant)
         mask = masks.get_mask_register(mask_empty, mask_implant, mask_artifact)
     else:
         mask_lattice = masks.get_mask_lattice(reference)
