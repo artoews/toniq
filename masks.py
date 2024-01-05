@@ -83,13 +83,13 @@ def remove_smaller_than(mask, size):
             print(label_count)
     return refined_mask
 
-def get_mask_register(mask_empty, mask_implant, mask_artifact, filter_radius=3):
+def get_mask_register(mask_empty, mask_implant, mask_artifact, filter_radius=5):
     mask = (mask_implant + mask_empty + mask_artifact) == 0
+    mask = ndi.binary_opening(mask, structure=morphology.ball(filter_radius)) # erosion then dilation
     mask = ndi.binary_closing(mask, structure=morphology.ball(filter_radius)) # dilation then erosion
-    mask = ndi.binary_opening(mask, structure=morphology.ball(2 * filter_radius)) # erosion then dilation
     return mask
 
-def get_mask_artifact(reference, target, mask_implant=None, signal_ref=None):
+def get_mask_artifact(reference, target, mask_implant=None, signal_ref=None, thresh=0.3):
     if signal_ref is None:
         if mask_implant is None:
             mask_empty = get_mask_empty(reference)
@@ -98,7 +98,7 @@ def get_mask_artifact(reference, target, mask_implant=None, signal_ref=None):
         signal_ref = get_typical_level(reference, mask_signal, mask_implant)
     error = target - reference 
     normalized_error = safe_divide(error, signal_ref)
-    mask_artifact, _ = get_mask_extrema(normalized_error, 0.3, 'mean', abs_margin=True)
+    mask_artifact, _ = get_mask_extrema(normalized_error, thresh, 'mean', abs_margin=True)
     return mask_artifact
 
 def get_mask_artifact_old(error):

@@ -110,14 +110,14 @@ def map_distortion(fixed_image, moving_image, fixed_mask=None, moving_mask=None,
     result_masked = masked_copy(result_masked, result_mask)
     return result, result_masked, deformation_field
 
-def get_registration_masks(images):
+def get_registration_masks(images, thresh):
     mask_empty = masks.get_mask_empty(images[0])
     mask_implant = masks.get_mask_implant(mask_empty)
     mask_signal = masks.get_mask_signal(images[0])
     signal_ref = masks.get_typical_level(images[0], mask_signal, mask_implant)
     masks_register = []
     for image in images[1:]:
-        mask_artifact = masks.get_mask_artifact(images[0], image, mask_implant=mask_implant, signal_ref=signal_ref)
+        mask_artifact = masks.get_mask_artifact(images[0], image, mask_implant=mask_implant, signal_ref=signal_ref, thresh=thresh)
         mask_register = masks.get_mask_register(mask_empty, mask_implant, mask_artifact)
         masks_register.append(mask_register)
     return masks_register

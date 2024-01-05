@@ -12,14 +12,15 @@ from distortion import map_distortion, get_registration_masks, setup_nonrigid, g
 from util import equalize, load_series
 
 # TODO systematize this
-slc = (slice(35, 155), slice(65, 185), 30)
+# slc = (slice(35, 155), slice(65, 185), 30)
 # slc = (slice(25, 175), slice(50, 200), slice(10, 60))
-# slc = (slice(35, 155), slice(65, 185), slice(15, 45))
+slc = (slice(35, 155), slice(65, 185), slice(15, 45))
 
 p = argparse.ArgumentParser(description='Geometric distortion analysis of 2DFSE multi-slice image volumes with varying readout bandwidth.')
 p.add_argument('root', type=str, help='path where outputs are saved')
 p.add_argument('-e', '--exam_root', type=str, default=None, help='directory where exam data exists in subdirectories')
 p.add_argument('-s', '--series_list', type=str, nargs='+', default=None, help='list of exam_root subdirectories to be analyzed, with the first serving as plastic reference, second as metal reference')
+p.add_argument('-t', '--threshold', type=float, default=0.1, help='maximum intensity artifact error included in registration mask')
 
 if __name__ == '__main__':
 
@@ -42,7 +43,7 @@ if __name__ == '__main__':
 
         images = equalize(images)
 
-        masks_register = get_registration_masks(images)
+        masks_register = get_registration_masks(images, args.threshold)
         
         if slc is not None:
             images = images[(slice(None),) + slc]
@@ -61,7 +62,7 @@ if __name__ == '__main__':
         fixed_mask = masks_register[0]
         itk_parameters = setup_nonrigid()
         for i in range(2, len(images)):
-            print('on trial {} with PBWs {:.1f} and {:.1f} Hz'.format(i, pbw[0], pbw[i-1]))
+            print('on trial {} with PBWs {:.1f} and {:.1f} Hz'.format(i-1, pbw[0], pbw[i-1]))
             fixed_image = images[1]
             moving_image = images[i]
             moving_mask = masks_register[i-1]
@@ -95,10 +96,15 @@ if __name__ == '__main__':
 
     true_field = get_true_field(path.join(args.root, 'field'))[slc]  # kHz
     
-    plot_image_results(plt.figure(figsize=(14, 5)), masks_register, images, results, rbw)
+    if results.ndim == 3:
+        slc = (slice(None), slice(None), slice(None))
+    elif results.ndim == 4:
+        slc = (slice(None), slice(None), slice(None), 15)
+    print(masks_register.shape, images.shape, results.shape, true_field.shape, deformation_fields.shape)
+    plot_image_results(plt.figure(figsize=(14, 5)), masks_register[slc], images[slc], results[slc], rbw)
     plt.savefig(path.join(save_dir, 'images.png'), dpi=300)
-    plot_field_results(plt.figure(figsize=(8, 5)), results, true_field, deformation_fields, rbw, pbw)
+    plot_field_results(plt.figure(figsize=(8, 5)), results[slc], true_field[slc[1:]], deformation_fields[slc], rbw, pbw)
     plt.savefig(path.join(save_dir, 'fields.png'), dpi=300)
-    plot_summary_results(plt.figure(), results, true_field, deformation_fields, rbw, pbw)
+    plot_summary_results(plt.figure(), results[slc], true_field[slc[1:]], deformation_fields[slc + (slice(None),)], rbw, pbw) # TODO plot for entire 3D volume, not just the slice
     plt.savefig(path.join(save_dir, 'summary.png'), dpi=300)
     plt.show()
