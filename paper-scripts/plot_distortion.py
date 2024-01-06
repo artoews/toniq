@@ -5,7 +5,7 @@ import seaborn as sns
 import scipy.ndimage as ndi
 from skimage import morphology
 
-from distortion import net_pixel_bandwidth, get_true_field
+from distortion import net_pixel_bandwidth, get_true_field, simulated_deformation_fse
 from plot import overlay_mask
 from util import masked_copy
 
@@ -109,35 +109,47 @@ def plot_field(ax, image, mask, xlabel=None, ylabel=None):
     return im
 
 def plot_field_results(fig, results, true_field, deformation_fields, rbw, pbw):
-    axes = fig.subplots(nrows=len(results), ncols=3)
+    axes = fig.subplots(nrows=len(results), ncols=9)
     num_trials = len(results)
     if num_trials == 1:
         axes = axes[None, :] 
 
-    titles = ('Reference',
-              'Registration',
-              'Error'
+    titles = ('Expected x',
+              'Result x',
+              'Diff x',
+              'Expected y',
+              'Result y',
+              'Diff y',
+              'Expected z',
+              'Result z',
+              'Diff z'
               )
     for ax, title in zip(axes[0, :], titles):
         ax.set_title(title)
 
+    # TODO pass these in
+    gx = [1.912, 0.956, 0.478] # G/cm
+    gz = 1.499 # G/cm
     for i in range(num_trials):
-        if pbw[1+i] == pbw[0]:
-            continue
-        net_pbw = net_pixel_bandwidth(pbw[1+i], pbw[0])  # Hz
+        net_pbw = pbw[1+i] # assumes registration's fixed image was plastic, so no distortion
+        # net_pbw = net_pixel_bandwidth(pbw[1+i], pbw[0])  # Hz
         result_mask = (results[i] != 0)
-        simulated_deformation = true_field * 1000 / net_pbw
-        measured_deformation = -deformation_fields[i][..., 0]
-        plot_field(axes[i, 0],
-                   simulated_deformation * result_mask,
-                   ~result_mask,
-                   ylabel='RBW={:.3g}kHz'.format(rbw[1+i]))
-        plot_field(axes[i, 1],
-                   measured_deformation * result_mask,
-                   ~result_mask)
-        im = plot_field(axes[i, 2],
-                   (simulated_deformation - measured_deformation) * result_mask,
-                   ~result_mask)
+        # simulated_deformation = true_field * 1000 / net_pbw
+        for j in range(3):
+            simulated_deformation = simulated_deformation_fse(true_field, gx[i], gz, 1.2, 1.2, pbw_kHz=net_pbw / 1000)
+            plot_field(axes[i, 3*j],
+                simulated_deformation[..., j] * result_mask,
+                ~result_mask,
+                ylabel='RBW={:.3g}kHz'.format(rbw[1+i]))
+            measured_deformation = deformation_fields[i][..., j]
+            if j == 0:
+                measured_deformation = -measured_deformation
+            plot_field(axes[i, 3*j+1],
+                measured_deformation * result_mask,
+                ~result_mask)
+            im = plot_field(axes[i, 3*j+2],
+                (simulated_deformation[..., j] - measured_deformation) * result_mask,
+                ~result_mask)
     fig.colorbar(im, ax=axes, ticks=[-4, -2, 0, 2, 4], label='Readout Displacement (pixels)', location='right')
     return axes
 
@@ -148,16 +160,16 @@ def plot_summary_results(fig, results, true_field, deformation_fields, rbw, pbw)
     styles = ['dotted', 'solid', 'dashed']
     loosely_dashed = (0, (5, 10))
     for i in range(len(results)):
-        if pbw[1+i] == pbw[0]:
-            continue
+        net_pbw = pbw[1+i] / 1000 # assumes i=0 is plastic
+        # net_pbw = net_pixel_bandwidth(pbw[1+i], pbw[0]) / 1000 # kHz
         result_mask = (results[i] != 0)
-        net_pbw = net_pixel_bandwidth(pbw[1+i], pbw[0]) / 1000 # kHz
         measured_deformation = -deformation_fields[i][..., 0]
         field_bins = np.round(true_field * 10) / 10
         sns.lineplot(x=(field_bins * result_mask).ravel(),
                      y=(measured_deformation * result_mask).ravel(),
                      ax=axes, legend='brief', label='RBW={0:.3g}kHz'.format(rbw[i+1]), color=colors[i], linestyle=styles[i])
         # ax.scatter((field_bins * result_mask).ravel(), (measured_deformation * result_mask).ravel(), c=colors[i], s=0.1, marker='.')
+        print('net_pbw', net_pbw)
         axes.axline((-f_max, -f_max / net_pbw), (f_max, f_max / net_pbw), color=colors[i], linestyle=loosely_dashed)
         axes.set_xlim([-f_max, f_max])
         axes.set_ylim([-f_max / net_pbw, f_max / net_pbw])
