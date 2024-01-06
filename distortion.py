@@ -9,6 +9,8 @@ from time import time
 import masks
 from util import masked_copy, safe_divide
 
+kHz_mm_over_G_cm = 0.42577
+
 def net_pixel_bandwidth(pixel_bandwidth_2, pixel_bandwidth_1):
     if pixel_bandwidth_1 == 0:
         return pixel_bandwidth_2
@@ -22,6 +24,15 @@ def get_true_field(field_dir):
     true_field = ndi.median_filter(true_field, footprint=morphology.ball(4))
     # true_field = ndi.generic_filter(true_field, np.mean, footprint=morphology.ball(3))
     return true_field
+
+def simulated_deformation_fse(field_kHz, gx_Gcm, gz_Gcm, voxel_size_x_mm, voxel_size_z_mm, pbw_kHz=None):
+    field_x = field_kHz / (gx_Gcm * kHz_mm_over_G_cm * voxel_size_x_mm)  # voxels
+    if pbw_kHz is not None:
+        field_x_alt = field_kHz / pbw_kHz
+        print('field_x', np.max(field_x), np.max(field_x_alt))
+    field_y = np.zeros_like(field_kHz)
+    field_z = field_kHz / (gz_Gcm * kHz_mm_over_G_cm * voxel_size_z_mm) / 2 # TODO is this right? originally coded without the 2, but dividing by 2 empirically helps
+    return np.stack((field_x, field_y, field_z), axis=-1)   
 
 def elastix_registration(fixed_image, moving_image, fixed_mask, moving_mask, parameter_object, verbose=False):
     t0 = time()
@@ -42,19 +53,21 @@ def elastix_registration(fixed_image, moving_image, fixed_mask, moving_mask, par
 
 def transform(image, elastix_parameters):
     # from https://github.com/InsightSoftwareConsortium/ITKElastix/blob/main/examples/ITK_UnitTestExample3_BsplineRegistration.ipynb
+    # and https://github.com/InsightSoftwareConsortium/ITKElastix/blob/main/examples/ITK_Example09_PointSetAndMaskTransformation.ipynb
     is_mask = (image.dtype == np.bool)
     if is_mask:
-        # TODO see page 23 of elastix manual: need to manually change the FinalBSplineInterpolationOrder to 0. This will make sure that the deformed segmentation is still a binary label image
         image = image.astype(np.uint8)
+        elastix_parameters.SetParameter('FinalBSplineInterpolationOrder','0') # per page 23 of elastix manual; this will make sure that the deformed segmentation is still a binary label image
     image = itk.image_from_array(image)
-    transformix_object = itk.TransformixFilter.New(image)
-    transformix_object.SetTransformParameterObject(elastix_parameters)
-    transformix_object.UpdateLargestPossibleRegion()
-    image_transformed = transformix_object.GetOutput()
+    image_transformed = itk.transformix_filter(image, elastix_parameters)
+    # below 4 lines accomplish the same thing as the above one-liner
+    # transformix_object = itk.TransformixFilter.New(image)
+    # transformix_object.SetTransformParameterObject(elastix_parameters)
+    # transformix_object.UpdateLargestPossibleRegion()
+    # image_transformed = transformix_object.GetOutput()
     image_transformed = np.asarray(image_transformed)
     if is_mask:
-        # image_transformed = image_transformed.astype(np.bool)
-        image_transformed = image_transformed.astype(np.float)
+        image_transformed = image_transformed.astype(np.bool)
     return image_transformed
 
 def setup_nonrigid(verbose=True):
@@ -75,11 +88,13 @@ def setup_nonrigid(verbose=True):
     return parameter_object
 
 def setup_rigid(verbose=True):
-    parameter_object = itk.ParameterObject.New()  # slow
+    t0 = time()
+    parameter_object = itk.ParameterObject.New()
     default_affine_parameter_map = parameter_object.GetDefaultParameterMap('rigid', 1)
     parameter_object.AddParameterMap(default_affine_parameter_map)
     if verbose:
         print(parameter_object)
+        print('Done ITK setup. {:.2f} seconds elapsed'.format(time() - t0))
     return parameter_object
 
 def get_deformation_field(moving_image, transform):
@@ -96,11 +111,15 @@ def get_jacobian(moving_image, transform):
     det_spatial_jacobian = np.asarray(jacobians[1]).astype(np.float)
     return spatial_jacobian, det_spatial_jacobian
 
-def map_distortion(fixed_image, moving_image, fixed_mask=None, moving_mask=None, thresh=0.1, itk_parameters=None):
+def map_distortion(fixed_image, moving_image, fixed_mask=None, moving_mask=None, thresh=0.1, itk_parameters=None, rigid_prep=True):
     if itk_parameters is None:
         itk_parameters = setup_nonrigid()
     if fixed_mask is None or moving_mask is None:
         fixed_mask, moving_mask = get_registration_masks([fixed_image, moving_image])
+    if rigid_prep:
+        rigid_itk_parameters = setup_rigid()
+        moving_image, rigid_transform = elastix_registration(fixed_image, moving_image, fixed_mask, moving_mask, rigid_itk_parameters)
+        moving_mask = transform(moving_mask, rigid_transform)
     moving_image_masked = moving_image.copy()
     moving_image_masked[~moving_mask] = 0
     result, transfrm = elastix_registration(fixed_image, moving_image, fixed_mask, moving_mask, itk_parameters)
