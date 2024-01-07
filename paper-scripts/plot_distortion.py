@@ -38,7 +38,7 @@ def plot_image(ax, image, mask, xlabel=None, ylabel=None):
 
 def plot_image_results(fig, masks, images, results, rbw):
     axes = fig.subplots(nrows=len(results), ncols=5)
-    error_multiplier = 3
+    error_multiplier = 4
     num_trials = len(results)
     if num_trials == 1:
         axes = axes[None, :]
@@ -61,8 +61,8 @@ def plot_image_results(fig, masks, images, results, rbw):
         moving_image_masked = masked_copy(images[2+i], moving_mask)
         init_error = np.abs(moving_image_masked - fixed_image_masked)
         result_error = np.abs(results[i] - fixed_image_masked)
-        init_mask =  (moving_image_masked != 0) * (fixed_image_masked != 0)
-        result_mask = (results[i] != 0)
+        init_mask = np.logical_and(moving_image_masked, fixed_image_masked)
+        result_mask = np.logical_and(results[i] != 0, fixed_image_masked)
         if i == 0:
             plot_image(axes[i, 0],
                        fixed_image_masked,
