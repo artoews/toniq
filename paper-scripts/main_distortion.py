@@ -20,7 +20,7 @@ p = argparse.ArgumentParser(description='Geometric distortion analysis of 2DFSE 
 p.add_argument('root', type=str, help='path where outputs are saved')
 p.add_argument('-e', '--exam_root', type=str, default=None, help='directory where exam data exists in subdirectories')
 p.add_argument('-s', '--series_list', type=str, nargs='+', default=None, help='list of exam_root subdirectories to be analyzed, with the first serving as plastic reference, second as metal reference')
-p.add_argument('-t', '--threshold', type=float, default=0.1, help='maximum intensity artifact error included in registration mask')
+p.add_argument('-t', '--threshold', type=float, default=0.2, help='maximum intensity artifact error included in registration mask')
 
 if __name__ == '__main__':
 
@@ -105,6 +105,6 @@ if __name__ == '__main__':
     plt.savefig(path.join(save_dir, 'images.png'), dpi=300)
     plot_field_results(plt.figure(figsize=(8, 5)), results[slc], true_field[slc[1:]], deformation_fields[slc], rbw, pbw)
     plt.savefig(path.join(save_dir, 'fields.png'), dpi=300)
-    plot_summary_results(plt.figure(), results[slc], true_field[slc[1:]], deformation_fields[slc + (slice(None),)], rbw, pbw) # TODO plot for entire 3D volume, not just the slice
+    plot_summary_results(plt.figure(), results, true_field, deformation_fields, rbw, pbw)
     plt.savefig(path.join(save_dir, 'summary.png'), dpi=300)
     plt.show()
