@@ -111,7 +111,7 @@ def get_jacobian(moving_image, transform):
     det_spatial_jacobian = np.asarray(jacobians[1]).astype(np.float)
     return spatial_jacobian, det_spatial_jacobian
 
-def map_distortion(fixed_image, moving_image, fixed_mask=None, moving_mask=None, thresh=0.1, itk_parameters=None, rigid_prep=True):
+def map_distortion(fixed_image, moving_image, fixed_mask=None, moving_mask=None, itk_parameters=None, rigid_prep=True):
     if itk_parameters is None:
         itk_parameters = setup_nonrigid()
     if fixed_mask is None or moving_mask is None:
@@ -122,11 +122,10 @@ def map_distortion(fixed_image, moving_image, fixed_mask=None, moving_mask=None,
         moving_mask = transform(moving_mask, rigid_transform)
     moving_image_masked = moving_image.copy()
     moving_image_masked[~moving_mask] = 0
-    result, transfrm = elastix_registration(fixed_image, moving_image, fixed_mask, moving_mask, itk_parameters)
-    deformation_field = get_deformation_field(moving_image, transfrm)
-    result_masked = transform(moving_image_masked, transfrm)
-    result_mask = np.logical_and(np.abs(result_masked) > thresh, fixed_mask)
-    result_masked = masked_copy(result_masked, result_mask)
+    result, nonrigid_transform = elastix_registration(fixed_image, moving_image, fixed_mask, moving_mask, itk_parameters)
+    deformation_field = get_deformation_field(moving_image, nonrigid_transform)
+    result_mask = transform(moving_mask, nonrigid_transform)
+    result_masked = masked_copy(result, result_mask)
     return result, result_masked, deformation_field
 
 def get_registration_masks(images, thresh):
