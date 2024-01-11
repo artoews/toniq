@@ -5,7 +5,7 @@ import seaborn as sns
 import scipy.ndimage as ndi
 from skimage import morphology
 
-from distortion import net_pixel_bandwidth, get_true_field, simulated_deformation_fse
+from distortion import net_pixel_bandwidth, simulated_deformation_fse
 from plot import overlay_mask
 from util import masked_copy
 
@@ -116,13 +116,13 @@ def plot_field_results(fig, results, true_field, deformation_fields, rbw, pbw):
 
     titles = ('Expected x',
               'Result x',
-              'Diff x',
+              'Error x',
               'Expected y',
               'Result y',
-              'Diff y',
+              'Error y',
               'Expected z',
               'Result z',
-              'Diff z'
+              'Error z'
               )
     for ax, title in zip(axes[0, :], titles):
         ax.set_title(title)
@@ -187,7 +187,7 @@ if __name__ == '__main__':
     data = np.load(path.join(root_dir, 'distortion', 'outputs.npz'))
     for var in data:
         globals()[var] = data[var]
-    true_field = get_true_field(path.join(root_dir, 'field'))[slc]  # kHz
+    true_field_kHz = np.load(path.join(root_dir, 'field', 'field_diff_Hz.npy'))[slc] / 1000
 
     ## Setup
     fig = plt.figure(figsize=(11, 8), layout='constrained')
@@ -197,9 +197,9 @@ if __name__ == '__main__':
     ## Plot
     axes_A = plot_image_results(fig_A, masks_register, images, results, rbw)
     letter_annotation(axes_A[0][0], -0.2, 1.1, 'A')
-    axes_B = plot_field_results(fig_B, results, true_field, deformation_fields, rbw, pbw)
+    axes_B = plot_field_results(fig_B, results, true_field_kHz, deformation_fields, rbw, pbw)
     letter_annotation(axes_B[0][0], -0.2, 1.1, 'B')
-    axes_C = plot_summary_results(fig_C, results, true_field, deformation_fields, rbw, pbw)
+    axes_C = plot_summary_results(fig_C, results, true_field_kHz, deformation_fields, rbw, pbw)
     letter_annotation(axes_C, -0.2, 1.1, 'C')
 
     ## Save
