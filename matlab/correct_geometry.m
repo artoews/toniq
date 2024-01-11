@@ -1,4 +1,4 @@
-function [image_xyz] = correct(scanarchive_file, image_xyz)
+function [image_xyz] = correct_geometry(scanarchive_file, image_xyz)
 archive = GERecon('Archive.Load', scanarchive_file);
 sliceInfoStart = GERecon('Archive.Info', archive, 1);
 cornerStart = sliceInfoStart.Corners;
