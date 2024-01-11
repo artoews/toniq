@@ -14,11 +14,18 @@ def load_series(exam_root, series_name):
     return image
 
 def equalize(images, pct=90):
+    if type(images) == list:
+        images = np.stack(images, axis=0)
+        is_list = True
+    else:
+        is_list = False
     images = np.abs(images)
     images[0] = normalize(images[0])
     for i in range(1, len(images)):
         # TODO find a more principled way
         images[i] *= np.percentile(images[0], pct) / np.percentile(images[i], pct)
+    if is_list:
+        images = list(images)
     return images
 
 def normalize(image, pct=99):

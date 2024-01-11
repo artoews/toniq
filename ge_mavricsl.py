@@ -8,6 +8,9 @@ from GERecon import Gradwarp, Orientation
 from ge_scanarchive import MavricSL
 from plot import plotVolumes
 
+# NOTE: the size of data arrays passed between Python and MATLAB is limited to 2 GB
+# https://www.mathworks.com/help/matlab/matlab_external/limitations-to-the-matlab-engine-for-python.html
+
 def get_bins_from_archive(archive_file, matlab_root='matlab'):
     " Reconstruct bin images from raw k-space data in scan archive "
     # TODO the extraction could be done in Python, and cleaner than in ge_mavricsl_old.py:
@@ -16,8 +19,8 @@ def get_bins_from_archive(archive_file, matlab_root='matlab'):
     eng = me.start_matlab()
     eng.cd(matlab_root, nargout=0)
     image_xyzb, offsets = eng.get_bins_from_archive(archive_file, nargout=2)
-    image_xyzb = np.asarray(image_xyzb)
-    offsets = np.asarray(offsets)
+    image_xyzb = np.asarray(image_xyzb).copy()
+    offsets = np.asarray(offsets).copy()
     return image_xyzb, offsets
 
 def combine_bins(image_xyzb, offsets, matlab_root='matlab'):
@@ -27,7 +30,7 @@ def combine_bins(image_xyzb, offsets, matlab_root='matlab'):
     image_xyzb = matlab.double(image_xyzb, is_complex=True)
     offsets = matlab.double(offsets)
     image_xyz = eng.combine_bins(image_xyzb, offsets)
-    image_xyz = np.asarray(image_xyz)
+    image_xyz = np.asarray(image_xyz).copy()
     return image_xyz
 
 def correct_geometry(archive_file, image_xyz, matlab_root='matlab'):
@@ -36,7 +39,7 @@ def correct_geometry(archive_file, image_xyz, matlab_root='matlab'):
     eng.cd(matlab_root, nargout=0)
     image_xyz = matlab.double(image_xyz)
     image_xyz = eng.correct_geometry(archive_file, image_xyz)
-    image_xyz = np.asarray(image_xyz)
+    image_xyz = np.asarray(image_xyz).copy()
     return image_xyz
 
 def correct_geometry_in_python(archive: MavricSL, image_xyz):
