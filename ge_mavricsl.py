@@ -27,7 +27,7 @@ def combine_bins(image_xyzb, offsets, matlab_root='matlab'):
     " Combine bin images into one composite image via RSOS; includes field-map based 'pixel deblurring' "
     eng = me.start_matlab()
     eng.cd(matlab_root, nargout=0)
-    image_xyzb = matlab.double(image_xyzb, is_complex=True)
+    image_xyzb = matlab.double(np.abs(image_xyzb))
     offsets = matlab.double(offsets)
     image_xyz = eng.combine_bins(image_xyzb, offsets)
     image_xyz = np.asarray(image_xyz).copy()
