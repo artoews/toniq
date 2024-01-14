@@ -4,9 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from os import path, makedirs
 
-from masks import get_mask_extrema
-from intensity import get_typical_level
-from plot_artifact import plot_artifact_results, plot_progression
+from masks import get_mask_extrema, get_typical_level
+from plot_artifact import plot_artifact_results, plot_artifact_results_overlay, plot_progression
 
 from util import safe_divide, equalize, load_series
 
@@ -73,5 +72,6 @@ if __name__ == '__main__':
         figs[i], trackers[i] = plot_progression(images[0], images[1+i], maps_artifact[i], signal_ref)
 
     plot_artifact_results(images, maps_artifact, signal_ref, rbw, save_dir=save_dir)
+    # plot_artifact_results_overlay(images, maps_artifact, signal_ref, rbw, save_dir=save_dir)
 
     plt.show()

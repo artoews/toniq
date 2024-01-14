@@ -62,7 +62,7 @@ if __name__ == '__main__':
             globals()[var] = data[var]
 
     field_diff = field_metal - field_plastic
-    field_diff_filtered = ndi.median_filter(field_diff, footprint=morphology.ball(2))
+    field_diff_filtered = ndi.uniform_filter(field_diff, size=5)
     np.save(path.join(save_dir, 'field_diff_Hz.npy'), field_diff_filtered)
 
     # plotting
@@ -71,5 +71,5 @@ if __name__ == '__main__':
     fig0, tracker0 = plotVolumes(vols, titles=titles)
     vols = (field_plastic, field_metal, field_diff, field_diff_filtered)
     titles=('plastic', 'metal', 'difference', 'difference, filtered')
-    fig1, tracker1 = plotVolumes(vols, titles=titles, vmin=-12e3, vmax=12e3, cmap='RdBu_r', cbar=True)
+    fig1, tracker1 = plotVolumes(vols, titles=titles, vmin=-4e3, vmax=4e3, cmap='RdBu_r', cbar=True)
     plt.show()
