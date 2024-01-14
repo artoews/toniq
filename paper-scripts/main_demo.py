@@ -106,6 +106,9 @@ for i in range(len(dirs)):
     load_outputs(dirs[i], 'distortion')
     rbw_i = rbw[1]
     results_masked_i = results_masked[0]
+    # results_masked_i = results[0]
+    print('deformation fields', deformation_fields.shape)
+    print('results masked', results_masked_i.shape)
     deformation_fields_i = deformation_fields[0]
     print('loaded distortion outputs for {} @ RBW={:.3g}kHz'.format(seq_names[i], rbw_i))
     result_mask = (results_masked_i != 0)
