@@ -12,16 +12,16 @@ from util import equalize, load_series
 
 # TODO systematize this
 slc = (slice(35, 155), slice(65, 185), slice(15, 45))
-slc = (slice(35, 95), slice(65, 125), slice(20, 40))
-slc = (slice(35*2, 95*2), slice(65*2, 125*2), slice(20, 40))
+# slc = (slice(35, 95), slice(65, 125), slice(20, 40))
+# slc = (slice(35*2, 95*2), slice(65*2, 125*2), slice(20, 40))
 
 p = argparse.ArgumentParser(description='Resolution analysis of image volumes with common dimensions.')
 p.add_argument('root', type=str, help='path where outputs are saved')
 p.add_argument('-e', '--exam_root', type=str, default=None, help='directory where exam data exists in subdirectories')
 p.add_argument('-s', '--series_list', type=str, nargs='+', default=None, help='list of exam_root subdirectories to be analyzed, with the first serving as reference')
-p.add_argument('-c', '--unit_cell_mm', type=float, default=12.0, help='size of lattice unit cell (in mm)')
-p.add_argument('-t', '--stride', type=int, default=4, help='window stride length for stepping between PSF measurements')
-p.add_argument('-n', '--noise', type=float, default=0, help='st. dev. of noise added to k-space; default = 0')
+p.add_argument('-c', '--unit_cell_mm', type=float, default=12.0, help='size of lattice unit cell (in mm); default=12')
+p.add_argument('-t', '--stride', type=int, default=4, help='window stride length for stepping between PSF measurements; default=4')
+p.add_argument('-n', '--noise', type=float, default=0, help='st. dev. of noise added to k-space; default=0')
 p.add_argument('-o', '--overwrite', action='store_true', help='overwrite target k-space with samples from reference')
 p.add_argument('-w', '--workers', type=int, default=8, help='number of parallel pool workers; default=8')
 p.add_argument('-m', '--mask', action='store_true', help='re-use mask if one exists')
@@ -46,15 +46,17 @@ if __name__ == '__main__':
         unit_cell_pixels = int(args.unit_cell_mm / images[0].meta.resolution_mm[0])
 
         if args.overwrite:
-            images = np.stack([images[0].data for _ in images])
+            images = [images[0].data for _ in images]
         else:
-            images = np.stack([image.data for image in images])
+            images = [image.data for image in images]
 
         for i in range(1, len(images)):
             k = sp.resize(sp.fft(images[i]), matrix_shapes[i])
             if args.noise != 0:
                 k += np.random.normal(size=matrix_shapes[i], scale=args.noise)
             images[i] = np.abs(sp.ifft(sp.resize(k, matrix_shapes[0])))
+        
+        images = np.stack(images)
 
         images = equalize(images)
 
