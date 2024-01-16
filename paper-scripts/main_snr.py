@@ -10,11 +10,11 @@ from masks import get_mask_signal
 from intensity import map_snr
 from plot import plotVolumes
 
-from util import equalize, load_series
+from util import equalize, load_series, masked_copy
 
 # TODO systematize this
-slc = (slice(40, 160), slice(65, 185), slice(15, 45))
-# slc = (slice(175, 230), slice(50, 200), slice(40, 60))
+# slc = (slice(40, 160), slice(65, 185), slice(15, 45))
+slc = (slice(175, 230), slice(50, 200), slice(40, 60))
 
 p = argparse.ArgumentParser(description='Noise analysis of image volume duplicates.')
 p.add_argument('root', type=str, help='path where outputs are saved')
@@ -79,18 +79,19 @@ if __name__ == '__main__':
         for var in data:
             globals()[var] = data[var]
     
-    fig = [None,] * (len(images)//2)
-    tracker = [None,] * (len(images)//2)
+    figs = [None,] * (len(images)//2)
+    trackers = [None,] * (len(images)//2)
     for i in range(0, len(images), 2):
         image1 = images[i]
         image2 = images[i+1]
         image_diff = 5 * (image2 - image1) + 0.5
         image_sum = 0.5 * (image2 + image1)
-        volumes = (image1, image2, image_diff, image_sum, snrs[i//2] / 120, noise_stds[i//2] * 100)
-        titles = ('Image 1', 'Image 2', 'Difference (5x)', 'Sum (0.5x)', 'SNR / 120', 'Noise STD * 100')
-        fig[i//2], tracker[i//2] = plotVolumes(volumes, 1, len(volumes), titles=titles, figsize=(16, 8))
+        volumes = (image1, image2, image_diff, image_sum, snrs[i//2] / 60, noise_stds[i//2] * 50)
+        titles = ('Image 1', 'Image 2', 'Difference (5x)', 'Sum (0.5x)', 'SNR / 60', 'Noise STD * 50')
+        figs[i//2], trackers[i//2] = plotVolumes(volumes, 1, len(volumes), titles=titles, figsize=(16, 8))
     plot_snr.scatter(snrs, rbw, save_dir=save_dir)
     plot_snr.lines(snrs, rbw, save_dir=save_dir)
-    fig, tracker = plotVolumes((image1, image2))
-    print(rbw)
+    image1_masked = masked_copy(image1, mask)
+    image2_masked = masked_copy(image2, mask)
+    fig, tracker = plotVolumes((image1, image2, mask, image1_masked, image2_masked))
     plt.show()
