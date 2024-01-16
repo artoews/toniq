@@ -1,5 +1,6 @@
 import numpy as np
 from pydicom import dcmread
+from os import path
 
 from data import Metadata, ImageVolume
 
@@ -58,5 +59,9 @@ def read_meta(file):
     if meta_dict['dimensionality'] == '2D' and dicom.SpacingBetweenSlices != meta_dict['resolution_mm'][-1]:
         raise ValueError('Multi-slice volume has gaps between slices')
     meta = Metadata(**meta_dict)
-    sliceIndex = dicom.InStackPositionNumber
+    try:
+        sliceIndex = dicom.InStackPositionNumber
+    except:
+        _, sliceIndex = path.splitext(file)
+        sliceIndex = int(sliceIndex[1:])
     return meta, sliceIndex
