@@ -119,12 +119,13 @@ def setup_nonrigid(verbose=True):
     default_bspline_parameter_map['BSplineTransformSplineOrder'] = ['3']
     default_bspline_parameter_map['ImageSampler'] = ['Full']
     default_bspline_parameter_map['ErodeMask'] = ['true']
-    default_bspline_parameter_map['FinalGridSpacingInPhysicalUnits'] = ['15']  # was 30
-    default_bspline_parameter_map['NumberOfResolutions'] = ['1']
+    del default_bspline_parameter_map['FinalGridSpacingInPhysicalUnits']
+    default_bspline_parameter_map['FinalGridSpacingInVoxels'] = ['15'] # was 20
+    # default_bspline_parameter_map['NumberOfResolutions'] = ['1']
     # default_bspline_parameter_map['GridSpacingSchedule'] = ['1.0', '1.0', '1.0'] # this number times final grid spacing is the b-spline grid size for each dim at each pyramid level
     # default_bspline_parameter_map['ImagePyramidSchedule'] = ['2', '2', '2'] # this number over 2 is the sigma of gaussian blurring applied to each dim at each pyramid level
-    # default_bspline_parameter_map['GridSpacingSchedule'] = ['2.0', '2.0', '2.0', '1.0', '1.0', '1.0'] # this number times final grid spacing is the b-spline grid size for each dim at each pyramid level
-    # default_bspline_parameter_map['ImagePyramidSchedule'] = ['2', '2', '2', '1', '1', '1'] # this number over 2 is the sigma of gaussian blurring applied to each dim at each pyramid level
+    # default_bspline_parameter_map['GridSpacingSchedule'] = ['2.0', '2.0', '2.0', '1.5', '1.5', '1.5'] # this number times final grid spacing is the b-spline grid size for each dim at each pyramid level
+    # default_bspline_parameter_map['ImagePyramidSchedule'] = ['1', '1', '1', '1', '1', '1'] # this number over 2 is the sigma of gaussian blurring applied to each dim at each pyramid level
     parameter_object.AddParameterMap(default_bspline_parameter_map)
     if verbose:
         print(parameter_object)
