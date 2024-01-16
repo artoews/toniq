@@ -45,7 +45,8 @@ if __name__ == '__main__':
 
         matrix_shapes = np.stack([np.array(image.meta.acqMatrixShape) for image in images])
 
-        unit_cell_pixels = int(args.unit_cell_mm / images[0].meta.resolution_mm[0])
+        resolution_mm = images[0].meta.resolution_mm
+        unit_cell_pixels = np.array([int(args.unit_cell_mm / r) for r in resolution_mm])
 
         if args.overwrite:
             images = [images[0].data for _ in images]
@@ -83,6 +84,7 @@ if __name__ == '__main__':
                 images[0],
                 images[i],
                 unit_cell_pixels,
+                resolution_mm,
                 stride=args.stride,
                 num_workers=args.workers,
                 mask=mask
@@ -96,7 +98,8 @@ if __name__ == '__main__':
             images=images,
             matrix_shapes=matrix_shapes,
             psfs=psfs,
-            fwhms=fwhms
+            fwhms=fwhms,
+            resolution_mm=resolution_mm
          )
     
     else:
@@ -108,15 +111,15 @@ if __name__ == '__main__':
         for var in data:
             globals()[var] = data[var]
     
-    box_plots(fwhms, matrix_shapes, save_dir=save_dir)
+    box_plots(fwhms / resolution_mm[0], matrix_shapes, save_dir=save_dir)
 
-    fig0, tracker0 = plotVolumes((images[0], images[1], images[2], images[3]))
+    # fig0, tracker0 = plotVolumes((images[0], images[1], images[2], images[3]))
 
     figs = [None] * len(fwhms)
     trackers = [None] * len(fwhms)
     for i in range(len(fwhms)):
         volumes = (fwhms[i][..., 0], fwhms[i][..., 1], fwhms[i][..., 2])
-        titles = ('FWHM in x', 'FWHM in y', 'FWHM in z')
-        figs[i], trackers[i] = plotVolumes(volumes, titles=titles, figsize=(12, 4), vmin=0, vmax=6, cmap='viridis', cbar=True)
+        titles = ('FWHM in x (mm)', 'FWHM in y (mm)', 'FWHM in z (mm)')
+        figs[i], trackers[i] = plotVolumes(volumes, titles=titles, figsize=(12, 4), vmin=0.5, vmax=3.5, cmap='viridis', cbar=True)
     
     plt.show()
