@@ -24,8 +24,7 @@ def scatter(snrs, rbw, save_dir=None, figsize=(8, 5), fontsize=20):
     fig, ax = plt.subplots(figsize=figsize)
     plt.subplots_adjust(bottom=0.2)
     setup_axes(ax, fontsize*0.8)
-    # for i in range(1, len(rbw)):
-    for i in range(len(rbw)):
+    for i in range(1, len(rbw)):
         expected_factor = np.sqrt(rbw[0] / rbw[i])
         ax.scatter(expected_factor * snrs[0], snrs[i], c=colors[i-1], label='RBW={:.3g}kHz'.format(rbw[i]), s=0.01, marker='.')
         # ax.scatter(noise_stds[0] / expected_factor, noise_stds[i], c=colors[i-1], label='RBW={:.3g}kHz'.format(rbw[i]), s=0.01, marker='.')
@@ -38,8 +37,7 @@ def lines(snrs, rbw, save_dir=None, figsize=(8, 5), fontsize=20):
     fig, ax = plt.subplots(figsize=figsize)
     plt.subplots_adjust(bottom=0.2)
     setup_axes(ax, fontsize*0.8)
-    # for i in range(1, len(rbw)):
-    for i in range(len(rbw)):
+    for i in range(1, len(rbw)):
         expected_factor = np.sqrt(rbw[0] / rbw[i])
         expected_snr_rounded = np.round(expected_factor * snrs[0])
         # expected_noise_rounded = np.round(noise_stds[0] / expected_factor)
