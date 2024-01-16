@@ -14,13 +14,13 @@ from util import equalize, load_series
 
 # TODO systematize this
 slc = (slice(40, 160), slice(65, 185), slice(15, 45))
+# slc = (slice(175, 230), slice(50, 200), slice(40, 60))
 
 p = argparse.ArgumentParser(description='Noise analysis of image volume duplicates.')
 p.add_argument('root', type=str, help='path where outputs are saved')
 p.add_argument('-e', '--exam_root', type=str, default=None, help='directory where exam data exists in subdirectories')
 p.add_argument('-s', '--series_list', type=str, nargs='+', default=None, help='list of exam_root subdirectories to be analyzed, ordered by pairs')
 p.add_argument('-c', '--unit_cell_mm', type=float, default=12.0, help='size of lattice unit cell (in mm); default=12')
-p.add_argument('-l', '--lattice_shape', type=int, nargs='+', default=[13, 13, 4], help='number of unit cells along each axis of lattice; default=[13,13,4]')
 
 if __name__ == '__main__':
 
@@ -49,7 +49,7 @@ if __name__ == '__main__':
         if slc is not None:
             images = images[(slice(None),) + slc]
             mask = mask[slc]
-
+        
         snrs = []
         signals = []
         noise_stds = []
@@ -91,4 +91,6 @@ if __name__ == '__main__':
         fig[i//2], tracker[i//2] = plotVolumes(volumes, 1, len(volumes), titles=titles, figsize=(16, 8))
     plot_snr.scatter(snrs, rbw, save_dir=save_dir)
     plot_snr.lines(snrs, rbw, save_dir=save_dir)
+    fig, tracker = plotVolumes((image1, image2))
+    print(rbw)
     plt.show()
