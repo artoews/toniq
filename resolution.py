@@ -6,14 +6,14 @@ import masks
 from filter import generic_filter
 from util import safe_divide
 
-reg_psf_shape = (7, 7, 7)
+reg_psf_shape = (11, 11, 11)
 
 def map_resolution(reference, target, unit_cell, stride=1, num_workers=1, mask=None):
     num_dims = target.ndim
     patch_shape = (unit_cell,) * num_dims # might want to double for better noise robustness
     if mask is None:
         mask = get_resolution_mask(reference, target)
-    psf = estimate_psf(reference, target, mask, patch_shape, stride, num_workers)
+    psf = estimate_psf(reference, target, mask, patch_shape, stride * unit_cell, num_workers)
     fwhm = get_FWHM_from_image(psf, num_workers)
     return psf, fwhm
 
@@ -24,8 +24,9 @@ def get_resolution_mask(reference, target=None, metal=False):
         mask_artifact = masks.get_mask_artifact(reference, target, mask_implant=mask_implant)
         mask = masks.get_mask_register(mask_empty, mask_implant, mask_artifact)
     else:
-        mask_lattice = masks.get_mask_lattice(reference)
-        mask = np.logical_and(mask_lattice, ~mask_implant)
+        # mask_lattice = masks.get_mask_lattice(reference)
+        # mask = np.logical_and(mask_lattice, ~mask_implant)
+        mask = ~mask_implant
     return mask
 
 def estimate_psf(image_in, image_out, mask, patch_shape, stride, num_batches, mode='regularized'):
