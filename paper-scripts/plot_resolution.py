@@ -17,7 +17,7 @@ def box_plots(fwhms, shapes, save_dir=None, figsize=(10, 8), fontsize=18):
     expected_fwhm = np.array([sinc_fwhm(shapes[0], shape_i) for shape_i in shapes[1:]])
     expected_fwhm = np.round(expected_fwhm, 2)
     y_ticks = list(set(expected_fwhm.ravel()))
-    y_lim = [0, int(np.max(expected_fwhm))+1]
+    y_lim = [1, int(np.round(np.max(expected_fwhm)+1))]
 
     fwhm_x_nonzero = [fwhms[i][..., 0][fwhms[i][..., 0] > 0] for i in range(num_trials)]
     fwhm_y_nonzero = [fwhms[i][..., 1][fwhms[i][..., 1] > 0] for i in range(num_trials)]
