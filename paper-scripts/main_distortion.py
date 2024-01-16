@@ -14,13 +14,13 @@ from util import equalize, load_series
 
 # oct 21
 # slc = (slice(35, 155), slice(65, 185), 30)
-slc = (slice(25, 175), slice(50, 200), slice(10, 60))
+# slc = (slice(25, 175), slice(50, 200), slice(10, 60))
 # slc = (slice(35, 155), slice(65, 185), slice(15, 45))
 # slc = (slice(35, 155), slice(65, 105), slice(10, 50)) # works
 # slc = (slice(35, 155), slice(160, 180), slice(10, 50))
 
-# jan 24
-# slc = (slice(35, 164), slice(62, 194), slice(10, 50))
+# jan 12
+slc = (slice(35, 164), slice(62, 194), slice(10, 50))
 
 p = argparse.ArgumentParser(description='Geometric distortion analysis of 2DFSE multi-slice image volumes with varying readout bandwidth.')
 p.add_argument('root', type=str, help='path where outputs are saved')
@@ -106,16 +106,26 @@ if __name__ == '__main__':
     if results.ndim == 3:
         slc = (slice(None), slice(None), slice(None))
     elif results.ndim == 4:
-        slc = (slice(None), slice(None), slice(None), 20)
-    plot_image_results(plt.figure(figsize=(14, 5)), masks_register[slc], images[slc], results[slc], rbw)
-    plt.savefig(path.join(save_dir, 'images.png'), dpi=300)
-    plot_field_results(plt.figure(figsize=(8, 5)), results[slc], true_field_kHz[slc[1:]], deformation_fields[slc], rbw, pbw)
-    plt.savefig(path.join(save_dir, 'fields.png'), dpi=300)
-    plot_summary_results(plt.figure(), results, true_field_kHz, deformation_fields, rbw, pbw)
-    plt.savefig(path.join(save_dir, 'summary.png'), dpi=300)
+        slc_z = (slice(None), slice(None), slice(None), images.shape[-1]//2)
+        slc_y = (slice(None), slice(None), images.shape[-2]//2, slice(None))
+    plot_image_results(plt.figure(figsize=(14, 5)), masks_register[slc_z], images[slc_z], results[slc_z], rbw)
+    plt.savefig(path.join(save_dir, 'images_xy.png'), dpi=300)
+    plot_image_results(plt.figure(figsize=(14, 5)), masks_register[slc_y], images[slc_y], results[slc_y], rbw)
+    plt.savefig(path.join(save_dir, 'images_xz.png'), dpi=300)
+    plot_field_results(plt.figure(figsize=(8, 5)), results[slc_z], true_field_kHz[slc_z[1:]], deformation_fields[slc_z], rbw, pbw)
+    plt.savefig(path.join(save_dir, 'fields_xy.png'), dpi=300)
+    plot_field_results(plt.figure(figsize=(8, 5)), results[slc_y], true_field_kHz[slc_y[1:]], deformation_fields[slc_y], rbw, pbw)
+    plt.savefig(path.join(save_dir, 'fields_xz.png'), dpi=300)
+    plot_summary_results(plt.figure(), results, true_field_kHz, -deformation_fields[..., 0], rbw, pbw)
+    plt.savefig(path.join(save_dir, 'summary_x.png'), dpi=300)
+    plot_summary_results(plt.figure(), results, 0 * true_field_kHz, deformation_fields[..., 1], rbw, pbw * np.inf)
+    plt.savefig(path.join(save_dir, 'summary_y.png'), dpi=300)
+    kHz_mm_over_G_cm = 0.42577
+    plot_summary_results(plt.figure(), results, true_field_kHz, deformation_fields[..., 2], rbw, (1.499 * kHz_mm_over_G_cm * 1.2 * 1000,) * len(pbw))
+    plt.savefig(path.join(save_dir, 'summary_z.png'), dpi=300)
 
     volumes = (true_field_kHz, -deformation_fields[0][..., 0], deformation_fields[0][..., 2])
     titles = ('correct field', 'deformation x', 'deformation z')
     fig1, tracker1 = plotVolumes(volumes, titles=titles, vmin=-4, vmax=4, cmap='RdBu_r')
-    fig2, tracker2 = plotVolumes((images[1], images[2], results[0]))
+    fig2, tracker2 = plotVolumes((images[1], images[2], results[0], images[1]-images[1], np.abs(images[2]-images[1]), np.abs(results[0]-images[1])))
     plt.show()
