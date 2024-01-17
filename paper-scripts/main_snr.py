@@ -12,9 +12,8 @@ from plot import plotVolumes
 
 from util import equalize, load_series, masked_copy
 
-# TODO systematize this
-# slc = (slice(40, 160), slice(65, 185), slice(15, 45))
-slc = (slice(175, 230), slice(50, 200), slice(40, 60))
+slc = (slice(40, 160), slice(65, 185), slice(10, 50))
+# slc = (slice(175, 230), slice(50, 200), slice(40, 60))
 
 p = argparse.ArgumentParser(description='Noise analysis of image volume duplicates.')
 p.add_argument('root', type=str, help='path where outputs are saved')

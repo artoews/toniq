@@ -9,8 +9,7 @@ from plot_artifact import plot_artifact_results, plot_artifact_results_overlay, 
 
 from util import safe_divide, equalize, load_series
 
-# TODO systematize this
-slc = (slice(35, 155), slice(65, 185), slice(15, 45))
+slc = (slice(40, 160), slice(65, 185), slice(10, 50))
 
 p = argparse.ArgumentParser(description='Intensity artifact analysis of 2DFSE multi-slice image volumes with varying readout bandwidth.')
 p.add_argument('root', type=str, help='path where outputs are saved')

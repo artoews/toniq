@@ -20,7 +20,9 @@ from util import equalize, load_series
 # slc = (slice(35, 155), slice(160, 180), slice(10, 50))
 
 # jan 12
-slc = (slice(35, 164), slice(62, 194), slice(10, 50))
+# slc = (slice(35, 164), slice(62, 194), slice(10, 50))
+
+slc = (slice(40, 160), slice(65, 185), slice(10, 50))
 
 p = argparse.ArgumentParser(description='Geometric distortion analysis of 2DFSE multi-slice image volumes with varying readout bandwidth.')
 p.add_argument('root', type=str, help='path where outputs are saved')
