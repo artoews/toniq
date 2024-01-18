@@ -15,13 +15,14 @@ from util import equalize, load_series
 # slc = (slice(35, 95), slice(65, 125), slice(20, 40))
 # slc = (slice(35*2, 95*2), slice(65*2, 125*2), slice(20, 40))
 slc = (slice(40*2, 160*2), slice(65*2, 185*2), slice(10, 50))
+# slc = (slice(40*2, 80*2), slice(65*2, 105*2), slice(20, 40))
 
 p = argparse.ArgumentParser(description='Resolution analysis of image volumes with common dimensions.')
 p.add_argument('root', type=str, help='path where outputs are saved')
 p.add_argument('-e', '--exam_root', type=str, default=None, help='directory where exam data exists in subdirectories')
 p.add_argument('-s', '--series_list', type=str, nargs='+', default=None, help='list of exam_root subdirectories to be analyzed, with the first serving as reference')
 p.add_argument('-c', '--unit_cell_mm', type=float, default=12.0, help='size of lattice unit cell (in mm); default=12')
-p.add_argument('-t', '--stride', type=float, default=1, help='window stride length for stepping between PSF measurements, in units of unit cell length; default=1')
+p.add_argument('-t', '--stride', type=int, default=5, help='window stride length for stepping between PSF measurements, in units of pixels; default=5')
 p.add_argument('-n', '--noise', type=float, default=0, help='st. dev. of noise added to k-space; default=0')
 p.add_argument('-o', '--overwrite', action='store_true', help='overwrite target k-space with samples from reference')
 p.add_argument('-w', '--workers', type=int, default=8, help='number of parallel pool workers; default=8')
@@ -119,6 +120,6 @@ if __name__ == '__main__':
     for i in range(len(fwhms)):
         volumes = (fwhms[i][..., 0], fwhms[i][..., 1], fwhms[i][..., 2])
         titles = ('FWHM in x (mm)', 'FWHM in y (mm)', 'FWHM in z (mm)')
-        figs[i], trackers[i] = plotVolumes(volumes, titles=titles, figsize=(12, 4), vmin=0.5, vmax=3.5, cmap='viridis', cbar=True)
+        figs[i], trackers[i] = plotVolumes(volumes, titles=titles, figsize=(12, 4), vmin=1.5, vmax=3, cmap='viridis', cbar=True)
     
     plt.show()
