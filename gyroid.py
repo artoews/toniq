@@ -2,9 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from linop import get_matrix
 from plot import plotVolumes
-from psf_new import model
+from resolution import forward_model
 import sigpy as sp
-from scipy.linalg import dft
 import scipy.ndimage as ndi
 from skimage import morphology
 from sklearn.neighbors import NearestNeighbors
@@ -50,48 +49,40 @@ def min_of_max(arr, filter_radius):
     max_arr = ndi.maximum_filter(arr, footprint=footprint, mode='nearest')
     return np.min(max_arr)
 
-def condition(cell, psf_shape):
-    # TODO write a function that takes an arbitrary sigpy linop and returns the matrix form by brute force, i.e. evaluation on the basis vectors
-    # TODO validate with a few random vectors and a sigpy operator version of the matrix
-    print('1')
-    pad_mat = np.diag(sp.resize(np.ones(psf_shape), cell.shape).ravel())
-    print('2')
-    dft_mat = np.kron(dft(cell.shape[0]), np.kron(dft(cell.shape[1]), dft(cell.shape[2])))
-    print('3')
-    k_mat = np.diag(sp.fft(cell).ravel())
-    print('4')
-    print(pad_mat.shape, dft_mat.shape, k_mat.shape)
-    mat = k_mat @ dft_mat @ pad_mat
-    print('5')
-    c = np.linalg.cond(mat)
-    print('6')
-    return c
-
 if __name__ == '__main__':
     size = 120
     resolution = 1
-    line_width = 8
+    line_width = 6
     lattice_shape = (1,) * 3
+    patch_shape = (20, 20, 10)
 
-    cell_surface = gyroid_unit_cell(size, resolution)
-    cell_solid = np.abs(cell_surface) < line_width / 24 # 24 found empirically to give the prescribed line_width  
-    # cell_solid = cubic_unit_cell(size, resolution, line_width)
+    # psf_shape = (3, 3, 5)
+    # psf_shape = (5, 5, 5)
+    psf_shape = (10, 10, 5)
+    gyroid = False
+    if gyroid:
+        cell_surface = gyroid_unit_cell(size, resolution)
+        cell_solid = np.abs(cell_surface) < line_width / 24 # 24 found empirically to give the prescribed line_width  
+    else:
+        cell_solid = cubic_unit_cell(size, resolution, line_width)
     lattice = np.tile(cell_solid, lattice_shape)
+
+    fig1, tracker1 = plotVolumes((lattice,))
 
     print('lattice shape', lattice.shape)
 
     kspace = sp.fft(lattice)
-    kspace = sp.resize(kspace, (20,) * 3)
+    kspace = sp.resize(kspace, patch_shape)
     lattice = np.abs(sp.ifft(kspace))
     lattice = lattice / np.max(np.abs(lattice))
 
-    A = model(kspace, (7,) * 3)
+    A = forward_model(kspace, psf_shape)
     print('A op shape', A.oshape, A.ishape)
     A_mtx = get_matrix(A, verify=True)
     print('A mtx shape', A_mtx.shape)
     c = np.linalg.cond(A_mtx)
     print('condition number', c)
-    quit()
+    # quit()
 
     origin = np.unravel_index(np.argmax(np.abs(kspace)), kspace.shape)
     origin_val = kspace[origin]
@@ -115,9 +106,10 @@ if __name__ == '__main__':
     # score = condition(cell_solid, (10, 10, 10))
     # print(score)
 
-    fig, ax = plotVolumes((lattice, np.abs(kspace) / next_max, mask, np.abs(filtered_kspace) / next_max, filtered_image))
+    fig2, tracker2 = plotVolumes((lattice, np.abs(kspace) / next_max, mask, np.abs(filtered_kspace) / next_max, filtered_image))
+    fig4, tracker4 = plotVolumes((lattice, np.abs(kspace) / 20, mask))
 
-    fig1 = plt.figure()
-    ax1 = fig1.add_subplot(projection='3d')
-    ax1.scatter(*np.nonzero(mask))
+    fig3 = plt.figure()
+    ax3 = fig3.add_subplot(projection='3d')
+    ax3.scatter(*np.nonzero(mask))
     plt.show()
