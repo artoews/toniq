@@ -5,6 +5,7 @@ import sigpy as sp
 
 from os import path
 from pathlib import Path
+from skimage import filters, morphology
 from time import time
 
 def load_series(exam_root, series_name):
@@ -13,17 +14,19 @@ def load_series(exam_root, series_name):
     image = dicom.load_series(files)
     return image
 
-def equalize(images, pct=90):
+def equalize(images, pct=99):
     if type(images) == list:
         images = np.stack(images, axis=0)
         is_list = True
     else:
         is_list = False
     images = np.abs(images)
-    images[0] = normalize(images[0])
+    images[0] = normalize(images[0], pct=pct)
+    otsu_thresholds = [filters.threshold_otsu(image) for image in images]
+    signal_masks = [image > thresh for image, thresh in zip(images, otsu_thresholds)]
+    signal_masks = [morphology.binary_erosion(mask, footprint=morphology.cube(4)) for mask in signal_masks]
     for i in range(1, len(images)):
-        # TODO find a more principled way
-        images[i] *= np.percentile(images[0], pct) / np.percentile(images[i], pct)
+        images[i] *= np.median(images[0][signal_masks[i]]) / np.median(images[i][signal_masks[i]])
     if is_list:
         images = list(images)
     return images
