@@ -1,8 +1,8 @@
 import numpy as np
+import scipy.ndimage as ndi
 import sigpy as sp
 
 import masks
-
 from filter import generic_filter
 from util import safe_divide
 
@@ -12,11 +12,14 @@ def map_resolution(reference, target, unit_cell_pixels, resolution_mm, stride, n
     if mask is None:
         mask = get_resolution_mask(reference, target)
     patch_shape = tuple(unit_cell_pixels)
-    stride = int(stride * unit_cell_pixels[0])
+    filter_size = (int(patch_shape[0]/stride/2), int(patch_shape[1]/stride/2), int(patch_shape[2]/2))
+    print('patch shape', patch_shape)
+    print('filter size', filter_size)
     psf = estimate_psf(reference, target, mask, patch_shape, stride, num_workers)
     fwhm = get_FWHM_from_image(psf, num_workers)
     for i in range(fwhm.shape[-1]):
         fwhm[..., i] = fwhm[..., i] * resolution_mm[i]
+        fwhm[..., i] = ndi.uniform_filter(fwhm[..., i], size=filter_size)
     return psf, fwhm
 
 def get_resolution_mask(reference, target=None, metal=False):
@@ -50,7 +53,7 @@ def deconvolve_by_division(patch_pair):
     psf = np.real(sp.ifft(kspace_quotient))
     return psf
 
-def deconvolve_by_model(patch_pair, psf_shape=reg_psf_shape, lamda=1e-2, tol=1e-8, max_iter=1e5, verbose=False):
+def deconvolve_by_model(patch_pair, psf_shape=reg_psf_shape, lamda=1e-2, tol=1e-2, max_iter=1e2, verbose=False):
     kspace_pair = sp.fft(patch_pair, axes=(0, 1, 2))
     kspace_in, kspace_out = kspace_pair[..., 0], kspace_pair[..., 1]
     A = forward_model(kspace_in, psf_shape)
