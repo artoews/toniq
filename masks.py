@@ -5,7 +5,7 @@ from skimage import filters, morphology, util
 from util import safe_divide
 
 
-def get_typical_level(image, mask_signal=None, mask_implant=None, filter_size=5):
+def get_typical_level(image, mask_signal=None, mask_implant=None, filter_size=10):
     if mask_implant is None:
         mask_empty = get_mask_empty(image)
         mask_implant = get_mask_implant(mask_empty)
@@ -15,7 +15,7 @@ def get_typical_level(image, mask_signal=None, mask_implant=None, filter_size=5)
     filled_image = np.abs(image)
     median_signal = np.median(filled_image[mask_signal])
     # mean_signal = np.sum(image * signal_mask) / np.sum(signal_mask)
-    mask_implant = ndi.maximum_filter(mask_implant, size=filter_size)
+    mask_implant = ndi.maximum_filter(mask_implant, size=5)  # this is just erosion/dilation?
     # image[implant_mask] = mean_signal
     filled_image[mask_implant] = median_signal
     signal_sum = ndi.uniform_filter(filled_image * mask_signal, size=filter_size)
