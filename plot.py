@@ -114,3 +114,6 @@ def overlay_mask(ax, mask, color=[200, 200, 200], alpha=255):
     color_mask[mask, :] = np.array(color + [alpha], dtype=np.uint8)
     ax.imshow(color_mask)
     return
+
+def letter_annotation(ax, xoffset, yoffset, letter):
+    ax.text(xoffset, yoffset, letter, transform=ax.transAxes, size=18, weight='bold')
