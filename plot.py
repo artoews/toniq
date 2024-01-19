@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 class MultiIndexTracker:
     """ Scroll through a collection of volumes in lock step """
@@ -117,3 +118,21 @@ def overlay_mask(ax, mask, color=[200, 200, 200], alpha=255):
 
 def letter_annotation(ax, xoffset, yoffset, letter):
     ax.text(xoffset, yoffset, letter, transform=ax.transAxes, size=18, weight='bold')
+
+def imshow2(ax, im, slc1, slc2, vmin=0, vmax=1, cmap='gray'):
+    divider = make_axes_locatable(ax)
+    im1 = im[slc1]
+    im2 = im[slc2]
+    ratio = im2.shape[1] / im1.shape[1] * 100
+    ax2 = divider.append_axes("right", size=str(ratio) + "%", pad=0.1)
+    fig1 = ax.get_figure()
+    fig1.add_axes(ax2)
+    im1= ax.imshow(im[slc1], vmin=vmin, vmax=vmax, cmap=cmap)
+    im2 = ax2.imshow(im[slc2], vmin=vmin, vmax=vmax, cmap=cmap)
+    ax2.yaxis.set_tick_params(labelleft=False)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax2.set_xticks([])
+    ax2.set_yticks([])
+    return im1, im2
+
