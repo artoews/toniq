@@ -67,16 +67,16 @@ if __name__ == '__main__':
     cubic = make_lattice('cubic')
     cubic_k = get_kspace_center(cubic, patch_shape)
 
-    print('getting conditions')
-    gyroid_conditions = [get_condition(gyroid_k, shape) for shape in psf_shapes]
-    cubic_conditions = [get_condition(cubic_k, shape) for shape in psf_shapes]
+    # print('getting conditions')
+    # gyroid_conditions = [get_condition(gyroid_k, shape) for shape in psf_shapes]
+    # cubic_conditions = [get_condition(cubic_k, shape) for shape in psf_shapes]
 
-    np.savez(path.join(save_dir, 'outputs.npz'), gyroid_conditions=gyroid_conditions, cubic_conditions=cubic_conditions, psf_sizes=psf_sizes)
+    # np.savez(path.join(save_dir, 'outputs.npz'), gyroid_conditions=gyroid_conditions, cubic_conditions=cubic_conditions, psf_sizes=psf_sizes)
     data = np.load(path.join(save_dir, 'outputs.npz'))
     for var in data:
         globals()[var] = data[var]
-    print('gyroid condition', gyroid_conditions)
-    print('cubic condition', cubic_conditions)
+    # print('gyroid condition', gyroid_conditions)
+    # print('cubic condition', cubic_conditions)
 
     ## Setup
     fig = plt.figure(figsize=(12, 4), layout='constrained')
@@ -92,7 +92,7 @@ if __name__ == '__main__':
     gyroid_k_patch = gyroid_k[:, :, start:start+num_slices]
     axes_B = plot_image_panel(fig_B, cubic_k_patch, gyroid_k_patch, vmax=7, log=True)
     letter_annotation(axes_B[0][0], -0.2, 1.1, 'B')
-    axes_C = plot_condition(fig_C, psf_sizes[:-1], gyroid_conditions[:-1], cubic_conditions[:-1])
+    axes_C = plot_condition(fig_C, psf_sizes, gyroid_conditions, cubic_conditions)
     letter_annotation(axes_C, -0.2, 1.1, 'C')
 
     ## Save
