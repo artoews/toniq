@@ -7,7 +7,7 @@ from os import path, makedirs
 from masks import get_mask_extrema, get_typical_level
 from plot_artifact import plot_artifact_results, plot_artifact_results_overlay, plot_progression
 
-from util import safe_divide, equalize, load_series
+from util import safe_divide, equalize, load_series, save_args
 
 slc = (slice(40, 160), slice(65, 185), slice(10, 50))
 
@@ -25,8 +25,7 @@ if __name__ == '__main__':
 
     if args.exam_root is not None and args.series_list is not None:
 
-        with open(path.join(save_dir, 'args.txt'), 'w') as f:
-            json.dump(args.__dict__, f, indent=4)
+        save_args(args, save_dir)
 
         images = [load_series(args.exam_root, series_name) for series_name in args.series_list]
         

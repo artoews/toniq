@@ -10,7 +10,7 @@ from masks import get_mask_signal
 from plot import plotVolumes
 from plot_distortion import plot_image_results, plot_field_results, plot_summary_results
 from distortion import map_distortion, get_registration_masks, setup_nonrigid
-from util import equalize, load_series
+from util import equalize, load_series, save_args
 
 # oct 21
 # slc = (slice(35, 155), slice(65, 185), 30)
@@ -39,8 +39,7 @@ if __name__ == '__main__':
     
     if args.exam_root is not None and args.series_list is not None:
 
-        with open(path.join(save_dir, 'args.txt'), 'w') as f:
-            json.dump(args.__dict__, f, indent=4)
+        save_args(args, save_dir)
 
         images = [load_series(args.exam_root, series_name) for series_name in args.series_list]
 

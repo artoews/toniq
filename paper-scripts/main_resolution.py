@@ -8,7 +8,7 @@ from os import path, makedirs
 from resolution import map_resolution, get_resolution_mask
 from plot import plotVolumes
 from plot_resolution import box_plots
-from util import equalize, load_series
+from util import equalize, load_series, save_args
 
 # slc = (slice(35, 155), slice(65, 185), slice(15, 45))
 # slc = (slice(40, 160), slice(65, 185), slice(15, 45))
@@ -38,8 +38,7 @@ if __name__ == '__main__':
 
     if args.exam_root is not None and args.series_list is not None:
 
-        with open(path.join(save_dir, 'args.txt'), 'w') as f:
-            json.dump(args.__dict__, f, indent=4)
+        save_args(args, save_dir)
 
         images = [load_series(args.exam_root, series_name) for series_name in args.series_list]
 
@@ -120,6 +119,6 @@ if __name__ == '__main__':
     for i in range(len(fwhms)):
         volumes = (fwhms[i][..., 0], fwhms[i][..., 1], fwhms[i][..., 2])
         titles = ('FWHM in x (mm)', 'FWHM in y (mm)', 'FWHM in z (mm)')
-        figs[i], trackers[i] = plotVolumes(volumes, titles=titles, figsize=(12, 4), vmin=1.5, vmax=3, cmap='viridis', cbar=True)
+        figs[i], trackers[i] = plotVolumes(volumes, titles=titles, figsize=(12, 4), vmin=1, vmax=3, cmap='viridis', cbar=True)
     
     plt.show()

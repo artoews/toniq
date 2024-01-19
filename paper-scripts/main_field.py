@@ -9,7 +9,7 @@ from skimage import morphology
 from field import estimate_field
 from ge_mavricsl import get_bins_from_archive, combine_bins, correct_geometry
 from plot import plotVolumes
-from util import equalize
+from util import equalize, save_args
 
 # TODO VAT field compensation, though not necessary for a differential measurement of field, should be added eventually for completeness
 # for this you will need to know the gz gradient, e.g. 
@@ -43,8 +43,7 @@ if __name__ == '__main__':
     save_dir = path.join(args.root, 'field')
     if not path.exists(save_dir):
         makedirs(save_dir)
-    with open(path.join(save_dir, 'args.txt'), 'w') as f:
-        json.dump(args.__dict__, f, indent=4)
+    save_args(args, save_dir)
     
     if args.plastic is not None and args.metal is not None:
         image_plastic, field_plastic = get_image_and_field(args.plastic)

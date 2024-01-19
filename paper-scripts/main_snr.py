@@ -10,7 +10,7 @@ from masks import get_mask_signal
 from intensity import map_snr
 from plot import plotVolumes
 
-from util import equalize, load_series, masked_copy
+from util import equalize, load_series, masked_copy, save_args
 
 slc = (slice(40, 160), slice(65, 185), slice(10, 50))
 # slc = (slice(175, 230), slice(50, 200), slice(40, 60))
@@ -30,9 +30,8 @@ if __name__ == '__main__':
 
     if args.exam_root is not None and args.series_list is not None:
 
-        with open(path.join(save_dir, 'args.txt'), 'w') as f:
-            json.dump(args.__dict__, f, indent=4)
-        
+        save_args(args, save_dir) 
+
         images = [load_series(args.exam_root, series_name) for series_name in args.series_list]
 
         rbw = np.array([image.meta.readoutBandwidth_kHz for image in images[::2]])

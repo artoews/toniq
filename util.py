@@ -1,7 +1,9 @@
 import dicom
 import inspect
+import json
 import numpy as np
 import sigpy as sp
+import sys
 
 from os import path
 from pathlib import Path
@@ -62,3 +64,9 @@ def masked_copy(arr, mask, fill_val=0):
     arr_copy = arr.copy()
     arr_copy[~mask] = fill_val
     return arr_copy
+
+def save_args(args, save_dir):
+    args_dict = args.__dict__
+    args_dict['cmd'] = " ".join(["python"] + sys.argv)
+    with open(path.join(save_dir, 'args.txt'), 'w') as f:
+        json.dump(args_dict, f, indent=4)
