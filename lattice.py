@@ -17,12 +17,12 @@ def gyroid_unit_cell(size, resolution):
         np.sin(2 * np.pi / size * z) * np.cos(2 * np.pi / size * x)
     return g
 
-def cubic_unit_cell(size, resolution, line_width, thresh=0.99):
+def cubic_unit_cell(size, resolution, line_width):
     pts = np.arange(0, size, resolution)
     x, y, z = np.meshgrid(pts, pts, pts, indexing='ij')
-    g = (np.mod(x + resolution, size / 2) < line_width * resolution) + \
-        (np.mod(y + resolution, size / 2) < line_width * resolution) + \
-        (np.mod(z + resolution, size / 2) < line_width * resolution)
+    g = (np.mod(x, size / 2) < line_width) + \
+        (np.mod(y, size / 2) < line_width) + \
+        (np.mod(z, size / 2) < line_width)
     return g > 0
 
 def largest_hole(mask):
@@ -49,38 +49,39 @@ def min_of_max(arr, filter_radius):
     max_arr = ndi.maximum_filter(arr, footprint=footprint, mode='nearest')
     return np.min(max_arr)
 
-if __name__ == '__main__':
+def make_lattice(type, shape=(1, 1, 1)):
     size = 120
     resolution = 1
     line_width = 6
-    lattice_shape = (1,) * 3
-    patch_shape = (20, 20, 10)
+    if type == 'gyroid':
+        cell_surface = gyroid_unit_cell(size, resolution)
+        cell_solid = np.abs(cell_surface) < line_width / 24 # found empirically to give the prescribed line_width 
+    elif type == 'cubic':
+        cell_solid = cubic_unit_cell(size, resolution, line_width)
+    lattice = np.tile(1-cell_solid, shape)
+    return lattice
 
+def get_condition(kspace, psf_shape):
+    A_op = forward_model(kspace, psf_shape)
+    A_mtx = get_matrix(A_op, verify=True)
+    return np.linalg.cond(A_mtx)
+
+def get_kspace_center(lattice, shape):
+    return sp.resize(sp.fft(lattice), shape)
+
+if __name__ == '__main__':
+    patch_shape = (20, 20, 10)
     # psf_shape = (3, 3, 5)
     # psf_shape = (5, 5, 5)
     psf_shape = (10, 10, 5)
-    gyroid = False
-    if gyroid:
-        cell_surface = gyroid_unit_cell(size, resolution)
-        cell_solid = np.abs(cell_surface) < line_width / 24 # 24 found empirically to give the prescribed line_width  
-    else:
-        cell_solid = cubic_unit_cell(size, resolution, line_width)
-    lattice = np.tile(cell_solid, lattice_shape)
-
+        
+    lattice = make_lattice('gyroid')
+    # lattice = make_lattice('cubic')
+    print('lattice shape', lattice.shape)
     fig1, tracker1 = plotVolumes((lattice,))
 
-    print('lattice shape', lattice.shape)
-
-    kspace = sp.fft(lattice)
-    kspace = sp.resize(kspace, patch_shape)
-    lattice = np.abs(sp.ifft(kspace))
-    lattice = lattice / np.max(np.abs(lattice))
-
-    A = forward_model(kspace, psf_shape)
-    print('A op shape', A.oshape, A.ishape)
-    A_mtx = get_matrix(A, verify=True)
-    print('A mtx shape', A_mtx.shape)
-    c = np.linalg.cond(A_mtx)
+    kspace = get_kspace(lattice, patch_shape)
+    c = get_condition(kspace, psf_shape)
     print('condition number', c)
     # quit()
 
@@ -106,6 +107,8 @@ if __name__ == '__main__':
     # score = condition(cell_solid, (10, 10, 10))
     # print(score)
 
+    lattice = np.abs(sp.ifft(kspace))
+    lattice = lattice / np.max(np.abs(lattice))
     fig2, tracker2 = plotVolumes((lattice, np.abs(kspace) / next_max, mask, np.abs(filtered_kspace) / next_max, filtered_image))
     fig4, tracker4 = plotVolumes((lattice, np.abs(kspace) / 20, mask))
 
