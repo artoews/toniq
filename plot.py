@@ -119,7 +119,7 @@ def overlay_mask(ax, mask, color=[200, 200, 200], alpha=255):
 def letter_annotation(ax, xoffset, yoffset, letter):
     ax.text(xoffset, yoffset, letter, transform=ax.transAxes, size=18, weight='bold')
 
-def imshow2(ax, im, slc1, slc2, vmin=0, vmax=1, cmap='gray'):
+def imshow2(ax, im, slc1, slc2, vmin=0, vmax=1, cmap='gray', mask=None):
     divider = make_axes_locatable(ax)
     im1 = im[slc1]
     im2 = im[slc2]
@@ -129,6 +129,9 @@ def imshow2(ax, im, slc1, slc2, vmin=0, vmax=1, cmap='gray'):
     fig1.add_axes(ax2)
     im1= ax.imshow(im[slc1], vmin=vmin, vmax=vmax, cmap=cmap)
     im2 = ax2.imshow(im[slc2], vmin=vmin, vmax=vmax, cmap=cmap)
+    if mask is not None:
+        overlay_mask(ax, mask[slc1])
+        overlay_mask(ax2, mask[slc2])
     ax2.yaxis.set_tick_params(labelleft=False)
     ax.set_xticks([])
     ax.set_yticks([])

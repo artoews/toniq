@@ -6,7 +6,7 @@ import scipy.ndimage as ndi
 from skimage import morphology
 
 from distortion import net_pixel_bandwidth, simulated_deformation_fse
-from plot import overlay_mask
+from plot import overlay_mask, letter_annotation, imshow2
 from util import masked_copy
 
 SMALL_SIZE = 10
@@ -22,12 +22,11 @@ plt.rc('figure', titlesize=LARGE_SIZE)   # fontsize of the figure title
 plt.rc('lines', linewidth=1.0)
 styles = ['dotted', 'solid', 'dashed']
 
-def letter_annotation(ax, xoffset, yoffset, letter):
-    ax.text(xoffset, yoffset, letter, transform=ax.transAxes, size=18, weight='bold')
 
-def plot_image(ax, image, mask, xlabel=None, ylabel=None):
-    im = ax.imshow(image, vmin=0, vmax=1, cmap='gray')
-    overlay_mask(ax, mask)
+
+def plot_image(ax, image, mask, slc1, slc2, xlabel=None, ylabel=None):
+    # im = ax.imshow(image, vmin=0, vmax=1, cmap='gray')
+    im, _ = imshow2(ax, image, slc1, slc2, mask=mask)
     if xlabel is not None:
         ax.set_xlabel(xlabel)
     if ylabel is not None:
@@ -37,18 +36,15 @@ def plot_image(ax, image, mask, xlabel=None, ylabel=None):
     return im
 
 def plot_image_results(fig, masks, images, results, rbw):
-    axes = fig.subplots(nrows=len(results), ncols=5)
-    error_multiplier = 4
+    slc_xy = (slice(None), slice(None), images[0].shape[2] // 2)
+    slc_xz = (slice(None), images[0].shape[1] // 2, slice(None))
+    axes = fig.subplots(nrows=len(results)*2, ncols=3)
+    error_multiplier = 2
     num_trials = len(results)
     if num_trials == 1:
         axes = axes[None, :]
 
-    titles = ('Fixed Image',
-              'Moving Image',
-              'Registration',
-              'Initial Error ({}x)'.format(error_multiplier),
-              'Final Error ({}x)'.format(error_multiplier)
-              )
+    titles = ('Plastic', 'Metal', 'Registration')
     for ax, title in zip(axes[0, :], titles):
         ax.set_title(title)
     
@@ -57,32 +53,41 @@ def plot_image_results(fig, masks, images, results, rbw):
     fixed_image_masked = masked_copy(fixed_image, fixed_mask)
 
     for i in range(num_trials):
+        axes[2*i+1, 1].set_ylabel('Error ({}x)'.format(error_multiplier))
+        axes[2*i+1, 0].set_axis_off()
         moving_mask = masks[1+i]
         moving_image_masked = masked_copy(images[2+i], moving_mask)
         init_error = np.abs(moving_image_masked - fixed_image_masked)
         result_error = np.abs(results[i] - fixed_image_masked)
         init_mask = np.logical_and(moving_image_masked, fixed_image_masked)
         result_mask = np.logical_and(results[i] != 0, fixed_image_masked)
-        if i == 0:
-            plot_image(axes[i, 0],
-                       fixed_image_masked,
-                       ~fixed_mask,
-                       ylabel='RBW={:.3g}kHz'.format(rbw[0]))
-        else:
-            axes[i, 0].set_axis_off()
-        plot_image(axes[i, 1],
+        plot_image(axes[2*i, 0],
+                   fixed_image_masked,
+                   ~fixed_mask,
+                   slc_xy,
+                   slc_xz,
+                   ylabel='RBW={:.3g}kHz'.format(rbw[1+i]))
+        plot_image(axes[2*i, 1],
                    moving_image_masked,
                    ~moving_mask,
-                   ylabel='RBW={:.3g}kHz'.format(rbw[1+i]))
-        plot_image(axes[i, 2],
+                   slc_xy,
+                   slc_xz)
+        plot_image(axes[2*i, 2],
                    results[i],
-                   ~result_mask)
-        plot_image(axes[i, 3],
+                   ~result_mask,
+                   slc_xy,
+                   slc_xz)
+        plot_image(axes[2*i+1, 1],
                    init_error * error_multiplier * init_mask,
-                   ~init_mask)
-        im = plot_image(axes[i, 4],
+                   ~init_mask,
+                   slc_xy,
+                   slc_xz)
+        im = plot_image(axes[2*i+1, 2],
                    result_error * error_multiplier * result_mask,
-                   ~result_mask)
+                   ~result_mask,
+                   slc_xy,
+                   slc_xz)
+        fig.colorbar(im, ax=axes[2*i:2*i+2, :], ticks=[0, 1], label='Pixel Intensity (a.u.)', location='right')
 
     if num_trials > 1:
         axes[1, 0].annotate("readout",
@@ -94,12 +99,11 @@ def plot_image_results(fig, masks, images, results, rbw):
                             horizontalalignment='center',
                             arrowprops=dict(width=2, headwidth=8, headlength=8, color='black')
                             )
-    fig.colorbar(im, ax=axes, ticks=[0, 1], label='Pixel Intensity (a.u.)', location='right')
     return axes
 
-def plot_field(ax, image, mask, xlabel=None, ylabel=None):
-    im = ax.imshow(image, vmin=-4, vmax=4, cmap='RdBu_r')
-    overlay_mask(ax, mask)
+def plot_field(ax, image, mask, slc1, slc2, xlabel=None, ylabel=None):
+    # im = ax.imshow(image, vmin=-4, vmax=4, cmap='RdBu_r')
+    im, _ = imshow2(ax, image, slc1, slc2, vmin=-4, vmax=4, cmap='RdBu_r', mask=mask)
     if xlabel is not None:
         ax.set_xlabel(xlabel)
     if ylabel is not None:
@@ -108,22 +112,15 @@ def plot_field(ax, image, mask, xlabel=None, ylabel=None):
     ax.set_yticks([])
     return im
 
-def plot_field_results(fig, results, true_field, deformation_fields, rbw, pbw):
-    axes = fig.subplots(nrows=len(results), ncols=9)
+def plot_field_results(fig, results, true_field, deformation_fields, rbw, pbw, field_dir=0):
+    slc_xy = (slice(None), slice(None), results[0].shape[2] // 2)
+    slc_xz = (slice(None), results[0].shape[1] // 2, slice(None))
+    axes = fig.subplots(nrows=len(results), ncols=3)
     num_trials = len(results)
     if num_trials == 1:
         axes = axes[None, :] 
 
-    titles = ('Expected x',
-              'Result x',
-              'Error x',
-              'Expected y',
-              'Result y',
-              'Error y',
-              'Expected z',
-              'Result z',
-              'Error z'
-              )
+    titles = ('Simulation', 'Registration', 'Difference')
     for ax, title in zip(axes[0, :], titles):
         ax.set_title(title)
 
@@ -135,25 +132,30 @@ def plot_field_results(fig, results, true_field, deformation_fields, rbw, pbw):
         # net_pbw = net_pixel_bandwidth(pbw[1+i], pbw[0])  # Hz
         result_mask = (results[i] != 0)
         # simulated_deformation = true_field * 1000 / net_pbw
-        for j in range(3):
-            simulated_deformation = simulated_deformation_fse(true_field, gx[i], gz, 1.2, 1.2, pbw_kHz=net_pbw / 1000)
-            plot_field(axes[i, 3*j],
-                simulated_deformation[..., j] * result_mask,
-                ~result_mask,
-                ylabel='RBW={:.3g}kHz'.format(rbw[1+i]))
-            measured_deformation = deformation_fields[i][..., j]
-            if j == 0:
-                measured_deformation = -measured_deformation
-            plot_field(axes[i, 3*j+1],
-                measured_deformation * result_mask,
-                ~result_mask)
-            im = plot_field(axes[i, 3*j+2],
-                (simulated_deformation[..., j] - measured_deformation) * result_mask,
-                ~result_mask)
-    fig.colorbar(im, ax=axes, ticks=[-4, -2, 0, 2, 4], label='Readout Displacement (pixels)', location='right')
+        simulated_deformation = simulated_deformation_fse(true_field, gx[i], gz, 1.2, 1.2, pbw_kHz=net_pbw / 1000)
+        plot_field(axes[i, 0],
+            simulated_deformation[..., field_dir] * result_mask,
+            ~result_mask,
+            slc_xy,
+            slc_xz,
+            ylabel='RBW={:.3g}kHz'.format(rbw[1+i]))
+        measured_deformation = deformation_fields[i][..., field_dir]
+        if field_dir == 0:
+            measured_deformation = -measured_deformation
+        plot_field(axes[i, 1],
+            measured_deformation * result_mask,
+            ~result_mask,
+            slc_xy,
+            slc_xz)
+        im = plot_field(axes[i, 2],
+            (simulated_deformation[..., field_dir] - measured_deformation) * result_mask,
+            ~result_mask,
+            slc_xy,
+            slc_xz)
+    fig.colorbar(im, ax=axes, ticks=[-4, -2, 0, 2, 4], label='Displacement (pixels)', location='right')
     return axes
 
-def plot_summary_results(fig, results, true_field, deformation_fields, rbw, pbw):
+def plot_summary_results(fig, results, reference, field, rbw, pbw):
     axes = fig.subplots()
     f_max = 1.5
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
@@ -163,18 +165,17 @@ def plot_summary_results(fig, results, true_field, deformation_fields, rbw, pbw)
         net_pbw = pbw[1+i] / 1000 # assumes i=0 is plastic
         # net_pbw = net_pixel_bandwidth(pbw[1+i], pbw[0]) / 1000 # kHz
         result_mask = (results[i] != 0)
-        measured_deformation = -deformation_fields[i][..., 0]
-        field_bins = np.round(true_field * 10) / 10
+        field_bins = np.round(reference * 10) / 10
         sns.lineplot(x=(field_bins * result_mask).ravel(),
-                     y=(measured_deformation * result_mask).ravel(),
+                     y=(field[i] * result_mask).ravel(),
                      ax=axes, legend='brief', label='RBW={0:.3g}kHz'.format(rbw[i+1]), color=colors[i], linestyle=styles[i])
         # ax.scatter((field_bins * result_mask).ravel(), (measured_deformation * result_mask).ravel(), c=colors[i], s=0.1, marker='.')
         print('net_pbw', net_pbw)
         axes.axline((-f_max, -f_max / net_pbw), (f_max, f_max / net_pbw), color=colors[i], linestyle=loosely_dashed)
         axes.set_xlim([-f_max, f_max])
-        axes.set_ylim([-f_max / net_pbw, f_max / net_pbw])
+        axes.set_ylim([-4, 4])
     axes.set_xlabel('Off-Resonance (kHz)')
-    axes.set_ylabel('Readout Displacement (pixels)')
+    axes.set_ylabel('Displacement (pixels)')
     plt.legend()
     plt.grid()
     return axes
