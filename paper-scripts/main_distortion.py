@@ -4,9 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.ndimage as ndi
 from os import path, makedirs
-from skimage import morphology, util, filters
 
-from masks import get_mask_signal
 from plot import plotVolumes
 from plot_distortion import plot_image_results, plot_field_results, plot_summary_results
 from distortion import map_distortion, get_registration_masks, setup_nonrigid
@@ -22,13 +20,14 @@ from util import equalize, load_series, save_args
 # jan 12
 # slc = (slice(35, 164), slice(62, 194), slice(10, 50))
 
-slc = (slice(40, 160), slice(65, 185), slice(10, 50))
+# jan 15
+slc = (slice(35, 165), slice(60, 190), slice(10, 50)) # 130x130x40 is just shy of the full lattice extent in pixels
 
-p = argparse.ArgumentParser(description='Geometric distortion analysis of 2DFSE multi-slice image volumes with varying readout bandwidth.')
+p = argparse.ArgumentParser(description='Geometric distortion analysis of 2DFSE multi-slice image volumes')
 p.add_argument('root', type=str, help='path where outputs are saved')
 p.add_argument('-e', '--exam_root', type=str, default=None, help='directory where exam data exists in subdirectories')
-p.add_argument('-s', '--series_list', type=str, nargs='+', default=None, help='list of exam_root subdirectories to be analyzed, with the first serving as plastic reference, second as metal reference')
-p.add_argument('-t', '--threshold', type=float, default=0.2, help='maximum intensity artifact error included in registration mask; default=0.2')
+p.add_argument('-s', '--series_list', type=str, nargs='+', default=None, help='list of exam_root subdirectories to be analyzed in RBW-matched (plastic, metal) pairs')
+p.add_argument('-t', '--threshold', type=float, default=0.3, help='maximum intensity artifact error included in registration mask; default=0.3')
 
 if __name__ == '__main__':
 
@@ -43,37 +42,32 @@ if __name__ == '__main__':
 
         images = [load_series(args.exam_root, series_name) for series_name in args.series_list]
 
-        pbw = np.array([image.meta.pixelBandwidth_Hz for image in images[1:]])
-        rbw = np.array([image.meta.readoutBandwidth_kHz for image in images[1:]])
+        pbw = np.array([image.meta.pixelBandwidth_Hz for image in images[::2]])
+        rbw = np.array([image.meta.readoutBandwidth_kHz for image in images[::2]])
 
         images = np.stack([image.data for image in images])
         # images = np.stack([ndi.gaussian_filter(image.data, 1) for image in images])
 
         images = equalize(images)
 
+        print('Getting masks...')
         masks_register = get_registration_masks(images, args.threshold)
 
         if slc is not None:
             images = images[(slice(None),) + slc]
             masks_register = [mask[slc] for mask in masks_register]
-
-        # volumes = (images[0], images[1], images[2], masks_register[0], masks_register[1])
-        # titles = ('plastic', 'fixed', 'moving', 'fixed mask', 'moving mask')
-        # fig2, tracker2 = plotVolumes(volumes, titles=titles, figsize=(16, 8))
-        # plt.show()
-        # quit()
         
         # run registration
         print('Running registration...')
         results = []
         deformation_fields = []
         itk_parameters = setup_nonrigid()
-        for i in range(2, len(images)):
-            print('on trial {} with PBWs {:.1f} and {:.1f} Hz'.format(i-1, pbw[0], pbw[i-1]))
-            fixed_image = images[1].copy()
-            moving_image = images[i].copy()
-            fixed_mask = masks_register[0].copy()
-            moving_mask = masks_register[i-1].copy()
+        for i in range(len(images) // 2):
+            print('on trial {} of {} with PBWs {:.1f} and {:.1f} Hz'.format(i-1, len(images)//2, pbw[0], pbw[i-1]))
+            fixed_image = images[2*i].copy()
+            moving_image = images[2*i+1].copy()
+            fixed_mask = masks_register[2*i].copy()
+            moving_mask = masks_register[2*i+1].copy()
             _, result_masked, deformation_field = map_distortion(
                 fixed_image,
                 moving_image,
@@ -109,15 +103,15 @@ if __name__ == '__main__':
     elif results.ndim == 4:
         slc_z = (slice(None), slice(None), slice(None), images.shape[-1]//2)
         slc_y = (slice(None), slice(None), images.shape[-2]//2, slice(None))
-    plot_image_results(plt.figure(figsize=(8, 6)), masks_register, images, results, rbw)
+    plot_image_results(plt.figure(figsize=(12, 10)), masks_register, images, results, rbw)
 
     plt.savefig(path.join(save_dir, 'images.png'), dpi=300)
-    plot_field_results(plt.figure(figsize=(8, 3)), results, true_field_kHz, deformation_fields, rbw, pbw, field_dir=0)
+    plot_field_results(plt.figure(figsize=(12, 5)), results, true_field_kHz, deformation_fields, rbw, pbw, field_dir=0)
 
     plt.savefig(path.join(save_dir, 'fields_x.png'), dpi=300)
     # plot_field_results(plt.figure(figsize=(8, 3)), results, true_field_kHz, deformation_fields, rbw, pbw, field_dir=1)
     # plt.savefig(path.join(save_dir, 'fields_y.png'), dpi=300)
-    plot_field_results(plt.figure(figsize=(8, 3)), results, true_field_kHz, deformation_fields, rbw, pbw, field_dir=2)
+    plot_field_results(plt.figure(figsize=(12, 5)), results, true_field_kHz, deformation_fields, rbw, pbw, field_dir=2)
     plt.savefig(path.join(save_dir, 'fields_z.png'), dpi=300)
 
     plot_summary_results(plt.figure(), results, true_field_kHz, -deformation_fields[..., 0], rbw, pbw)

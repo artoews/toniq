@@ -48,15 +48,13 @@ def plot_image_results(fig, masks, images, results, rbw):
     for ax, title in zip(axes[0, :], titles):
         ax.set_title(title)
     
-    fixed_image = images[1]
-    fixed_mask = masks[1]
-    fixed_image_masked = masked_copy(fixed_image, fixed_mask)
-
     for i in range(num_trials):
         axes[2*i+1, 1].set_ylabel('Error ({}x)'.format(error_multiplier))
         axes[2*i+1, 0].set_axis_off()
-        moving_mask = masks[1+i]
-        moving_image_masked = masked_copy(images[2+i], moving_mask)
+        fixed_mask = masks[2*i]
+        moving_mask = masks[2*i+1]
+        fixed_image_masked = masked_copy(images[2*i], fixed_mask)
+        moving_image_masked = masked_copy(images[2*i+1], moving_mask)
         init_error = np.abs(moving_image_masked - fixed_image_masked)
         result_error = np.abs(results[i] - fixed_image_masked)
         init_mask = np.logical_and(moving_image_masked, fixed_image_masked)
@@ -66,7 +64,7 @@ def plot_image_results(fig, masks, images, results, rbw):
                    ~fixed_mask,
                    slc_xy,
                    slc_xz,
-                   ylabel='RBW={:.3g}kHz'.format(rbw[1+i]))
+                   ylabel='RBW={:.3g}kHz'.format(rbw[i]))
         plot_image(axes[2*i, 1],
                    moving_image_masked,
                    ~moving_mask,
@@ -128,7 +126,7 @@ def plot_field_results(fig, results, true_field, deformation_fields, rbw, pbw, f
     gx = [1.912, 0.956, 0.478] # G/cm
     gz = 1.499 # G/cm
     for i in range(num_trials):
-        net_pbw = pbw[1+i] # assumes registration's fixed image was plastic, so no distortion
+        net_pbw = pbw[i] # assumes registration's fixed image was plastic, so no distortion
         # net_pbw = net_pixel_bandwidth(pbw[1+i], pbw[0])  # Hz
         result_mask = (results[i] != 0)
         # simulated_deformation = true_field * 1000 / net_pbw
@@ -138,7 +136,7 @@ def plot_field_results(fig, results, true_field, deformation_fields, rbw, pbw, f
             ~result_mask,
             slc_xy,
             slc_xz,
-            ylabel='RBW={:.3g}kHz'.format(rbw[1+i]))
+            ylabel='RBW={:.3g}kHz'.format(rbw[i]))
         measured_deformation = deformation_fields[i][..., field_dir]
         if field_dir == 0:
             measured_deformation = -measured_deformation
@@ -162,15 +160,14 @@ def plot_summary_results(fig, results, reference, field, rbw, pbw):
     styles = ['dotted', 'solid', 'dashed']
     loosely_dashed = (0, (5, 10))
     for i in range(len(results)):
-        net_pbw = pbw[1+i] / 1000 # assumes i=0 is plastic
-        # net_pbw = net_pixel_bandwidth(pbw[1+i], pbw[0]) / 1000 # kHz
+        net_pbw = pbw[i] / 1000 # assumes i=0 is plastic
+        # net_pbw = net_pixel_bandwidth(pbw[i], pbw[0]) / 1000 # kHz
         result_mask = (results[i] != 0)
         field_bins = np.round(reference * 10) / 10
         sns.lineplot(x=(field_bins * result_mask).ravel(),
                      y=(field[i] * result_mask).ravel(),
-                     ax=axes, legend='brief', label='RBW={0:.3g}kHz'.format(rbw[i+1]), color=colors[i], linestyle=styles[i])
+                     ax=axes, legend='brief', label='RBW={0:.3g}kHz'.format(rbw[i]), color=colors[i], linestyle=styles[i])
         # ax.scatter((field_bins * result_mask).ravel(), (measured_deformation * result_mask).ravel(), c=colors[i], s=0.1, marker='.')
-        print('net_pbw', net_pbw)
         axes.axline((-f_max, -f_max / net_pbw), (f_max, f_max / net_pbw), color=colors[i], linestyle=loosely_dashed)
         axes.set_xlim([-f_max, f_max])
         axes.set_ylim([-4, 4])

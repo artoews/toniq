@@ -196,11 +196,12 @@ def map_distortion(fixed_image, moving_image, fixed_mask=None, moving_mask=None,
 def get_registration_masks(images, thresh):
     mask_empty = masks.get_mask_empty(images[0])
     mask_implant = masks.get_mask_implant(mask_empty)
-    mask_signal = masks.get_mask_signal(images[0])
-    signal_ref = masks.get_typical_level(images[0], mask_signal, mask_implant)
     masks_register = []
-    for image in images[1:]:
-        mask_artifact = masks.get_mask_artifact(images[0], image, mask_implant=mask_implant, signal_ref=signal_ref, thresh=thresh)
+    fixed_mask = ~np.logical_or(mask_empty, mask_implant)
+    fixed_mask = morphology.binary_erosion(fixed_mask)
+    for i in range(len(images)//2):
+        mask_artifact = masks.get_mask_artifact(images[2*i], images[2*i+1], mask_implant=mask_implant, thresh=thresh)
         mask_register = masks.get_mask_register(mask_empty, mask_implant, mask_artifact)
+        masks_register.append(fixed_mask)
         masks_register.append(mask_register)
     return masks_register
