@@ -38,11 +38,9 @@ def plot_image(ax, image, mask, slc1, slc2, xlabel=None, ylabel=None):
 def plot_image_results(fig, masks, images, results, rbw):
     slc_xy = (slice(None), slice(None), images[0].shape[2] // 2)
     slc_xz = (slice(None), images[0].shape[1] // 2, slice(None))
-    axes = fig.subplots(nrows=len(results)*2, ncols=3)
-    error_multiplier = 2
     num_trials = len(results)
-    if num_trials == 1:
-        axes = axes[None, :]
+    axes = fig.subplots(nrows=2*num_trials, ncols=3)
+    error_multiplier = 2
 
     titles = ('Plastic', 'Metal', 'Registration')
     for ax, title in zip(axes[0, :], titles):

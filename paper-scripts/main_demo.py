@@ -3,7 +3,7 @@ import numpy as np
 from os import path
 import scipy.stats as stats
 
-from plot import plotVolumes
+from plot import overlay_mask
 
 def load_outputs(root, subfolder):
     data = np.load(path.join(root, subfolder, 'outputs.npz'))
@@ -27,9 +27,10 @@ styles = ['dotted', 'solid', 'dashed']
 ## imshow keyword arguments
 image_kwargs = {'vmin': 0, 'vmax': 1, 'cmap': 'gray'}
 artifact_kwargs = {'vmin': -1, 'vmax': 1, 'cmap': 'RdBu_r'}
-distortion_kwargs = {'vmin': -2, 'vmax': 2, 'cmap': 'RdBu_r'}
-resolution_kwargs = {'vmin': 1, 'vmax': 3, 'cmap': 'viridis'}
+distortion_kwargs = {'vmin': -3, 'vmax': 3, 'cmap': 'RdBu_r'}
+resolution_kwargs = {'vmin': 1.5, 'vmax': 3, 'cmap': 'viridis'}
 noise_kwargs = {'vmin': 0, 'vmax': 1, 'cmap': 'viridis'}
+snr_kwargs = {'vmin': 0, 'vmax': 10, 'cmap': 'viridis'}
 
 ## scan time reference
 # FSE @ [250, 125, 100] kHz = 2:20 (140s)
@@ -58,20 +59,24 @@ for ax in axs.flat:
 titles = ('Plastic',
           'Metal',
           'Intensity\nArtifact',
-          'Geometric\nDistortion',
-          'Resolution\n(with plastic)',
-          'Noise\n(Diff. Method)'
+          'Readout\nDistortion',
+          'Readout\nResolution',
+          'SNR Efficiency'
           )
 for ax, title in zip(axs[0, :], titles):
     ax.set_title(title)
 
 ## artifact column
+signal_ref_list = []
+intensity_maps = []
 for i in range(len(dirs)):
     load_outputs(dirs[i], 'artifact')
     rbw_i = rbw[0]
     plastic_image = images[0]
+    signal_ref_list.append(signal_refs[0])
     metal_image = images[1]
     intensity_map = maps_artifact[0]
+    intensity_maps.append(intensity_map)
     print('loaded artifact outputs for {} @ RBW={:.3g}kHz'.format(seq_names[i], rbw_i))
     print('got plastic image @ RBW={:.3g}kHz'.format(rbw_i))
     axs[i, 0].set_ylabel('{}\nRBW={:.3g}kHz'.format(seq_names[i], rbw_i), fontsize=LARGE_SIZE)
@@ -87,7 +92,7 @@ for i in range(len(dirs)):
 axs[-1, 2].set_ylabel('Voxel Distribution')
 axs[-1, 2].legend()
 axs[-1, 2].set_xticks([0, 0.5, 1])
-axs[-1, 2].set_xlabel('Abs. Relative\nError')
+axs[-1, 2].set_xlabel('Abs. Relative Error')
 cb = fig.colorbar(im, ax=axs[0, 2], ticks=[-1, 0, 1], label='Relative Error')
 axs[-1, 0].annotate("readout",
                     color='black',
@@ -100,27 +105,29 @@ axs[-1, 0].annotate("readout",
                     )
 
 ## distortion column
+resolution_mm = 1.2
+mask_register_list = []
 for i in range(len(dirs)):
     load_outputs(dirs[i], 'distortion')
-    rbw_i = rbw[1]
+    rbw_i = rbw[0]
     # results_masked_i = results_masked[0]
+    mask_register_list.append(masks_register[1])
     results_masked_i = results[0]
-    print('deformation fields', deformation_fields.shape)
-    print('results masked', results_masked_i.shape)
     deformation_fields_i = deformation_fields[0]
     print('loaded distortion outputs for {} @ RBW={:.3g}kHz'.format(seq_names[i], rbw_i))
     result_mask = (results_masked_i != 0)
-    measured_deformation = -deformation_fields_i[..., 0]
+    measured_deformation = -deformation_fields_i[..., 0] * resolution_mm
     measured_deformation = measured_deformation * result_mask
     im = axs[i, 3].imshow(measured_deformation[slc], **distortion_kwargs)
-    x = np.linspace(0, 2, 50)
-    y = np.abs(measured_deformation.ravel())
+    x = np.linspace(0, 3, 50)
+    y = np.abs(measured_deformation[mask_register_list[i]].ravel())
     density = stats.gaussian_kde(y)
     axs[-1, 3].plot(x, density(x), linestyle=styles[i])
-axs[-1, 3].set_xticks([0, 1, 2])
-axs[-1, 3].set_xlabel('Abs. Displacement\n(pixels)')
-axs[-1, 3].set_ylim([0, 1])
-cb = fig.colorbar(im, ax=axs[0, 3], ticks=[-2, -1, 0, 1, 2], label='Displacement (pixels)')
+    overlay_mask(axs[i, 3], ~mask_register_list[i][slc])
+axs[-1, 3].set_xticks([0, 1, 2, 3])
+axs[-1, 3].set_xlabel('Abs. Displacement\n(mm)')
+axs[-1, 3].set_ylim([0, 2])
+cb = fig.colorbar(im, ax=axs[0, 3], ticks=[-3, 0, 3], label='Displacement (mm)')
 
 
 ## resolution column
@@ -133,26 +140,37 @@ for i in range(len(dirs)):
     y = res_x[res_x>0].ravel()
     density = stats.gaussian_kde(y)
     axs[-1, 4].plot(x, density(x), linestyle=styles[i])
-axs[-1, 4].set_xlim([1, 3])
-axs[-1, 4].set_xticks([1, 2, 3])
+axs[-1, 4].set_xlim([1.5, 3])
+axs[-1, 4].set_xticks([1.5, 2, 2.5, 3])
 axs[-1, 4].set_xlabel('FWHM\n(mm)')
-cb = fig.colorbar(im, ax=axs[0, 4], ticks=[1, 2, 3], label='FWHM (mm)')
+cb = fig.colorbar(im, ax=axs[0, 4], ticks=[1.5, 3], label='FWHM (mm)')
 
 ## noise column
 for i in range(len(dirs)):
     load_outputs(dirs[i], 'noise')
     rbw_i = rbw[0]
     noise_stds_i = noise_stds[0]
-    print('loaded noise outputs for {} @ RBW={:.3g}kHz'.format(seq_names[i], rbw_i))
+    # snr_i = snrs[0]
+    snr_i = signal_ref_list[i] / noise_stds_i
+    print('loaded snr outputs for {} @ RBW={:.3g}kHz'.format(seq_names[i], rbw_i))
     noise = noise_stds_i * np.sqrt(scan_times[i]) * 4
-    im = axs[i, 5].imshow(noise[slc], **noise_kwargs)
-    x = np.linspace(0, 1, 50)
-    y = noise[noise>0].ravel()
+    snr = snr_i / np.sqrt(scan_times[i])
+    # im = axs[i, 5].imshow(noise[slc], **noise_kwargs)
+    im = axs[i, 5].imshow(snr[slc], **snr_kwargs)
+    # mask = np.abs(intensity_maps[i][slc]) > 0.2
+    overlay_mask(axs[i, 5], ~mask_register_list[i][slc])
+    # x = np.linspace(0, 1, 50)
+    # y = noise[noise>0].ravel()
+    x = np.linspace(0, 10, 50)
+    y = snr[mask_register_list[i]].ravel()
     density = stats.gaussian_kde(y)
     axs[-1, 5].plot(x, density(x), linestyle=styles[i])
-axs[-1, 5].set_xticks([0, 0.5, 1])
-axs[-1, 5].set_xlabel(r'St. Dev. * $\sqrt{time}$' + '\n(a.u.)')
-cb = fig.colorbar(im, ax=axs[0, 5], ticks=[0, 1], label=r'St. Dev. * $\sqrt{time}$ (a.u.)')
+# axs[-1, 5].set_xticks([0, 0.5, 1])
+# axs[-1, 5].set_xlabel(r'St. Dev. * $\sqrt{time}$' + '\n(a.u.)')
+# cb = fig.colorbar(im, ax=axs[0, 5], ticks=[0, 1], label=r'St. Dev. * $\sqrt{time}$ (a.u.)')
+axs[-1, 5].set_xticks([0, 5, 10])
+axs[-1, 5].set_xlabel(r'SNR / $\sqrt{time}$' + '\n' + r'(s$^{-1/2}$)')
+cb = fig.colorbar(im, ax=axs[0, 5], ticks=[0, 5, 10], label=r'SNR / $\sqrt{time}$ (s$^{-1/2}$)')
 
 ## save & show
 plt.savefig(path.join(dirs[i], 'demo_revised.png'), dpi=300)

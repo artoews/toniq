@@ -14,8 +14,11 @@ from util import equalize, load_series, save_args
 # slc = (slice(40, 160), slice(65, 185), slice(15, 45))
 # slc = (slice(35, 95), slice(65, 125), slice(20, 40))
 # slc = (slice(35*2, 95*2), slice(65*2, 125*2), slice(20, 40))
-slc = (slice(40*2, 160*2), slice(65*2, 185*2), slice(10, 50))
+# slc = (slice(40*2, 160*2), slice(65*2, 185*2), slice(10, 50))
 # slc = (slice(40*2, 80*2), slice(65*2, 105*2), slice(20, 40))
+
+# jan 15
+slc = (slice(35*2, 165*2), slice(60*2, 190*2), slice(10, 50)) # 130x130x40 is just shy of the full lattice extent in pixels
 
 p = argparse.ArgumentParser(description='Resolution analysis of image volumes with common dimensions.')
 p.add_argument('root', type=str, help='path where outputs are saved')

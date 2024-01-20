@@ -10,7 +10,8 @@ from plot import plotVolumes
 
 from util import safe_divide, equalize, load_series, save_args
 
-slc = (slice(40, 160), slice(65, 185), slice(10, 50))
+# jan 15
+slc = (slice(35, 165), slice(60, 190), slice(10, 50)) # 130x130x40 is just shy of the full lattice extent in pixels
 
 p = argparse.ArgumentParser(description='Intensity artifact analysis of 2DFSE multi-slice image volumes with varying readout bandwidth.')
 p.add_argument('root', type=str, help='path where outputs are saved')
@@ -44,7 +45,7 @@ if __name__ == '__main__':
 
         maps_artifact = []
         for i in range(len(images) // 2):
-            print('trial {} of {}'.format(i, len(images)//2))
+            print('trial {} of {}'.format(i+1, len(images)//2))
             normalized_error = safe_divide(images[2*i+1] - images[2*i], signal_refs[i])
             _, map_artifact = get_mask_extrema(normalized_error, 0.3, 'mean', abs_margin=False)
             maps_artifact.append(map_artifact)

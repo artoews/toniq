@@ -12,8 +12,11 @@ from plot import plotVolumes
 
 from util import equalize, load_series, masked_copy, save_args
 
-slc = (slice(40, 160), slice(65, 185), slice(10, 50))
+# slc = (slice(40, 160), slice(65, 185), slice(10, 50))
 # slc = (slice(175, 230), slice(50, 200), slice(40, 60))
+
+# jan 15
+slc = (slice(35, 165), slice(60, 190), slice(10, 50)) # 130x130x40 is just shy of the full lattice extent in pixels
 
 p = argparse.ArgumentParser(description='Noise analysis of image volume duplicates.')
 p.add_argument('root', type=str, help='path where outputs are saved')
