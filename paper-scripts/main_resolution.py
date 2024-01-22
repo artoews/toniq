@@ -18,7 +18,10 @@ from util import equalize, load_series, save_args
 # slc = (slice(40*2, 80*2), slice(65*2, 105*2), slice(20, 40))
 
 # jan 15
-slc = (slice(35*2, 165*2), slice(60*2, 190*2), slice(10, 50)) # 130x130x40 is just shy of the full lattice extent in pixels
+# slc = (slice(35*2, 165*2), slice(60*2, 190*2), slice(10, 50)) # 130x130x40 is just shy of the full lattice extent in pixels
+
+# jan 15 & 21
+slc = (slice(36*2, 164*2), slice(64*2, 192*2), slice(11, 49)) # 128x128x38 is just shy of the full lattice extent in pixels
 
 p = argparse.ArgumentParser(description='Resolution analysis of image volumes with common dimensions.')
 p.add_argument('root', type=str, help='path where outputs are saved')
@@ -56,14 +59,25 @@ if __name__ == '__main__':
             images = [image.data for image in images]
 
         for i in range(1, len(images)):
-            k = sp.resize(sp.fft(images[i]), matrix_shapes[i])
-            if args.noise != 0:
-                k += np.random.normal(size=matrix_shapes[i], scale=args.noise)
+            k = sp.fft(images[i])
+            if args.overwrite:
+                k = sp.resize(k, matrix_shapes[i])
             images[i] = np.abs(sp.ifft(sp.resize(k, matrix_shapes[0])))
         
         images = np.stack(images)
-
         images = equalize(images)
+
+        if args.noise != 0:
+            for i in range(1, len(images)):
+                k = sp.fft(images[i])
+                noise = np.random.normal(size=matrix_shapes[1], scale=args.noise) # assumes all non-reference images have same DICOM array shape, even if k-space was undersampled
+                k += sp.resize(noise, k.shape)
+                images[i] = np.abs(sp.ifft(k))
+
+        # titles = ['{}x{}'.format(shape[0], shape[1]) for shape in matrix_shapes[1:]]
+        # fig0, tracker0 = plotVolumes((images[0], images[1], images[2], images[3]), titles=titles[:4])
+        # plt.show()
+        # quit()
 
         mask_file = path.join(save_dir, 'mask.npy')
         if args.mask and path.isfile(mask_file):
@@ -115,7 +129,6 @@ if __name__ == '__main__':
     
     box_plots(fwhms / resolution_mm[0], matrix_shapes, save_dir=save_dir)
 
-    # fig0, tracker0 = plotVolumes((images[0], images[1], images[2], images[3]))
 
     figs = [None] * len(fwhms)
     trackers = [None] * len(fwhms)
