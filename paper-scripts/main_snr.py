@@ -6,7 +6,7 @@ from os import path, makedirs
 
 import plot_snr
 
-from masks import get_mask_signal
+from masks import get_mask_signal, get_mask_implant, get_mask_empty
 from intensity import map_snr
 from plot import plotVolumes
 
@@ -16,7 +16,12 @@ from util import equalize, load_series, masked_copy, save_args
 # slc = (slice(175, 230), slice(50, 200), slice(40, 60))
 
 # jan 15
-slc = (slice(35, 165), slice(60, 190), slice(10, 50)) # 130x130x40 is just shy of the full lattice extent in pixels
+# slc = (slice(35, 165), slice(60, 190), slice(10, 50)) # 130x130x40 is just shy of the full lattice extent in pixels
+
+# jan 15 & 21
+slc = (slice(36, 164), slice(64, 192), slice(11, 49)) # 128x128x38 is just shy of the full lattice extent in pixels
+# slc = (slice(36, 164), slice(64, 192), slice(20, 40)) # 128x128x38 is just shy of the full lattice extent in pixels
+# slc = (slice(180, 200), slice(100, 160), slice(30, 50))
 
 p = argparse.ArgumentParser(description='Noise analysis of image volume duplicates.')
 p.add_argument('root', type=str, help='path where outputs are saved')
@@ -27,7 +32,7 @@ p.add_argument('-c', '--unit_cell_mm', type=float, default=12.0, help='size of l
 if __name__ == '__main__':
 
     args = p.parse_args()
-    save_dir = path.join(args.root, 'noise')
+    save_dir = path.join(args.root, 'snr')
     if not path.exists(save_dir):
         makedirs(save_dir)
 
@@ -45,11 +50,14 @@ if __name__ == '__main__':
 
         images = equalize(images)
           
+        mask_empty = get_mask_empty(images[0])
+        mask_implant = get_mask_implant(mask_empty)
         mask = get_mask_signal(images[0])
 
         if slc is not None:
             images = images[(slice(None),) + slc]
             mask = mask[slc]
+            mask_implant = mask_implant[slc]
         
         snrs = []
         signals = []
@@ -57,6 +65,7 @@ if __name__ == '__main__':
         for i in range(0, len(images), 2):
             print('trial', i // 2)
             snr, signal, noise_std = map_snr(images[i], images[i+1], mask=mask)
+            snr[mask_implant] = 0
             snrs.append(snr)
             signals.append(signal)
             noise_stds.append(noise_std)
@@ -95,4 +104,7 @@ if __name__ == '__main__':
     image1_masked = masked_copy(image1, mask)
     image2_masked = masked_copy(image2, mask)
     fig, tracker = plotVolumes((image1, image2, mask, image1_masked, image2_masked))
+    fig2, tracker2 = plotVolumes((images[0], images[2]),
+                                 titles=("{}kHz".format(rbw[0]), "{}kHz".format(rbw[1])))
+    fig3, tracker3 = plotVolumes((snrs[0], snrs[1]), vmax=75, cmap='viridis', cbar=True)
     plt.show()
