@@ -5,6 +5,8 @@ from os import path
 from plot import plotVolumes, overlay_mask, imshow2
 from util import safe_divide
 
+from plot_params import *
+
 def plot_progression(reference, target, map_artifact, signal_ref):
     error = target - reference 
     normalized_error = safe_divide(error, signal_ref)
@@ -43,8 +45,8 @@ def plot_artifact_results(images, maps_artifact, signal_refs, rbw, save_dir=None
         error = safe_divide(images[2*i+1] - images[2*i], signal_refs[i])
         imshow2(axes[i, 0], images[2*i], slc_xy, slc_xz)
         imshow2(axes[i, 1], images[2*i+1], slc_xy, slc_xz)
-        im, _ = imshow2(axes[i, 2], error, slc_xy, slc_xz, cmap='RdBu_r', vmin=-1, vmax=1)
-        imshow2(axes[i, 3], maps_artifact[i], slc_xy, slc_xz, cmap='RdBu_r', vmin=-1, vmax=1)
+        im, _ = imshow2(axes[i, 2], error, slc_xy, slc_xz, cmap=CMAP['artifact'], vmin=-1, vmax=1)
+        imshow2(axes[i, 3], maps_artifact[i], slc_xy, slc_xz, cmap=CMAP['artifact'], vmin=-1, vmax=1)
     cbar = fig.colorbar(im, ax=axes[:, 3], ticks=[-1, -0.5, 0, 0.5, 1], label='Relative Error')
     # cbar = plt.colorbar(im, cax=axes[:, 4], ticks=[-1, -0.5, 0, 0.5, 1])
     cbar.ax.set_yticklabels(['-100%', '-50%', '0', '50%', '+100%'])

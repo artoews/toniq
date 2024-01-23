@@ -6,6 +6,8 @@ from os import path
 
 from resolution import sinc_fwhm
 
+from plot_params import *
+
 def box_plots(fwhms, shapes, save_dir=None, figsize=(10, 8), fontsize=18):
 
     num_trials = len(shapes) - 1

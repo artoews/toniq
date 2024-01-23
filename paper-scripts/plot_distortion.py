@@ -9,24 +9,11 @@ from distortion import net_pixel_bandwidth, simulated_deformation_fse
 from plot import overlay_mask, letter_annotation, imshow2
 from util import masked_copy
 
-SMALL_SIZE = 10
-MEDIUM_SIZE = 12
-LARGE_SIZE = 14
-plt.rc('font', size=MEDIUM_SIZE)          # controls default text sizes
-plt.rc('axes', titlesize=LARGE_SIZE)     # fontsize of the axes title
-plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
-plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the x tick labels
-plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the y tick labels
-plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
-plt.rc('figure', titlesize=LARGE_SIZE)   # fontsize of the figure title
-plt.rc('lines', linewidth=1.0)
-styles = ['dotted', 'solid', 'dashed']
-
-
+from plot_params import *
 
 def plot_image(ax, image, mask, slc1, slc2, xlabel=None, ylabel=None):
     # im = ax.imshow(image, vmin=0, vmax=1, cmap='gray')
-    im, _ = imshow2(ax, image, slc1, slc2, mask=mask)
+    im, _ = imshow2(ax, image, slc1, slc2, mask=mask, cmap=CMAP['image'])
     if xlabel is not None:
         ax.set_xlabel(xlabel)
     if ylabel is not None:
@@ -99,7 +86,7 @@ def plot_image_results(fig, masks, images, results, rbw):
 
 def plot_field(ax, image, mask, slc1, slc2, xlabel=None, ylabel=None):
     # im = ax.imshow(image, vmin=-4, vmax=4, cmap='RdBu_r')
-    im, _ = imshow2(ax, image, slc1, slc2, vmin=-4, vmax=4, cmap='RdBu_r', mask=mask)
+    im, _ = imshow2(ax, image, slc1, slc2, vmin=-4, vmax=4, cmap=CMAP['field'], mask=mask)
     if xlabel is not None:
         ax.set_xlabel(xlabel)
     if ylabel is not None:

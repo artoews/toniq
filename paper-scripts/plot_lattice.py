@@ -5,17 +5,8 @@ from os import path
 from lattice import make_lattice, get_kspace_center, get_condition
 from plot import letter_annotation
 
-SMALL_SIZE = 10
-MEDIUM_SIZE = 12
-LARGE_SIZE = 14
-plt.rc('font', size=MEDIUM_SIZE)          # controls default text sizes
-plt.rc('axes', titlesize=LARGE_SIZE)     # fontsize of the axes title
-plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
-plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the x tick labels
-plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the y tick labels
-plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
-plt.rc('figure', titlesize=LARGE_SIZE)   # fontsize of the figure title
-plt.rc('lines', linewidth=1.0)
+from plot_params import *
+
 styles = ['dotted', 'solid', 'dashed']
 
 def plot_image_panel(fig, cubic, gyroid, vmax=1, log=False):
@@ -32,7 +23,7 @@ def plot_image(ax, image, xlabel=None, ylabel=None, title=None, vmax=1, log=Fals
     image = np.abs(image)
     if log:
         image = np.log(image+1)
-    im = ax.imshow(image, vmin=0, vmax=vmax, cmap='gray')
+    im = ax.imshow(image, vmin=0, vmax=vmax, cmap=CMAP['image'])
     if xlabel is not None:
         ax.set_xlabel(xlabel)
     if ylabel is not None:

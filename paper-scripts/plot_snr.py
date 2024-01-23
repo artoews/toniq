@@ -5,23 +5,7 @@ import seaborn as sns
 from os import path
 
 from plot import imshow2
-
-SMALL_SIZE = 10
-MEDIUM_SIZE = 12
-LARGE_SIZE = 14
-plt.rc('font', size=MEDIUM_SIZE)          # controls default text sizes
-plt.rc('axes', titlesize=LARGE_SIZE)     # fontsize of the axes title
-plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
-plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the x tick labels
-plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the y tick labels
-plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
-plt.rc('figure', titlesize=LARGE_SIZE)   # fontsize of the figure title
-plt.rc('lines', linewidth=1.0)
-styles = ['dotted', 'solid', 'dashed']
-
-prop_cycle = plt.rcParams['axes.prop_cycle']
-colors = prop_cycle.by_key()['color']
-styles = ['dotted', 'solid', 'dashed']
+from plot_params import *
 
 def setup_axes(ax, rbw1, rbw2, fontsize):
     loosely_dashed = (0, (5, 10))
