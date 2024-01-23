@@ -70,3 +70,9 @@ def save_args(args, save_dir):
     args_dict['cmd'] = " ".join(["python"] + sys.argv)
     with open(path.join(save_dir, 'args.txt'), 'w') as f:
         json.dump(args_dict, f, indent=4)
+
+def list_to_formatted_string(x, format='int'):
+    if format == 'int':
+        format_list = ['{:.3g}' for _ in x]
+    s = ', '.join(format_list)
+    return s.format(*x)
