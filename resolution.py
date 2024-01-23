@@ -1,17 +1,18 @@
 import numpy as np
 import scipy.ndimage as ndi
 import sigpy as sp
+from scipy.linalg import dft
 
 import masks
 from filter import generic_filter
 from util import safe_divide
 
-reg_psf_shape = (11, 11, 5)
+reg_psf_shape = (11, 11, 11)
 
 def map_resolution(reference, target, unit_cell_pixels, resolution_mm, stride, num_workers=1, mask=None):
     if mask is None:
         mask = get_resolution_mask(reference, target)
-    patch_shape = tuple(unit_cell_pixels)
+    patch_shape = tuple((unit_cell_pixels[0],) * 3)
     filter_size = (int(patch_shape[0]/stride/2), int(patch_shape[1]/stride/2), int(patch_shape[2]/2))
     print('patch shape', patch_shape)
     print('filter size', filter_size)
@@ -19,7 +20,8 @@ def map_resolution(reference, target, unit_cell_pixels, resolution_mm, stride, n
     fwhm = get_FWHM_from_image(psf, num_workers)
     for i in range(fwhm.shape[-1]):
         fwhm[..., i] = fwhm[..., i] * resolution_mm[i]
-        fwhm[..., i] = ndi.uniform_filter(fwhm[..., i], size=filter_size)
+        # fwhm[..., i] = ndi.uniform_filter(fwhm[..., i], size=filter_size)
+        fwhm[..., i] = ndi.median_filter(fwhm[..., i], footprint=np.ones(filter_size))
     return psf, fwhm
 
 def get_resolution_mask(reference, target=None, metal=False):
@@ -69,6 +71,15 @@ def forward_model(input_kspace, psf_shape):
     F = sp.linop.FFT(shape)
     D = sp.linop.Multiply(shape, input_kspace)
     return D * F * Z
+
+def forward_model_explicit(kspace, psf_shape):
+    # old, and not sure this was ever proved to be correct
+    shape = kspace.shape
+    pad_mat = np.diag(sp.resize(np.ones(psf_shape), kspace.shape).ravel())
+    dft_mat = np.kron(dft(shape[0]), np.kron(dft(shape[1]), dft(shape[2])))
+    k_mat = np.diag(kspace.ravel())
+    mat = k_mat @ dft_mat @ pad_mat
+    return mat
 
 def get_FWHM_from_image(psf, num_workers, stride=1, batch_axis=2):
     func = get_FWHM_from_pixel
