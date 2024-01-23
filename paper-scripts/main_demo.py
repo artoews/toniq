@@ -21,7 +21,7 @@ plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the x tick labels
 plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the y tick labels
 plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
 plt.rc('figure', titlesize=LARGE_SIZE)   # fontsize of the figure title
-plt.rc('lines', linewidth=1.0)
+plt.rc('lines', linewidth=2.0)
 styles = ['dotted', 'solid', 'dashed']
 
 ## imshow keyword arguments
@@ -33,15 +33,16 @@ noise_kwargs = {'vmin': 0, 'vmax': 1, 'cmap': 'viridis'}
 snr_kwargs = {'vmin': 0, 'vmax': 10, 'cmap': 'viridis'}
 
 ## scan time reference
-# FSE @ [250, 125, 100] kHz = 2:20 (140s)
-# MSL @ [250, 125, 100] kHz = 7:42 (462s)
+# FSE @ [250, 125] kHz = 2:30 (150s)
+# MSL @ [250, 125] kHz = 5:09 (309s)
 
 ## data directories
 fse_dir = '/Users/artoews/root/code/projects/metal-phantom/bmr/demo-fse-250'
 msl_dir = ['/Users/artoews/root/code/projects/metal-phantom/bmr/demo-msl-250',
            '/Users/artoews/root/code/projects/metal-phantom/bmr/demo-msl-100']
 seq_names = ['FSE', 'MAVRIC-SL', 'MAVRIC-SL']
-scan_times = [140, 462, 462]  # seconds
+scan_times = [140, 462, 462]  # seconds Jan 15
+scan_times = [150, 309, 309]  # seconds Jan 21
 dirs = [fse_dir] + msl_dir
 
 ## slice to show
@@ -147,7 +148,7 @@ cb = fig.colorbar(im, ax=axs[0, 4], ticks=[1.5, 3], label='FWHM (mm)')
 
 ## noise column
 for i in range(len(dirs)):
-    load_outputs(dirs[i], 'noise')
+    load_outputs(dirs[i], 'snr')
     rbw_i = rbw[0]
     noise_stds_i = noise_stds[0]
     # snr_i = snrs[0]
