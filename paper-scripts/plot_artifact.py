@@ -45,7 +45,7 @@ def plot_artifact_results(images, maps_artifact, signal_refs, rbw, save_dir=None
         imshow2(axes[i, 1], images[2*i+1], slc_xy, slc_xz)
         im, _ = imshow2(axes[i, 2], error, slc_xy, slc_xz, cmap='RdBu_r', vmin=-1, vmax=1)
         imshow2(axes[i, 3], maps_artifact[i], slc_xy, slc_xz, cmap='RdBu_r', vmin=-1, vmax=1)
-    cbar = fig.colorbar(im, ax=axes[:, 3], ticks=[-1, -0.5, 0, 0.5, 1])
+    cbar = fig.colorbar(im, ax=axes[:, 3], ticks=[-1, -0.5, 0, 0.5, 1], label='Relative Error')
     # cbar = plt.colorbar(im, cax=axes[:, 4], ticks=[-1, -0.5, 0, 0.5, 1])
     cbar.ax.set_yticklabels(['-100%', '-50%', '0', '50%', '+100%'])
     # axes[:, 4].tick_params(labelsize=fs*0.75)
