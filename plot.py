@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+from plot_params import *
+
 class MultiIndexTracker:
     """ Scroll through a collection of volumes in lock step """
     def __init__(self, fig, axes, volumes, plot_args, cbar=False):
@@ -119,7 +121,7 @@ def overlay_mask(ax, mask, color=[200, 200, 200], alpha=255):
 def letter_annotation(ax, xoffset, yoffset, letter):
     ax.text(xoffset, yoffset, letter, transform=ax.transAxes, size=18, weight='bold')
 
-def imshow2(ax, im, slc1, slc2, vmin=0, vmax=1, cmap='gray', mask=None):
+def imshow2(ax, im, slc1, slc2, vmin=0, vmax=1, cmap='gray', mask=None, y_label=None, x1_label=None, x2_label=None):
     divider = make_axes_locatable(ax)
     im1 = im[slc1]
     im2 = im[slc2]
@@ -137,5 +139,22 @@ def imshow2(ax, im, slc1, slc2, vmin=0, vmax=1, cmap='gray', mask=None):
     ax.set_yticks([])
     ax2.set_xticks([])
     ax2.set_yticks([])
+    if y_label is not None:
+        ax.set_ylabel(y_label)
+    if x1_label is not None:
+        ax.set_xlabel(x1_label)
+    if x2_label is not None:
+        ax2.set_xlabel(x2_label)
     return im1, im2
 
+def readout_arrow_annotation(ax, xy=(0.5, 0.7), xytext=(0.5, 0.1), color='black'):
+    ax.annotate(
+        "readout",
+        color='black',
+        xy=xy,
+        xytext=xytext,
+        xycoords='axes fraction',
+        verticalalignment='bottom',
+        horizontalalignment='center',
+        arrowprops=dict(width=2, headwidth=8, headlength=8, color=color)
+    )
