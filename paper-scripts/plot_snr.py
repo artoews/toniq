@@ -4,31 +4,42 @@ import seaborn as sns
 
 from os import path
 
+from plot import imshow2
+
+SMALL_SIZE = 10
+MEDIUM_SIZE = 12
+LARGE_SIZE = 14
+plt.rc('font', size=MEDIUM_SIZE)          # controls default text sizes
+plt.rc('axes', titlesize=LARGE_SIZE)     # fontsize of the axes title
+plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the x tick labels
+plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the y tick labels
+plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
+plt.rc('figure', titlesize=LARGE_SIZE)   # fontsize of the figure title
+plt.rc('lines', linewidth=1.0)
+styles = ['dotted', 'solid', 'dashed']
+
 prop_cycle = plt.rcParams['axes.prop_cycle']
 colors = prop_cycle.by_key()['color']
 styles = ['dotted', 'solid', 'dashed']
 
-def setup_axes(ax, fontsize):
+def setup_axes(ax, rbw1, rbw2, fontsize):
     loosely_dashed = (0, (5, 10))
-    ax.axline((0, 0), (1, 1), color='k', linestyle=loosely_dashed)
-    # ax.set_xlim([10, 55])
-    # ax.set_ylim([10, 55])
+    ax.axline((0, 0), (1, np.sqrt(rbw1 / rbw2)), color='k', linestyle=loosely_dashed)
+    ax.set_xlim([40, 80])
+    ax.set_ylim([20, 60])
     # ax.set_xticks(range(10, 51, 10))
     # ax.set_yticks(range(10, 51, 10))
-    ax.set_xlabel('Expected SNR', fontsize=fontsize)
-    ax.set_ylabel('Measured SNR', fontsize=fontsize)
+    ax.set_xlabel('SNR at RBW={}kHz'.format(rbw1), fontsize=fontsize)
+    ax.set_ylabel('SNR at RBW={}kHz'.format(rbw2), fontsize=fontsize)
     ax.tick_params(labelsize=fontsize)
     ax.grid()
 
 def scatter(snrs, rbw, save_dir=None, figsize=(8, 5), fontsize=20):
     fig, ax = plt.subplots(figsize=figsize)
     plt.subplots_adjust(bottom=0.2)
-    setup_axes(ax, fontsize*0.8)
-    for i in range(1, len(rbw)):
-        expected_factor = np.sqrt(rbw[0] / rbw[i])
-        ax.scatter(expected_factor * snrs[0], snrs[i], c=colors[i-1], label='RBW={:.3g}kHz'.format(rbw[i]), s=0.01, marker='.')
-        # ax.scatter(noise_stds[0] / expected_factor, noise_stds[i], c=colors[i-1], label='RBW={:.3g}kHz'.format(rbw[i]), s=0.01, marker='.')
-    ax.legend(fontsize=fontsize)
+    setup_axes(ax, rbw[0], rbw[1], fontsize*0.8)
+    ax.scatter(snrs[0], snrs[1], s=0.01, marker='.')
     if save_dir is not None:
         fig.savefig(path.join(save_dir, 'snr_pixel_cloud.png'), dpi=300)
     return fig, ax
@@ -36,15 +47,56 @@ def scatter(snrs, rbw, save_dir=None, figsize=(8, 5), fontsize=20):
 def lines(snrs, rbw, save_dir=None, figsize=(8, 5), fontsize=20):
     fig, ax = plt.subplots(figsize=figsize)
     plt.subplots_adjust(bottom=0.2)
-    setup_axes(ax, fontsize*0.8)
-    for i in range(1, len(rbw)):
-        expected_factor = np.sqrt(rbw[0] / rbw[i])
-        expected_snr_rounded = np.round(expected_factor * snrs[0])
-        # expected_noise_rounded = np.round(noise_stds[0] / expected_factor)
-        # plots mean line and 95% confidence band
-        sns.lineplot(x=expected_snr_rounded.ravel(), y=snrs[i].ravel(), ax=ax, legend='brief', label='RBW={:.3g}kHz'.format(rbw[i]), color=colors[i-1], linestyle=styles[i-1])
-        # sns.lineplot(x=expected_noise_rounded.ravel(), y=noise_stds[i].ravel(), ax=ax3, legend='brief', label='{:.3g}kHz'.format(rbw[i]), color=colors[i-1])
-    ax.legend(fontsize=fontsize)
+    setup_axes(ax, rbw[0], rbw[1], fontsize*0.8)
+    sns.lineplot(x=np.round(snrs[0]).ravel(), y=snrs[1].ravel(), ax=ax)
     if save_dir is not None:
         fig.savefig(path.join(save_dir, 'validation_snr.png'), dpi=300)
     return fig, ax
+
+def demo(image1, image2, signal, noise_std, snr):
+
+    slc_xy = (slice(None), slice(None), image1.shape[2]//2)
+    slc_xz = (slice(None), image1.shape[1]//2, slice(None))
+
+    image_sum = (image1 + image2) / 2
+    image_diff = image1 - image2
+    max_diff = np.max(np.abs(image_diff))
+
+    fig, axes = plt.subplots(nrows=2, ncols=5, figsize=(12, 4), layout='constrained')
+    gs = axes[0, 0].get_gridspec()
+    for i in (0, 1):
+        for j in (0, 1, 4):
+            axes[i, j].remove()
+    ax0 = fig.add_subplot(gs[:, 0])
+    ax1 = fig.add_subplot(gs[:, 1])
+    ax4 = fig.add_subplot(gs[:, 4])
+
+    imshow2(ax0, image1, slc_xy, slc_xz)
+    imshow2(ax1, image2, slc_xy, slc_xz)
+    imshow2(axes[0, 2], image_sum, slc_xy, slc_xz)
+    imshow2(axes[1, 2], image_diff, slc_xy, slc_xz, vmin=-max_diff, vmax=max_diff)
+    imshow2(axes[0, 3], signal, slc_xy, slc_xz)
+    imshow2(axes[1, 3], noise_std, slc_xy, slc_xz, vmax=np.max(noise_std))
+    imshow2(ax4, snr, slc_xy, slc_xz, vmax=np.max(snr))
+
+    ax0.set_title('Image 1')
+    ax1.set_title('Image 2')
+    axes[0, 2].set_title('Sum')
+    axes[1, 2].set_title('Difference')
+    axes[0, 3].set_title('Mean')
+    axes[1, 3].set_title('St. Dev.')
+    ax4.set_title('SNR')
+
+    return fig
+
+if __name__ == '__main__':
+
+    root_dir = '/Users/artoews/root/code/projects/metal-phantom/sandbox/jan15'
+    data = np.load(path.join(root_dir, 'snr', 'outputs.npz'))
+    for var in data:
+        globals()[var] = data[var]
+
+    i = 0
+    fig = demo(images[2*i], images[2*i+1], signals[i], noise_stds[i], snrs[i])
+    plt.savefig(path.join(root_dir, 'snr', 'snr-demo.png'), dpi=300)
+    plt.show()
