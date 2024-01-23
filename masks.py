@@ -11,16 +11,11 @@ def get_typical_level(image, mask_signal=None, mask_implant=None, filter_size=10
         mask_implant = get_mask_implant(mask_empty)
     if mask_signal is None:
         mask_signal = get_mask_signal(image)
-    # fill in implant area
-    filled_image = np.abs(image)
-    median_signal = np.median(filled_image[mask_signal])
-    # mean_signal = np.sum(image * signal_mask) / np.sum(signal_mask)
-    mask_implant = ndi.maximum_filter(mask_implant, size=5)  # this is just erosion/dilation?
-    # image[implant_mask] = mean_signal
-    filled_image[mask_implant] = median_signal
-    signal_sum = ndi.uniform_filter(filled_image * mask_signal, size=filter_size)
-    signal_count = ndi.uniform_filter(mask_signal, size=filter_size, output=float)
-    signal_mean =  np.divide(signal_sum, signal_count, out=np.zeros_like(signal_sum), where=signal_count > 0)
+    footprint = morphology.cube(filter_size)
+    signal_sum = ndi.generic_filter(image * mask_signal, np.sum, footprint=footprint)
+    signal_count = ndi.generic_filter(mask_signal, np.sum, footprint=footprint, output=float)
+    signal_mean =  np.divide(signal_sum, signal_count, out=np.zeros_like(signal_sum), where=signal_count > (filter_size ** 3) / 4)
+    signal_mean[signal_mean==0] = np.median(signal_mean[mask_signal]) # fill in remaining implant void
     return signal_mean
 
 
@@ -56,11 +51,17 @@ def get_mask_empty(image, filter_radius=3):
     mask = morphology.binary_opening(mask, morphology.ball(filter_radius))  # erosion (min), then dilation (max)
     return mask
 
-def get_mask_signal(image, filter_size=5):
+def get_mask_signal(image, filter_size=5, mask_implant=None):
+    if mask_implant is None:
+        mask_empty = get_mask_empty(image)
+        mask_implant = get_mask_implant(mask_empty)
     image = np.abs(image)
     image = util.img_as_ubyte(image / np.max(image))
     threshold = filters.rank.otsu(image, morphology.cube(filter_size))  # local Otsu
     mask = image > threshold
+    # mask = np.ones_like(mask)
+    # mask = morphology.binary_erosion(mask, footprint=morphology.ball(1))
+    # mask = np.logical_and(mask, ~mask_implant)
     return mask
 
 def get_mask_implant(mask_empty, verbose=False):
@@ -70,7 +71,9 @@ def get_mask_implant(mask_empty, verbose=False):
     counts = [np.sum(labels == i) for i in range(max_label+1)]
     order = np.argsort(counts)
     implant = order[-3] # implant is 3rd largest group (after air/frame, oil)
-    return labels == implant
+    mask = (labels == implant)
+    mask = morphology.binary_dilation(mask, footprint=morphology.ball(1))
+    return mask
 
 def remove_smaller_than(mask, size):
     labelled_mask, num_labels = morphology.label(mask, return_num=True)
