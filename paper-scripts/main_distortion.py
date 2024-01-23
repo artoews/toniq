@@ -21,7 +21,10 @@ from util import equalize, load_series, save_args
 # slc = (slice(35, 164), slice(62, 194), slice(10, 50))
 
 # jan 15
-slc = (slice(35, 165), slice(60, 190), slice(10, 50)) # 130x130x40 is just shy of the full lattice extent in pixels
+# slc = (slice(35, 165), slice(60, 190), slice(10, 50)) # 130x130x40 is just shy of the full lattice extent in pixels
+
+# jan 15 & 21
+slc = (slice(36, 164), slice(64, 192), slice(11, 49)) # 128x128x38 
 
 p = argparse.ArgumentParser(description='Geometric distortion analysis of 2DFSE multi-slice image volumes')
 p.add_argument('root', type=str, help='path where outputs are saved')
