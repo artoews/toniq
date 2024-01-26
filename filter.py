@@ -1,7 +1,10 @@
 import itertools
 import numpy as np
+import scipy.ndimage as ndi
 
 from multiprocessing import Pool
+
+from util import masked_copy
 
 def batch_for_filter(arr, filter_size, axis, num_batches):
     """ split array into batches for parallelized filtering """
@@ -45,3 +48,16 @@ def generic_filter(image, function, filter_shape, out_shape, stride, batch_axis,
             else:
                 output[idx] = function(patch)
         return output
+
+def mean_filter(image, mask, footprint, thresh=0):
+    pixel_sum = ndi.generic_filter(image * mask, np.sum, footprint=footprint)
+    pixel_count = ndi.generic_filter(mask, np.sum, footprint=footprint, output=float)
+    return np.divide(pixel_sum, pixel_count, out=np.zeros_like(pixel_count), where=pixel_count > thresh)
+
+def nanmean_filter(image, mask, footprint):
+    masked_image = masked_copy(image, mask, fill_val=np.nan)
+    return ndi.generic_filter(masked_image, np.nanmean, footprint=footprint)
+
+def nanmedian_filter(image, mask, footprint):
+    masked_image = masked_copy(image, mask, fill_val=np.nan)
+    return ndi.generic_filter(masked_image, np.nanmedian, footprint=footprint)

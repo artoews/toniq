@@ -76,6 +76,7 @@ def get_mask_implant(mask_empty, verbose=False):
     return mask
 
 def remove_smaller_than(mask, size):
+    # TODO can just use morphology.remove_small_objects for this?
     labelled_mask, num_labels = morphology.label(mask, return_num=True)
     refined_mask = mask.copy()
     for label in range(num_labels):
