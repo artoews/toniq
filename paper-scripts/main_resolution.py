@@ -5,7 +5,8 @@ import numpy as np
 import sigpy as sp
 from os import path, makedirs
 
-from resolution import map_resolution, get_resolution_mask
+import masks
+from resolution import map_resolution, get_resolution_mask, get_FWHM_from_pixel
 from plot import plotVolumes
 from plot_resolution import box_plots
 from util import equalize, load_series, save_args
@@ -22,6 +23,7 @@ from util import equalize, load_series, save_args
 
 # jan 15 & 21
 slc = (slice(36*2, 164*2), slice(64*2, 192*2), slice(11, 49)) # 128x128x38 is just shy of the full lattice extent in pixels
+# slc = (slice(36, 164), slice(64, 192), slice(11, 49)) # 128x128x38 is just shy of the full lattice extent in pixels
 
 p = argparse.ArgumentParser(description='Resolution analysis of image volumes with common dimensions.')
 p.add_argument('root', type=str, help='path where outputs are saved')
@@ -74,11 +76,6 @@ if __name__ == '__main__':
                 k += sp.resize(noise, k.shape)
                 images[i] = np.abs(sp.ifft(k))
 
-        # titles = ['{}x{}'.format(shape[0], shape[1]) for shape in matrix_shapes[1:]]
-        # fig0, tracker0 = plotVolumes((images[0], images[1], images[2], images[3]), titles=titles[:4])
-        # plt.show()
-        # quit()
-
         mask_file = path.join(save_dir, 'mask.npy')
         if args.mask and path.isfile(mask_file):
             print('Loading pre-computed mask...')
@@ -91,6 +88,12 @@ if __name__ == '__main__':
         if slc is not None:
             mask = mask[slc]
             images = images[(slice(None),) + slc]
+        
+        # titles = ['{}x{}'.format(shape[0], shape[1]) for shape in matrix_shapes]
+        # fig0, tracker0 = plotVolumes((images[0], images[1], images[2], images[3]), titles=titles[:4])
+        # fig1, tracker1 = plotVolumes((images[0], mask))
+        # plt.show()
+        # quit()
         
         psfs = []
         fwhms = []
@@ -136,5 +139,14 @@ if __name__ == '__main__':
         volumes = (fwhms[i][..., 0], fwhms[i][..., 1], fwhms[i][..., 2])
         titles = ('FWHM in x (mm)', 'FWHM in y (mm)', 'FWHM in z (mm)')
         figs[i], trackers[i] = plotVolumes(volumes, titles=titles, figsize=(12, 4), vmin=1, vmax=3, cmap='viridis', cbar=True)
+    
+    # fig0, tracker0 = plotVolumes((images[0], images[1]), titles=('512x512', '128x256'))
+    # fig1, tracker1 = plotVolumes((psfs[0, 0, 0, 0], psfs[0, 5, 5, 5], psfs[0, 40, 40, 10]), vmin=0, vmax=10)
+    # print(psfs.shape, fwhms.shape)
+    # print(fwhms[0, 0, 0, 0], fwhms[0, 5, 5, 5], fwhms[0, 40, 40, 10])
+    # psf = psfs[0, 0, 0, 0]
+    # f = get_FWHM_from_pixel(psf)
+    # print(f[0] * resolution_mm[0], f[1] * resolution_mm[1], f[2] * resolution_mm[2])
+    # print('FWHM in pixels', f)
     
     plt.show()
