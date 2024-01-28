@@ -119,7 +119,10 @@ def overlay_mask(ax, mask, color=[200, 200, 200], alpha=255):
     return
 
 def letter_annotation(ax, xoffset, yoffset, letter):
-    ax.text(xoffset, yoffset, letter, transform=ax.transAxes, size=18, weight='bold')
+    try:
+        ax.text(xoffset, yoffset, letter, transform=ax.transAxes, size=18, weight='bold')
+    except:
+        ax.text2D(xoffset, yoffset, letter, transform=ax.transAxes, size=18, weight='bold') # works when ax is Axes3D
 
 def imshow2(ax, im, slc1, slc2, vmin=0, vmax=1, cmap='gray', mask=None, y_label=None, x1_label=None, x2_label=None):
     divider = make_axes_locatable(ax)
