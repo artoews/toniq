@@ -10,20 +10,9 @@ from resolution import map_resolution, get_resolution_mask, get_FWHM_from_pixel
 from plot import plotVolumes
 from plot_resolution import box_plots
 from util import equalize, load_series, save_args
+from slice_params import *
 
-# slc = (slice(35, 155), slice(65, 185), slice(15, 45))
-# slc = (slice(40, 160), slice(65, 185), slice(15, 45))
-# slc = (slice(35, 95), slice(65, 125), slice(20, 40))
-# slc = (slice(35*2, 95*2), slice(65*2, 125*2), slice(20, 40))
-# slc = (slice(40*2, 160*2), slice(65*2, 185*2), slice(10, 50))
-# slc = (slice(40*2, 80*2), slice(65*2, 105*2), slice(20, 40))
-
-# jan 15
-# slc = (slice(35*2, 165*2), slice(60*2, 190*2), slice(10, 50)) # 130x130x40 is just shy of the full lattice extent in pixels
-
-# jan 15 & 21
-slc = (slice(36*2, 164*2), slice(64*2, 192*2), slice(11, 49)) # 128x128x38 is just shy of the full lattice extent in pixels
-# slc = (slice(36, 164), slice(64, 192), slice(11, 49)) # 128x128x38 is just shy of the full lattice extent in pixels
+slc = tuple(slice(s.start*2, s.stop*2) for s in LATTICE_SLC)
 
 p = argparse.ArgumentParser(description='Resolution analysis of image volumes with common dimensions.')
 p.add_argument('root', type=str, help='path where outputs are saved')
@@ -85,9 +74,8 @@ if __name__ == '__main__':
             mask = get_resolution_mask(images[0])
             np.save(mask_file, mask)
         
-        if slc is not None:
-            mask = mask[slc]
-            images = images[(slice(None),) + slc]
+        mask = mask[slc]
+        images = images[(slice(None),) + slc]
         
         # titles = ['{}x{}'.format(shape[0], shape[1]) for shape in matrix_shapes]
         # fig0, tracker0 = plotVolumes((images[0], images[1], images[2], images[3]), titles=titles[:4])

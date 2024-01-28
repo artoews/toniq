@@ -11,17 +11,9 @@ from intensity import map_snr
 from plot import plotVolumes
 
 from util import equalize, load_series, masked_copy, save_args
+from slice_params import *
 
-# slc = (slice(40, 160), slice(65, 185), slice(10, 50))
-# slc = (slice(175, 230), slice(50, 200), slice(40, 60))
-
-# jan 15
-# slc = (slice(35, 165), slice(60, 190), slice(10, 50)) # 130x130x40 is just shy of the full lattice extent in pixels
-
-# jan 15 & 21
-slc = (slice(36, 164), slice(64, 192), slice(11, 49)) # 128x128x38 is just shy of the full lattice extent in pixels
-# slc = (slice(36, 164), slice(64, 192), slice(20, 40)) # 128x128x38 is just shy of the full lattice extent in pixels
-# slc = (slice(180, 200), slice(100, 160), slice(30, 50))
+slc = LATTICE_SLC
 
 p = argparse.ArgumentParser(description='Noise analysis of image volume duplicates.')
 p.add_argument('root', type=str, help='path where outputs are saved')
@@ -54,10 +46,9 @@ if __name__ == '__main__':
         mask_implant = get_mask_implant(mask_empty)
         mask = get_mask_signal(images[0])
 
-        if slc is not None:
-            images = images[(slice(None),) + slc]
-            mask = mask[slc]
-            mask_implant = mask_implant[slc]
+        images = images[(slice(None),) + slc]
+        mask = mask[slc]
+        mask_implant = mask_implant[slc]
         
         snrs = []
         signals = []

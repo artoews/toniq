@@ -34,7 +34,7 @@ scan_times = [150, 309, 309]  # seconds Jan 21
 dirs = [fse_dir] + msl_dir
 
 ## slice to show
-slc = (slice(None), slice(None), 15)
+slc = (slice(None), slice(None), 19)
 
 ## figure setup 
 fig, axs = plt.subplots(nrows=len(dirs)+1, ncols=6, figsize=(13, 8), layout='constrained')
