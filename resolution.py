@@ -7,21 +7,22 @@ import masks
 from filter import generic_filter
 from util import safe_divide
 
-reg_psf_shape = (11, 11, 11)
+reg_psf_shape = (9, 9, 5)
+psf_ndim = 3
 
 def map_resolution(reference, target, unit_cell_pixels, resolution_mm, stride, num_workers=1, mask=None):
     if mask is None:
         mask = get_resolution_mask(reference, target)
-    patch_shape = tuple((unit_cell_pixels[0],) * 3)
+    patch_shape = (unit_cell_pixels[0], unit_cell_pixels[0], unit_cell_pixels[0])
     filter_size = (int(patch_shape[0]/stride/2), int(patch_shape[1]/stride/2), int(patch_shape[2]/2))
     print('patch shape', patch_shape)
-    print('filter size', filter_size)
+    # print('filter size', filter_size)
     psf = estimate_psf(reference, target, mask, patch_shape, stride, num_workers)
     fwhm = get_FWHM_from_image(psf, num_workers)
     for i in range(fwhm.shape[-1]):
         fwhm[..., i] = fwhm[..., i] * resolution_mm[i]
         # fwhm[..., i] = ndi.uniform_filter(fwhm[..., i], size=filter_size)
-        fwhm[..., i] = ndi.median_filter(fwhm[..., i], footprint=np.ones(filter_size))
+        # fwhm[..., i] = ndi.median_filter(fwhm[..., i], footprint=np.ones(filter_size))
     return psf, fwhm
 
 def get_resolution_mask(reference, target=None, metal=False):
@@ -55,7 +56,7 @@ def deconvolve_by_division(patch_pair):
     psf = np.real(sp.ifft(kspace_quotient))
     return psf
 
-def deconvolve_by_model(patch_pair, psf_shape=reg_psf_shape, lamda=1e-2, tol=1e-2, max_iter=1e2, verbose=False):
+def deconvolve_by_model(patch_pair, psf_shape=reg_psf_shape, lamda=1e-1, tol=1e-4, max_iter=1e4, verbose=False):
     kspace_pair = sp.fft(patch_pair, axes=(0, 1, 2))
     kspace_in, kspace_out = kspace_pair[..., 0], kspace_pair[..., 1]
     A = forward_model(kspace_in, psf_shape)
@@ -66,10 +67,9 @@ def deconvolve_by_model(patch_pair, psf_shape=reg_psf_shape, lamda=1e-2, tol=1e-
     return psf
 
 def forward_model(input_kspace, psf_shape):
-    shape = input_kspace.shape
-    Z = sp.linop.Resize(shape, psf_shape)
-    F = sp.linop.FFT(shape)
-    D = sp.linop.Multiply(shape, input_kspace)
+    Z = sp.linop.Resize(input_kspace.shape, psf_shape)
+    F = sp.linop.FFT(Z.oshape)
+    D = sp.linop.Multiply(F.oshape, input_kspace)
     return D * F * Z
 
 def forward_model_explicit(kspace, psf_shape):
@@ -84,7 +84,7 @@ def forward_model_explicit(kspace, psf_shape):
 def get_FWHM_from_image(psf, num_workers, stride=1, batch_axis=2):
     func = get_FWHM_from_pixel
     patch_shape = (1, 1, 1)
-    out_shape = (3,)
+    out_shape = (psf_ndim,)
     return generic_filter(psf, func, patch_shape, out_shape, stride, batch_axis, num_batches=num_workers)
 
 def get_FWHM_from_pixel(psf):
@@ -109,16 +109,31 @@ def get_FWHM_from_vec(x, i_max=None):
     if i_max < 1 or i_max >= len(x) - 1:
         return 0
     i_half_max = i_max - np.argmin(x[i_max::-1] > half_max)  # just left of half-max
-    i_half_max_1 = find_root(i_half_max,
-                             x[i_half_max] - half_max,
-                             i_half_max + 1,
-                             x[i_half_max + 1] - half_max)
+    if i_half_max == i_max:
+        i_half_max_1 = None
+    else:
+        i_half_max_1 = find_root(i_half_max,
+                                 x[i_half_max] - half_max,
+                                 i_half_max + 1,
+                                 x[i_half_max + 1] - half_max)
     i_half_max = i_max + np.argmin(x[i_max::1] > half_max)  # just right of half-max
-    i_half_max_2 = find_root(i_half_max - 1,
-                             x[i_half_max - 1] - half_max,
-                             i_half_max,
-                             x[i_half_max] - half_max)
-    return i_half_max_2 - i_half_max_1
+    if i_half_max == i_max:
+        i_half_max_2 = None
+    else:
+        i_half_max_2 = find_root(i_half_max - 1,
+                                 x[i_half_max - 1] - half_max,
+                                 i_half_max,
+                                 x[i_half_max] - half_max)
+    if i_half_max_1 is None or i_half_max_2 is None:
+        print('Warning: PSF half-max extent exceeds window')
+    if i_half_max_1 is not None and i_half_max_2 is not None:
+        return i_half_max_2 - i_half_max_1
+    if i_half_max_1 is None and i_half_max_2 is not None:
+        return 2 * (i_half_max_2 - i_max)
+    if i_half_max_1 is not None and i_half_max_2 is None:
+        return 2 * (i_max - i_half_max_1)
+    if i_half_max_1 is None and i_half_max_2 is None:
+        return 0
 
 def find_root(x1, y1, x2, y2):
     # find zero-crossing of line through points (x1, y1) and (x2, y2)
