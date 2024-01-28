@@ -20,10 +20,10 @@ def gyroid_unit_cell(size, resolution):
 def cubic_unit_cell(size, resolution, line_width):
     pts = np.arange(0, size, resolution)
     x, y, z = np.meshgrid(pts, pts, pts, indexing='ij')
-    g = (np.mod(x, size / 2) < line_width) + \
-        (np.mod(y, size / 2) < line_width) + \
-        (np.mod(z, size / 2) < line_width)
-    return g > 0
+    g = (np.mod(x, size / 2) < line_width).astype(np.int) + \
+        (np.mod(y, size / 2) < line_width).astype(np.int) + \
+        (np.mod(z, size / 2) < line_width).astype(np.int)
+    return g > 1
 
 def largest_hole(mask):
     radius = 0
@@ -49,7 +49,7 @@ def min_of_max(arr, filter_radius):
     max_arr = ndi.maximum_filter(arr, footprint=footprint, mode='nearest')
     return np.min(max_arr)
 
-def make_lattice(type, shape=(1, 1, 1)):
+def make_lattice(type, shape=(1, 1, 1), resolution=1):
     size = 120
     resolution = 1
     line_width = 6
@@ -61,13 +61,16 @@ def make_lattice(type, shape=(1, 1, 1)):
     lattice = np.tile(1-cell_solid, shape)
     return lattice
 
-def get_condition(kspace, psf_shape):
+def get_condition(kspace, psf_shape, lamda=0):
     A_op = forward_model(kspace, psf_shape)
     A_mtx = get_matrix(A_op, verify=True)
+    if lamda != 0:
+        A_mtx = np.vstack((A_mtx, np.eye(A_mtx.shape[-1]) * np.sqrt(lamda)))
     return np.linalg.cond(A_mtx)
 
 def get_kspace_center(lattice, shape):
     return sp.resize(sp.fft(lattice), shape)
+
 
 if __name__ == '__main__':
     patch_shape = (20, 20, 10)
