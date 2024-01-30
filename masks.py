@@ -5,6 +5,7 @@ from skimage import filters, morphology, util
 from util import safe_divide
 
 
+# no longer needed - but make an artifact map function that just takes the difference of plastic and metal, then safe_divides by median filtered plastic image, masking for implant
 def get_typical_level(image, mask_signal=None, mask_implant=None, filter_size=10):
     if mask_implant is None:
         mask_empty = get_mask_empty(image)
@@ -16,9 +17,14 @@ def get_typical_level(image, mask_signal=None, mask_implant=None, filter_size=10
     signal_count = ndi.generic_filter(mask_signal, np.sum, footprint=footprint, output=float)
     signal_mean =  np.divide(signal_sum, signal_count, out=np.zeros_like(signal_sum), where=signal_count > (filter_size ** 3) / 4)
     signal_mean[signal_mean==0] = np.median(signal_mean[mask_signal]) # fill in remaining implant void
+    # can do something more accurate than median?
+    # could run the selective mean filter again but only use the result to update the implant region until it’s filled
+    # or just run it with a larger filter to begin with as done for SNR
+    # the problem is that it can make signal_ref biased by the bright side of the phantom.
     return signal_mean
 
 
+# unused, leave it for the future to see if it works
 def get_mask_lattice(image, diff_size=5, morph_size=10):
     filtered_diffs = []
     for axis in range(image.ndim):
@@ -32,25 +38,14 @@ def get_mask_lattice(image, diff_size=5, morph_size=10):
     mask = morphology.binary_closing(mask, footprint=morphology.cube(morph_size))
     return mask
 
-# def get_inscribed_box_from_lattice(mask_lattice, lattice_shape):
-#     # this is way too slow! gets killed
-# 
-#     correlation = ndi.generic_filter(mask_lattice, np.sum, footprint=np.ones(lattice_shape, dtype=bool), mode='constant')
-#     idx = np.argmax(correlation)
-#     idx = np.unravel_index(idx, mask_lattice.shape)
-#     print(idx)
-#     slc = [slice(i - n//2, i + n//2) for i, n in zip(idx, lattice_shape)]
-#     box = np.zeros_like(mask_lattice)
-#     box[slc] = True
-#     # TODO erode until its fully contained
-#     return box
-
+# only used as input for implant mask, or where it shouldn't be needed, as for distortion masks (no structure out there!)
 def get_mask_empty(image, filter_radius=3):
     image = ndi.median_filter(image, footprint=morphology.ball(filter_radius))  # remove noise & structure
     mask = image < filters.threshold_otsu(image) # global Otsu
     mask = morphology.binary_opening(mask, morphology.ball(filter_radius))  # erosion (min), then dilation (max)
     return mask
 
+# no longer needed 
 def get_mask_signal(image, filter_size=5, mask_implant=None):
     if mask_implant is None:
         mask_empty = get_mask_empty(image)
@@ -64,19 +59,20 @@ def get_mask_signal(image, filter_size=5, mask_implant=None):
     # mask = np.logical_and(mask, ~mask_implant)
     return mask
 
+# can do this much more simply with lattice-free images. just a global otsu threshold and binary_opening will do
 def get_mask_implant(mask_empty, verbose=False):
     labels, max_label = morphology.label(mask_empty, return_num=True)
     if verbose:
         print_labels(labels, max_label)
     counts = [np.sum(labels == i) for i in range(max_label+1)]
     order = np.argsort(counts)
-    implant = order[-3] # implant is 3rd largest group (after air/frame, oil)
+    implant = order[-3] # implant is usually the 3rd largest group (after air/frame, oil)
     mask = (labels == implant)
     mask = morphology.binary_dilation(mask, footprint=morphology.ball(1))
     return mask
 
+# unused, and can just use morphology.remove_small_objects for this?
 def remove_smaller_than(mask, size):
-    # TODO can just use morphology.remove_small_objects for this?
     labelled_mask, num_labels = morphology.label(mask, return_num=True)
     refined_mask = mask.copy()
     for label in range(num_labels):
@@ -87,12 +83,14 @@ def remove_smaller_than(mask, size):
             print(label_count)
     return refined_mask
 
+# modify this to be a general "combine masks and smooth the edges" function so it can take a variable number of masks and just clean up the union
 def get_mask_register(mask_empty, mask_implant, mask_artifact, filter_radius=5):
     mask = (mask_implant + mask_empty + mask_artifact) == 0
     mask = ndi.binary_opening(mask, structure=morphology.ball(filter_radius)) # erosion then dilation
     mask = ndi.binary_closing(mask, structure=morphology.ball(filter_radius)) # dilation then erosion
     return mask
 
+# shouldn't need a function for this - just threshold the artifact map
 def get_mask_artifact(reference, target, mask_implant=None, signal_ref=None, thresh=0.3):
     if signal_ref is None:
         if mask_implant is None:
@@ -105,18 +103,22 @@ def get_mask_artifact(reference, target, mask_implant=None, signal_ref=None, thr
     mask_artifact, _ = get_mask_extrema(normalized_error, thresh, 'mean', abs_margin=True)
     return mask_artifact
 
+# scrap
 def get_mask_artifact_old(error):
     mask, _ = get_mask_extrema(error, 0.3, 'mean', abs_margin=True)
     return mask
 
+# scrap
 def get_mask_hyper(error):
     mask, _ = get_mask_extrema(error, 0.3, 'mean', abs_margin=False)
     return mask
 
+# scrap
 def get_mask_hypo(error):
     mask, _ = get_mask_extrema(error, -0.3, 'mean', abs_margin=False)
     return mask
 
+# scrap
 def get_mask_extrema(error, margin, mode, filter_size=5, abs_margin=True):
     footprint = morphology.cube(filter_size)
     if mode == 'max':
@@ -136,6 +138,7 @@ def get_mask_extrema(error, margin, mode, filter_size=5, abs_margin=True):
         mask = filtered_error * np.sign(margin) > np.abs(margin)
     return mask, filtered_error
 
+# scrap
 def get_all_masks(image_clean, image_distorted, combine=False, denoise=False):
 
     empty = get_mask_empty(image_clean)
@@ -158,10 +161,12 @@ def get_all_masks(image_clean, image_distorted, combine=False, denoise=False):
     else:
         return out
 
+# scrap 
 def print_labels(labels, max_label):
     for i in range(max_label + 1):
         print('label == {} has size {}'.format(i, np.sum(labels==i)))
 
+# scrap
 def combine_masks_2(implant, empty, hyper, hypo, artifact):
     mask = 0 * np.ones(empty.shape)
     mask[artifact] = 3
@@ -171,6 +176,7 @@ def combine_masks_2(implant, empty, hyper, hypo, artifact):
     mask[implant] = 1
     return mask / 4
 
+# scrap
 def combine_masks(implant, empty, hyper, hypo, artifact):
     mask = 2 * np.ones(empty.shape)
     mask[artifact] = 3
