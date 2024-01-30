@@ -10,8 +10,8 @@ from plot_params import *
 def setup_axes(ax, rbw1, rbw2, fontsize):
     loosely_dashed = (0, (5, 10))
     ax.axline((0, 0), (1, np.sqrt(rbw1 / rbw2)), color='k', linestyle=loosely_dashed)
-    ax.set_xlim([40, 80])
-    ax.set_ylim([20, 60])
+    # ax.set_xlim([40, 80])
+    # ax.set_ylim([20, 60])
     # ax.set_xticks(range(10, 51, 10))
     # ax.set_yticks(range(10, 51, 10))
     ax.set_xlabel('SNR at RBW={}kHz'.format(rbw1), fontsize=fontsize)
