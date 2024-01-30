@@ -6,11 +6,11 @@ from os import path, makedirs
 
 import plot_snr
 
-from masks import get_mask_signal, get_mask_implant, get_mask_empty
+from masks import get_union
 from intensity import map_snr
 from plot import plotVolumes
 
-from util import equalize, load_series, masked_copy, save_args
+from util import equalize, load_series, save_args
 from slice_params import *
 
 slc = LATTICE_SLC
@@ -20,43 +20,41 @@ p.add_argument('root', type=str, help='path where outputs are saved')
 p.add_argument('-e', '--exam_root', type=str, default=None, help='directory where exam data exists in subdirectories')
 p.add_argument('-s', '--series_list', type=str, nargs='+', default=None, help='list of exam_root subdirectories to be analyzed, ordered by pairs')
 p.add_argument('-c', '--unit_cell_mm', type=float, default=12.0, help='size of lattice unit cell (in mm); default=12')
+p.add_argument('-t', '--threshold', type=float, default=None, help='maximum intensity artifact error included in mask; default=None')
 
 if __name__ == '__main__':
 
     args = p.parse_args()
     save_dir = path.join(args.root, 'snr')
+    artifact_dir = path.join(args.root, 'artifact')
     if not path.exists(save_dir):
         makedirs(save_dir)
 
     if args.exam_root is not None and args.series_list is not None:
-
         save_args(args, save_dir) 
-
         images = [load_series(args.exam_root, series_name) for series_name in args.series_list]
-
+        num_trials = len(images) // 2
         rbw = np.array([image.meta.readoutBandwidth_kHz for image in images[::2]])
-
         unit_cell_pixels = int(args.unit_cell_mm / images[0].meta.resolution_mm[0])
-
         images = np.stack([image.data for image in images])
-
         images = equalize(images)
           
-        mask_empty = get_mask_empty(images[0])
-        mask_implant = get_mask_implant(mask_empty)
-        mask = get_mask_signal(images[0])
-
         images = images[(slice(None),) + slc]
-        mask = mask[slc]
-        mask_implant = mask_implant[slc]
+
+        implant_mask = np.load(path.join(artifact_dir, 'implant_mask.npy'))
+        if args.threshold is not None:
+            artifact_maps = np.load(path.join(artifact_dir, 'artifact_maps.npy'))
+            artifact_masks = [np.abs(artifact_map) > args.threshold for artifact_map in artifact_maps]
+            masks = [~get_union((implant_mask, artifact_mask)) for artifact_mask in artifact_masks]
+        else:
+            masks = [~implant_mask] * num_trials
         
         snrs = []
         signals = []
         noise_stds = []
-        for i in range(0, len(images), 2):
-            print('trial', i // 2)
-            snr, signal, noise_std = map_snr(images[i], images[i+1], mask=mask)
-            snr[mask_implant] = 0
+        for i in range(num_trials):
+            print('trial', i)
+            snr, signal, noise_std = map_snr(images[2*i], images[2*i+1], masks[i])
             snrs.append(snr)
             signals.append(signal)
             noise_stds.append(noise_std)
@@ -69,7 +67,6 @@ if __name__ == '__main__':
             snrs=snrs,
             signals=signals,
             noise_stds=noise_stds,
-            mask=mask,
             rbw=rbw
          )
 
@@ -89,13 +86,9 @@ if __name__ == '__main__':
         image_sum = 0.5 * (image2 + image1)
         volumes = (image1, image2, image_diff, image_sum, snrs[i//2] / 60, noise_stds[i//2] * 50)
         titles = ('Image 1', 'Image 2', 'Difference (5x)', 'Sum (0.5x)', 'SNR / 60', 'Noise STD * 50')
-        figs[i//2], trackers[i//2] = plotVolumes(volumes, 1, len(volumes), titles=titles, figsize=(16, 8))
-    plot_snr.scatter(snrs, rbw, save_dir=save_dir)
-    plot_snr.lines(snrs, rbw, save_dir=save_dir)
-    image1_masked = masked_copy(image1, mask)
-    image2_masked = masked_copy(image2, mask)
-    fig, tracker = plotVolumes((image1, image2, mask, image1_masked, image2_masked))
-    fig2, tracker2 = plotVolumes((images[0], images[2]),
-                                 titles=("{}kHz".format(rbw[0]), "{}kHz".format(rbw[1])))
-    fig3, tracker3 = plotVolumes((snrs[0], snrs[1]), vmax=75, cmap='viridis', cbar=True)
+        # figs[i//2], trackers[i//2] = plotVolumes(volumes, 1, len(volumes), titles=titles, figsize=(16, 8))
+    # plot_snr.scatter(snrs, rbw, save_dir=save_dir)
+    # plot_snr.lines(snrs, rbw, save_dir=save_dir)
+    fig2, tracker2 = plotVolumes((images[0], images[2]), titles=("{}kHz".format(rbw[0]), "{}kHz".format(rbw[1])))
+    fig3, tracker3 = plotVolumes((snrs[0], snrs[1]), vmax=150, cmap='viridis', cbar=True)
     plt.show()

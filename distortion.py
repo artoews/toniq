@@ -9,7 +9,7 @@ from time import time
 
 import masks
 from plot import plotVolumes
-from util import masked_copy, safe_divide
+from util import masked_copy
 
 kHz_mm_over_G_cm = 0.42577
 
@@ -164,44 +164,23 @@ def get_jacobian(moving_image, transform):
     det_spatial_jacobian = np.asarray(jacobians[1]).astype(np.float)
     return spatial_jacobian, det_spatial_jacobian
 
-def map_distortion(fixed_image, moving_image, fixed_mask=None, moving_mask=None, itk_parameters=None, rigid_prep=True):
-    # fig0, tracker0 = plotVolumes((fixed_image, moving_image))
-    plt.show()
+def get_distortion_map(fixed_image, moving_image, fixed_mask, moving_mask, itk_parameters=None, rigid_prep=True):
     if itk_parameters is None:
         itk_parameters = setup_nonrigid()
-    if fixed_mask is None or moving_mask is None:
-        fixed_mask, moving_mask = get_registration_masks([fixed_image, moving_image])
     if rigid_prep:
         rigid_itk_parameters = setup_rigid()
-        moving_image, rigid_transform = elastix_registration(fixed_image, moving_image, fixed_mask, moving_mask, rigid_itk_parameters)
+        moving_image, rigid_transform = elastix_registration(fixed_image, moving_image, fixed_mask, moving_mask, rigid_itk_parameters, verbose=False)
         moving_mask = transform(moving_mask, rigid_transform)
     moving_image_masked = moving_image.copy()
     moving_image_masked[~moving_mask] = 0
-    # fig1, tracker1 = plotVolumes((fixed_image, moving_image))
-    plt.show()
-    # fixed_image = ndi.median_filter(fixed_image, footprint=morphology.ball(1))
-    # fixed_image_bw = np.logical_not(masks.get_mask_signal(fixed_image)).astype(float)
-    # moving_image = ndi.median_filter(moving_image, footprint=morphology.ball(1))
-    # moving_image_bw = np.logical_not(masks.get_mask_signal(moving_image)).astype(float)
-    result, nonrigid_transform = elastix_registration(fixed_image, moving_image, fixed_mask, moving_mask, itk_parameters, verbose=True)
+    result, nonrigid_transform = elastix_registration(fixed_image, moving_image, fixed_mask, moving_mask, itk_parameters, verbose=False)
     deformation_field = get_deformation_field(moving_image, nonrigid_transform)
     result_mask = transform(moving_mask, nonrigid_transform)
-    # result = transform(moving_image, nonrigid_transform)
-    # result, nonrigid_transform_list = elastix_registration_2d(fixed_image, moving_image, fixed_mask, moving_mask, itk_parameters)
-    # deformation_field = get_deformation_field_2d(moving_image, nonrigid_transform_list) 
-    # result_mask = transform_2d(moving_mask, nonrigid_transform_list)
     result_masked = masked_copy(result, result_mask)
     return result, result_masked, deformation_field
 
-def get_registration_masks(images, thresh):
-    mask_empty = masks.get_mask_empty(images[0])
-    mask_implant = masks.get_mask_implant(mask_empty)
-    masks_register = []
-    fixed_mask = ~np.logical_or(mask_empty, mask_implant)
-    fixed_mask = morphology.binary_erosion(fixed_mask)
-    for i in range(len(images)//2):
-        mask_artifact = masks.get_mask_artifact(images[2*i], images[2*i+1], mask_implant=mask_implant, thresh=thresh)
-        mask_register = masks.get_mask_register(mask_empty, mask_implant, mask_artifact)
-        masks_register.append(fixed_mask)
-        masks_register.append(mask_register)
-    return masks_register
+def get_registration_masks(implant_mask, artifact_map, thresh):
+    fixed_mask = morphology.binary_erosion(~implant_mask)
+    artifact_mask = np.abs(artifact_map) > thresh
+    moving_mask = ~masks.get_union((implant_mask, artifact_mask))
+    return fixed_mask, moving_mask

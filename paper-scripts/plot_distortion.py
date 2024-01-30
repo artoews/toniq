@@ -10,8 +10,9 @@ from plot import overlay_mask, letter_annotation, imshow2
 from util import masked_copy, list_to_formatted_string
 
 from plot_params import *
+from slice_params import *
 
-def plot_image_results(fig, masks, images, results, rbw):
+def plot_image_results(fig, masks, images, results, rbw, show_masks=True):
     slc_xy = (slice(None), slice(None), images[0].shape[2] // 2)
     slc_xz = (slice(None), images[0].shape[1] // 2, slice(None))
     num_trials = len(results)
@@ -34,11 +35,18 @@ def plot_image_results(fig, masks, images, results, rbw):
         result_error = np.abs(results[i] - fixed_image_masked)
         init_mask = np.logical_and(moving_image_masked, fixed_image_masked)
         result_mask = np.logical_and(results[i] != 0, fixed_image_masked)
-        imshow2(axes[2*i, 0], fixed_image_masked, slc_xy, slc_xz, mask=~fixed_mask, cmap=CMAP['image'], y_label='Read', x1_label='Phase', x2_label='Slice')
-        imshow2(axes[2*i, 1], moving_image_masked, slc_xy, slc_xz, mask=~moving_mask, cmap=CMAP['image'])
-        imshow2(axes[2*i, 2], results[i], slc_xy, slc_xz, mask=~result_mask, cmap=CMAP['image'])
-        imshow2(axes[2*i+1, 1], init_error * error_multiplier * init_mask, slc_xy, slc_xz, mask=~init_mask, cmap=CMAP['image'])
-        im, _ = imshow2(axes[2*i+1, 2], result_error * error_multiplier * result_mask, slc_xy, slc_xz, mask=~result_mask, cmap=CMAP['image'])
+        if show_masks:
+            imshow2(axes[2*i, 0], fixed_image_masked, slc_xy, slc_xz, mask=~fixed_mask, cmap=CMAP['image'], y_label='Read', x1_label='Phase', x2_label='Slice')
+            imshow2(axes[2*i, 1], moving_image_masked, slc_xy, slc_xz, mask=~moving_mask, cmap=CMAP['image'])
+            imshow2(axes[2*i+1, 1], init_error * error_multiplier * init_mask, slc_xy, slc_xz, mask=~init_mask, cmap=CMAP['image'])
+            imshow2(axes[2*i, 2], results[i], slc_xy, slc_xz, mask=~result_mask, cmap=CMAP['image'])
+            im, _ = imshow2(axes[2*i+1, 2], result_error * error_multiplier * result_mask, slc_xy, slc_xz, mask=~result_mask, cmap=CMAP['image'])
+        else:
+            imshow2(axes[2*i, 0], images[2*i], slc_xy, slc_xz, cmap=CMAP['image'], y_label='Read', x1_label='Phase', x2_label='Slice')
+            imshow2(axes[2*i, 1], images[2*i+1], slc_xy, slc_xz, cmap=CMAP['image'])
+            imshow2(axes[2*i+1, 1], np.abs(images[2*i+1]-images[2*i]), slc_xy, slc_xz, cmap=CMAP['image'])
+            imshow2(axes[2*i, 2], results[i], slc_xy, slc_xz, cmap=CMAP['image'])
+            im, _ = imshow2(axes[2*i+1, 2], np.abs(results[i] - images[2*i]), slc_xy, slc_xz, cmap=CMAP['image'], vmin=0, vmax=1)
         fig.colorbar(im, ax=axes[2*i:2*i+2, :], ticks=[0, 1], label='Pixel Intensity (a.u.)', location='right')
 
     return axes
@@ -103,7 +111,7 @@ if __name__ == '__main__':
 
     # Load & Pre-processing
     root_dir = '/Users/artoews/root/code/projects/metal-phantom/tmp/'
-    slc = (slice(35, 155), slice(65, 185), 30)
+    slc = LATTICE_SLC[:2] + ((LATTICE_SLC[2].start + LATTICE_SLC[2].stop) // 2,)
     data = np.load(path.join(root_dir, 'distortion', 'outputs.npz'))
     for var in data:
         globals()[var] = data[var]
