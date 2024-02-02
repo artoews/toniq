@@ -24,7 +24,7 @@ if __name__ == '__main__':
     args = p.parse_args()
     save_dir = path.join(args.root, 'artifact')
     images_file = path.join(save_dir, 'images.npy')
-    maps_file = path.join(save_dir, 'artifact_maps.npy')
+    maps_file = path.join(save_dir, 'ia-maps.npy')
     if not path.exists(save_dir):
         makedirs(save_dir)
 
@@ -41,18 +41,18 @@ if __name__ == '__main__':
         images = images[(slice(None),) + slc]
 
         implant_mask = get_implant_mask(images[0])
-        artifact_maps = [get_artifact_map(images[2*i], images[2*i+1], implant_mask) for i in range(num_trials)]
-        artifact_maps = np.stack(artifact_maps)
+        ia_maps = [get_artifact_map(images[2*i], images[2*i+1], implant_mask) for i in range(num_trials)]
+        ia_maps = np.stack(ia_maps)
 
         np.save(images_file, images)
-        np.save(maps_file, artifact_maps)
-        np.save(path.join(save_dir, 'implant_mask.npy'), implant_mask)
+        np.save(maps_file, ia_maps)
+        np.save(path.join(save_dir, 'implant-mask.npy'), implant_mask)
     
     else:
         images = np.load(images_file)
-        artifact_maps = np.load(maps_file)
+        ia_maps = np.load(maps_file)
     
-        plot_artifact_results(images, artifact_maps, save_dir=save_dir)
+    plot_artifact_results(images, ia_maps, save_dir=save_dir)
 
     if args.plot:
         plt.show()

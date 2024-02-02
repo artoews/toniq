@@ -6,7 +6,7 @@ from os import path, makedirs
 
 import plot_snr
 
-from masks import get_union
+from masks import get_signal_mask, get_artifact_mask
 from intensity import map_snr
 from plot import plotVolumes
 
@@ -21,6 +21,7 @@ p.add_argument('-e', '--exam_root', type=str, default=None, help='directory wher
 p.add_argument('-s', '--series_list', type=str, nargs='+', default=None, help='list of exam_root subdirectories to be analyzed, ordered by pairs')
 p.add_argument('-c', '--unit_cell_mm', type=float, default=12.0, help='size of lattice unit cell (in mm); default=12')
 p.add_argument('-t', '--threshold', type=float, default=None, help='maximum intensity artifact error included in mask; default=None')
+p.add_argument('-p', '--plot', action='store_true', help='show plots')
 
 if __name__ == '__main__':
 
@@ -41,13 +42,14 @@ if __name__ == '__main__':
           
         images = images[(slice(None),) + slc]
 
-        implant_mask = np.load(path.join(artifact_dir, 'implant_mask.npy'))
-        if args.threshold is not None:
-            artifact_maps = np.load(path.join(artifact_dir, 'artifact_maps.npy'))
-            artifact_masks = [np.abs(artifact_map) > args.threshold for artifact_map in artifact_maps]
-            masks = [~get_union((implant_mask, artifact_mask)) for artifact_mask in artifact_masks]
+        implant_mask = np.load(path.join(artifact_dir, 'implant-mask.npy'))
+        if args.threshold is None:
+            artifact_maps = None
+            masks = [get_signal_mask(implant_mask)] * num_trials
         else:
-            masks = [~implant_mask] * num_trials
+            ia_maps = np.load(path.join(artifact_dir, 'ia-maps.npy'))
+            artifact_masks = [get_artifact_mask(ia_map, args.threshold) for ia_map in ia_maps]
+            masks = [get_signal_mask(implant_mask, artifact_masks=[artifact_mask]) for artifact_mask in artifact_masks]
         
         snrs = []
         signals = []
@@ -69,6 +71,10 @@ if __name__ == '__main__':
             noise_stds=noise_stds,
             rbw=rbw
          )
+        
+        np.save(path.join(save_dir, 'images.npy'), images)
+        np.save(path.join(save_dir, 'snr-maps.npy'), snrs)
+        np.save(path.join(save_dir, 'snr-masks.npy'), masks)
 
     else:
         with open(path.join(save_dir, 'args_post.txt'), 'w') as f:
@@ -87,8 +93,10 @@ if __name__ == '__main__':
         volumes = (image1, image2, image_diff, image_sum, snrs[i//2] / 60, noise_stds[i//2] * 50)
         titles = ('Image 1', 'Image 2', 'Difference (5x)', 'Sum (0.5x)', 'SNR / 60', 'Noise STD * 50')
         # figs[i//2], trackers[i//2] = plotVolumes(volumes, 1, len(volumes), titles=titles, figsize=(16, 8))
-    # plot_snr.scatter(snrs, rbw, save_dir=save_dir)
-    # plot_snr.lines(snrs, rbw, save_dir=save_dir)
+    plot_snr.scatter(snrs, rbw, save_dir=save_dir)
+    plot_snr.lines(snrs, rbw, save_dir=save_dir)
     fig2, tracker2 = plotVolumes((images[0], images[2]), titles=("{}kHz".format(rbw[0]), "{}kHz".format(rbw[1])))
     fig3, tracker3 = plotVolumes((snrs[0], snrs[1]), vmax=150, cmap='viridis', cbar=True)
-    plt.show()
+
+    if args.plot:
+        plt.show()

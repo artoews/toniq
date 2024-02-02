@@ -2,34 +2,40 @@ import argparse
 import json
 import matplotlib.pyplot as plt
 import numpy as np
-import sigpy as sp
 from os import path, makedirs
+import sigpy as sp
+import scipy.ndimage as ndi
+from skimage import morphology, transform
 
-import masks
-from resolution import map_resolution, get_resolution_mask, get_FWHM_from_pixel
+from masks import get_signal_mask, get_artifact_mask
+from resolution import map_resolution, get_FWHM_from_pixel
 from plot import plotVolumes
 from plot_resolution import box_plots
 from util import equalize, load_series, save_args
 from slice_params import *
+from plot_params import *
 
-slc = tuple(slice(s.start*2, s.stop*2) for s in LATTICE_SLC)
+slc = tuple(slice(s.start*2, s.stop*2) for s in LATTICE_SLC[:2]) + (LATTICE_SLC[2],)
 
 p = argparse.ArgumentParser(description='Resolution analysis of image volumes with common dimensions.')
 p.add_argument('root', type=str, help='path where outputs are saved')
 p.add_argument('-e', '--exam_root', type=str, default=None, help='directory where exam data exists in subdirectories')
 p.add_argument('-s', '--series_list', type=str, nargs='+', default=None, help='list of exam_root subdirectories to be analyzed, with the first serving as reference')
 p.add_argument('-c', '--unit_cell_mm', type=float, default=12.0, help='size of lattice unit cell (in mm); default=12')
-p.add_argument('-t', '--stride', type=int, default=5, help='window stride length for stepping between PSF measurements, in units of pixels; default=5')
+p.add_argument('--stride', type=int, default=5, help='window stride length for stepping between PSF measurements, in units of pixels; default=5')
 p.add_argument('-n', '--noise', type=float, default=0, help='st. dev. of noise added to k-space; default=0')
 p.add_argument('-o', '--overwrite', action='store_true', help='overwrite target k-space with samples from reference')
 p.add_argument('-w', '--workers', type=int, default=8, help='number of parallel pool workers; default=8')
 p.add_argument('-m', '--mask', action='store_true', help='re-use mask if one exists')
+p.add_argument('-p', '--plot', action='store_true', help='show plots')
+p.add_argument('-t', '--threshold', type=float, default=None, help='maximum intensity artifact error included in mask; default=None')
 
 if __name__ == '__main__':
 
     args = p.parse_args()
 
     save_dir = path.join(args.root, 'resolution')
+    artifact_dir = path.join(args.root, 'artifact')
     if not path.exists(save_dir):
         makedirs(save_dir)
 
@@ -38,9 +44,7 @@ if __name__ == '__main__':
         save_args(args, save_dir)
 
         images = [load_series(args.exam_root, series_name) for series_name in args.series_list]
-
         matrix_shapes = np.stack([np.array(image.meta.acqMatrixShape) for image in images])
-
         resolution_mm = images[0].meta.resolution_mm
         unit_cell_pixels = np.array([int(args.unit_cell_mm / r) for r in resolution_mm])
 
@@ -65,20 +69,19 @@ if __name__ == '__main__':
                 k += sp.resize(noise, k.shape)
                 images[i] = np.abs(sp.ifft(k))
 
-        mask_file = path.join(save_dir, 'mask.npy')
-        if args.mask and path.isfile(mask_file):
-            print('Loading pre-computed mask...')
-            mask = np.load(mask_file)
-        else:
-            print('Computing mask...')
-            mask = get_resolution_mask(images[0])
-            np.save(mask_file, mask)
-        
-        mask = mask[slc]
         images = images[(slice(None),) + slc]
-        
+
+        implant_mask = np.load(path.join(artifact_dir, 'implant-mask.npy'))
+        if args.threshold is None:
+            mask = get_signal_mask(implant_mask)
+        else:
+            ia_maps = np.load(path.join(artifact_dir, 'ia-maps.npy'))
+            artifact_mask = get_artifact_mask(ia_maps[0], args.threshold, empty=False)  # TODO update to True when you get res data in same session as empty data
+            mask = get_signal_mask(implant_mask, artifact_masks=[artifact_mask])
+        mask = transform.resize(mask, images[0].shape)
+
         # titles = ['{}x{}'.format(shape[0], shape[1]) for shape in matrix_shapes]
-        # fig0, tracker0 = plotVolumes((images[0], images[1], images[2], images[3]), titles=titles[:4])
+        # # fig0, tracker0 = plotVolumes((images[0], images[1]), titles=titles[:2])
         # fig1, tracker1 = plotVolumes((images[0], mask))
         # plt.show()
         # quit()
@@ -87,15 +90,7 @@ if __name__ == '__main__':
         fwhms = []
         for i in range(1, len(images)):
             print('working on matrix shape {} with reference {}'.format(i, matrix_shapes[i], matrix_shapes[0]))
-            psf_i, fwhm_i = map_resolution(
-                images[0],
-                images[i],
-                unit_cell_pixels,
-                resolution_mm,
-                stride=args.stride,
-                num_workers=args.workers,
-                mask=mask
-                )
+            psf_i, fwhm_i = map_resolution(images[0], images[i], unit_cell_pixels, resolution_mm, mask, args.stride, num_workers=args.workers)
             psfs.append(psf_i)
             fwhms.append(fwhm_i) 
         psfs = np.stack(psfs)
@@ -108,6 +103,10 @@ if __name__ == '__main__':
             fwhms=fwhms,
             resolution_mm=resolution_mm
          )
+
+        np.save(path.join(save_dir, 'images.npy'), images)
+        np.save(path.join(save_dir, 'res-maps.npy'), fwhms)
+        np.save(path.join(save_dir, 'res-masks.npy'), mask)
     
     else:
 
@@ -120,15 +119,14 @@ if __name__ == '__main__':
     
     box_plots(fwhms / resolution_mm[0], matrix_shapes, save_dir=save_dir)
 
-
     figs = [None] * len(fwhms)
     trackers = [None] * len(fwhms)
     for i in range(len(fwhms)):
         volumes = (fwhms[i][..., 0], fwhms[i][..., 1], fwhms[i][..., 2])
         titles = ('FWHM in x (mm)', 'FWHM in y (mm)', 'FWHM in z (mm)')
-        figs[i], trackers[i] = plotVolumes(volumes, titles=titles, figsize=(12, 4), vmin=1, vmax=3, cmap='viridis', cbar=True)
+        figs[i], trackers[i] = plotVolumes(volumes, titles=titles, figsize=(12, 4), vmin=1, vmax=3, cmap=CMAP['resolution'], cbar=True)
     
-    # fig0, tracker0 = plotVolumes((images[0], images[1]), titles=('512x512', '128x256'))
+    # fig0, tracker0 = plotVolumes((images[0], images[1]), titles=('512x512', '256x256'))
     # fig1, tracker1 = plotVolumes((psfs[0, 0, 0, 0], psfs[0, 5, 5, 5], psfs[0, 40, 40, 10]), vmin=0, vmax=10)
     # print(psfs.shape, fwhms.shape)
     # print(fwhms[0, 0, 0, 0], fwhms[0, 5, 5, 5], fwhms[0, 40, 40, 10])
@@ -137,4 +135,5 @@ if __name__ == '__main__':
     # print(f[0] * resolution_mm[0], f[1] * resolution_mm[1], f[2] * resolution_mm[2])
     # print('FWHM in pixels', f)
     
-    plt.show()
+    if args.plot:
+        plt.show()

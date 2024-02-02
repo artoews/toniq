@@ -10,9 +10,7 @@ from util import safe_divide
 reg_psf_shape = (9, 9, 5)
 psf_ndim = 3
 
-def map_resolution(reference, target, unit_cell_pixels, resolution_mm, stride, num_workers=1, mask=None):
-    if mask is None:
-        mask = get_resolution_mask(reference, target)
+def map_resolution(reference, target, unit_cell_pixels, resolution_mm, mask, stride, num_workers=1):
     patch_shape = (unit_cell_pixels[0], unit_cell_pixels[0], unit_cell_pixels[0])
     filter_size = (int(patch_shape[0]/stride/2), int(patch_shape[1]/stride/2), int(patch_shape[2]/2))
     print('patch shape', patch_shape)
@@ -24,18 +22,6 @@ def map_resolution(reference, target, unit_cell_pixels, resolution_mm, stride, n
         # fwhm[..., i] = ndi.uniform_filter(fwhm[..., i], size=filter_size)
         # fwhm[..., i] = ndi.median_filter(fwhm[..., i], footprint=np.ones(filter_size))
     return psf, fwhm
-
-def get_resolution_mask(reference, target=None, metal=False):
-    mask_empty = masks.get_mask_empty(reference)
-    mask_implant = masks.get_mask_implant(mask_empty)
-    if metal:
-        mask_artifact = masks.get_mask_artifact(reference, target, mask_implant=mask_implant)
-        mask = masks.get_mask_register(mask_empty, mask_implant, mask_artifact)
-    else:
-        # mask_lattice = masks.get_mask_lattice(reference)
-        # mask = np.logical_and(mask_lattice, ~mask_implant)
-        mask = ~mask_implant
-    return mask
 
 def estimate_psf(image_in, image_out, mask, patch_shape, stride, num_batches, mode='regularized'):
     images_stack = np.stack((image_in, image_out), axis=-1)

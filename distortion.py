@@ -7,7 +7,7 @@ from os import path
 from skimage import morphology
 from time import time
 
-import masks
+from masks import get_artifact_mask, get_signal_mask
 from plot import plotVolumes
 from util import masked_copy
 
@@ -179,8 +179,8 @@ def get_distortion_map(fixed_image, moving_image, fixed_mask, moving_mask, itk_p
     result_masked = masked_copy(result, result_mask)
     return result, result_masked, deformation_field
 
-def get_registration_masks(implant_mask, artifact_map, thresh):
-    fixed_mask = morphology.binary_erosion(~implant_mask)
-    artifact_mask = np.abs(artifact_map) > thresh
-    moving_mask = ~masks.get_union((implant_mask, artifact_mask))
+def get_registration_masks(implant_mask, artifact_map, threshold):
+    artifact_mask = get_artifact_mask(artifact_map, threshold)
+    fixed_mask = get_signal_mask(implant_mask)
+    moving_mask = get_signal_mask(implant_mask, artifact_masks=[artifact_mask])
     return fixed_mask, moving_mask

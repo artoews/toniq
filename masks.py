@@ -1,20 +1,29 @@
+import numpy as np
 import scipy.ndimage as ndi
 from skimage import filters, morphology
 
-
-def get_implant_mask(image, filter_radius=3):
-    image = ndi.median_filter(image, footprint=morphology.ball(filter_radius)) # maybe unnecessary?
+def get_implant_mask(image):
     mask = image < filters.threshold_otsu(image)  # global Otsu
-    if filter_radius is not None:
-        mask = morphology.binary_opening(mask, morphology.ball(filter_radius))  # opening = erosion (min) then dilation (max)
-    # may want to dilate in some cases - leave it to those specific use cases?
+    mask = morphology.binary_erosion(mask, morphology.ball(3)) # min
+    mask = morphology.binary_dilation(mask, morphology.ball(5)) # max
     return mask
 
-# to replace get_mask_register with this, you'll need to not the result; filter_radius was previously 5 for get_mask_register
-def get_union(masks, close=True, open=True, filter_radius=2):
-    mask = (sum(masks) > 0)
-    if close:
-        mask = ndi.binary_closing(mask, structure=morphology.ball(filter_radius), border_value=1) # closing = dilation (max) then erosion (min)
-    if open:
-        mask = ndi.binary_opening(mask, structure=morphology.ball(filter_radius), border_value=1) # opening = erosion (min) then dilation (max)
+def get_artifact_mask(artifact_map, threshold, empty=True):
+    if empty:
+        artifact_map = ndi.median_filter(np.abs(artifact_map), footprint=morphology.ball(1))
+    else:
+        # temporary fix for artifact masks with lattice
+        artifact_map = np.abs(ndi.generic_filter(artifact_map, np.mean, footprint=morphology.ball(3))) 
+    mask = artifact_map > threshold
+    mask = morphology.binary_closing(mask, morphology.ball(5)) # closing = dilation (max) then erosion (min)
     return mask
+
+def get_signal_mask(implant_mask, artifact_masks=None):
+    """ returns the complement of the closed union of implant & artifact masks """
+    if artifact_masks is None:
+        artifact_masks = [np.zeros_like(implant_mask)]
+    else:
+        assert type(artifact_masks) is list
+    mask = ((implant_mask + sum(artifact_masks)) > 0)
+    mask = morphology.binary_closing(mask, morphology.ball(5))
+    return ~mask

@@ -3,6 +3,8 @@ import json
 import matplotlib.pyplot as plt
 import numpy as np
 from os import path, makedirs
+import scipy.ndimage as ndi
+from skimage import morphology
 
 from plot import plotVolumes
 from plot_distortion import plot_image_results, plot_field_results, plot_summary_results
@@ -19,12 +21,13 @@ p.add_argument('root', type=str, help='path where outputs are saved')
 p.add_argument('-e', '--exam_root', type=str, default=None, help='directory where exam data exists in subdirectories')
 p.add_argument('-s', '--series_list', type=str, nargs='+', default=None, help='list of exam_root subdirectories to be analyzed in RBW-matched (plastic, metal) pairs')
 p.add_argument('-t', '--threshold', type=float, default=0.3, help='maximum intensity artifact error included in registration mask; default=0.3')
+p.add_argument('-p', '--plot', action='store_true', help='show plots')
 
 if __name__ == '__main__':
 
     args = p.parse_args()
     save_dir = path.join(args.root, 'distortion')
-    artifact_dir = path.join(args.root, 'artifact')
+    ia_dir = path.join(args.root, 'artifact')
     if not path.exists(save_dir):
         makedirs(save_dir)
     
@@ -42,9 +45,14 @@ if __name__ == '__main__':
         images = equalize(images)
         images = images[(slice(None),) + slc]
 
-        implant_mask = np.load(path.join(artifact_dir, 'implant_mask.npy'))
-        artifact_maps = np.load(path.join(artifact_dir, 'artifact_maps.npy'))
-        mask_pairs = [get_registration_masks(implant_mask, artifact_maps[i], args.threshold) for i in range(num_trials)]
+        implant_mask = np.load(path.join(ia_dir, 'implant-mask.npy'))
+        ia_maps = np.load(path.join(ia_dir, 'ia-maps.npy'))
+        # ia_maps = [ndi.generic_filter(artifact_map, np.mean, footprint=morphology.cube(5)) for artifact_map in ia_maps]
+        mask_pairs = [get_registration_masks(implant_mask, ia_maps[i], args.threshold) for i in range(num_trials)]
+
+        # fig, tracker = plotVolumes(mask_pairs[0])
+        # plt.show()
+        # quit()
 
         # run registration
         print('Running registration...')
@@ -72,6 +80,10 @@ if __name__ == '__main__':
                  rbw=rbw
                  )
         
+        np.save(path.join(save_dir, 'images.npy'), images)
+        np.save(path.join(save_dir, 'gd-maps.npy'), deformation_fields)
+        np.save(path.join(save_dir, 'gd-masks.npy'), masks)
+        
     else:
         with open(path.join(save_dir, 'args_post.txt'), 'w') as f:
             json.dump(args.__dict__, f, indent=4)
@@ -87,7 +99,7 @@ if __name__ == '__main__':
         slc_z = (slice(None), slice(None), slice(None), images.shape[-1]//2)
         slc_y = (slice(None), slice(None), images.shape[-2]//2, slice(None))
 
-    plot_image_results(plt.figure(figsize=(12, 10)), masks, images, results, rbw)
+    plot_image_results(plt.figure(figsize=(12, 5)), masks, images, results, rbw)
     plt.savefig(path.join(save_dir, 'images.png'), dpi=300)
 
     # plot_field_results(plt.figure(figsize=(12, 5)), results, true_field_kHz, deformation_fields, rbw, pbw, field_dir=0)
@@ -114,4 +126,6 @@ if __name__ == '__main__':
     # titles = ('correct field', 'deformation x', 'deformation z')
     # fig1, tracker1 = plotVolumes(volumes, titles=titles, vmin=-4, vmax=4, cmap='RdBu_r')
     # fig2, tracker2 = plotVolumes((images[1], images[2], results[0], images[1]-images[1], np.abs(images[2]-images[1]), np.abs(results[0]-images[1])))
-    plt.show()
+
+    if args.plot:
+        plt.show()
