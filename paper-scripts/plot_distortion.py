@@ -17,7 +17,7 @@ def plot_image_results(fig, masks, images, results, rbw, show_masks=True):
     slc_xz = (slice(None), images[0].shape[1] // 2, slice(None))
     num_trials = len(results)
     axes = fig.subplots(nrows=2*num_trials, ncols=3)
-    fig.suptitle('Readout BWs {} kHz'.format(list_to_formatted_string(rbw)))
+    # fig.suptitle('Readout BWs {} kHz'.format(list_to_formatted_string(rbw)))
     error_multiplier = 2
 
     titles = ('Plastic', 'Metal', 'Registration')

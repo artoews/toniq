@@ -1,6 +1,5 @@
 import numpy as np
 import scipy.ndimage as ndi
-
 from skimage import morphology
 
 def map_snr(image1, image2, mask, filter_size=10, min_coverage=0.25):

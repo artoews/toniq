@@ -112,7 +112,7 @@ def plotVolumes(volumes, nrows=None, ncols=None, vmin=0, vmax=1, cmap='gray', ti
     fig.canvas.mpl_connect('key_press_event', tracker.on_press)
     return fig, tracker
 
-def overlay_mask(ax, mask, color=[200, 200, 200], alpha=255):
+def overlay_mask(ax, mask, color=[100, 100, 100], alpha=255):
     color_mask = np.zeros(mask.shape + (4,), dtype=np.uint8)
     color_mask[mask, :] = np.array(color + [alpha], dtype=np.uint8)
     ax.imshow(color_mask)
