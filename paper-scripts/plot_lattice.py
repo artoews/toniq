@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from os import path
 
-from lattice import make_lattice, get_kspace_center, get_condition
+from lattice import make_lattice, get_kspace_center, get_kspace_center_2, get_condition
 from plot import letter_annotation
 
 from plot_params import *
@@ -52,6 +52,7 @@ def plot_image(ax, image, xlabel=None, ylabel=None, title=None, vmax=1, log=Fals
     if title is not None:
         ax.set_title(title)
     return im
+
 def plot_condition(fig, l2_list, psf_sizes, cubic, gyroid):
     cubic_colors = plt.cm.Greys(np.linspace(0.25, 0.75, len(l2_list)))
     gyroid_colors = plt.cm.Greens(np.linspace(0.25, 0.75, len(l2_list)))
@@ -68,7 +69,7 @@ def plot_condition(fig, l2_list, psf_sizes, cubic, gyroid):
     # ax.set_ylim([1e0, 1e4])
     ax.legend()
     ax.set_xlim([min(psf_sizes), max(psf_sizes)])
-    ax.set_ylim([0, 800])
+    ax.set_ylim([50, 300])
     plt.grid()
     return ax
 
@@ -76,20 +77,20 @@ def plot_condition(fig, l2_list, psf_sizes, cubic, gyroid):
 if __name__ == '__main__':
 
     save_dir = '/Users/artoews/root/code/projects/metal-phantom/lattice/'
-    res = 6  # should be 1, but can increase to save time
+    res = 1  # should be 1, but can increase to save time
     load_cond = False
     l2_list = [1e-2, 1e-1, 1]
-    patch_shape = (20, 20, 20)
+    patch_shape = (40, 40, 20)
     psf_sizes = range(5, 11)
-    psf_shapes = [(size, size, 5) for size in psf_sizes]
+    psf_shapes = [(size, size, 1) for size in psf_sizes]
 
-    gyroid = make_lattice('gyroid', resolution=res)
-    gyroid_k = get_kspace_center(gyroid, patch_shape) # TODO could try adding Fermi filter type of thing here
-    # gyroid_k = get_kspace_center_2(gyroid[:, :, ::gyroid.shape[-1]//patch_shape[-1]], patch_shape)
-    cubic = make_lattice('cubic', resolution=res)
+    gyroid = make_lattice('gyroid', resolution=res, shape=(2, 2, 2))
+    # gyroid_k = get_kspace_center(gyroid, patch_shape) # TODO could try adding Fermi filter type of thing here
+    gyroid_k = get_kspace_center_2(gyroid, patch_shape)
+    cubic = make_lattice('cubic', resolution=res, shape=(2, 2, 2))
     cubic = np.roll(np.roll(cubic, -1, axis=0), -1, axis=2) # better form for visualization purposes
-    cubic_k = get_kspace_center(cubic, patch_shape)
-    # cubic_k = get_kspace_center_2(cubic[:, :, ::cubic.shape[-1]//patch_shape[-1]], patch_shape)
+    # cubic_k = get_kspace_center(cubic, patch_shape)
+    cubic_k = get_kspace_center_2(cubic, patch_shape)
 
     if load_cond:
         data = np.load(path.join(save_dir, 'outputs.npz'))
@@ -109,7 +110,7 @@ if __name__ == '__main__':
 
     fig = plt.figure(figsize=(12, 4), layout='constrained')
     fig_A, fig_B, fig_C = fig.subfigures(1, 3, wspace=0.1, width_ratios=(2, 5, 3))
-    axes_A = plot_cells(fig_A, cubic, gyroid)
+    # axes_A = plot_cells(fig_A, cubic, gyroid)
     start = cubic_k.shape[-1] // 2
     axes_B = plot_image_panel(fig_B, cubic_k[:, :, start:start+5], gyroid_k[:, :, start:start+5], vmax=7, log=True)
     axes_C = plot_condition(fig_C, l2_list, psf_sizes, condition_cubic, condition_gyroid)
