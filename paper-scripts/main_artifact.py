@@ -3,13 +3,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 from os import path, makedirs
 
-from artifact import get_artifact_map
+from artifact import get_artifact_map, get_signal_reference
 from masks import get_implant_mask
 from plot_artifact import plot_artifact_results
 from plot import plotVolumes
 
-from util import equalize, load_series, save_args
+from util import equalize, load_series, save_args, masked_copy
 from slice_params import *
+from plot_params import *
 
 slc = LATTICE_SLC
 
@@ -25,6 +26,7 @@ if __name__ == '__main__':
     save_dir = path.join(args.root, 'artifact')
     images_file = path.join(save_dir, 'images.npy')
     maps_file = path.join(save_dir, 'ia-maps.npy')
+    mask_file = path.join(save_dir, 'implant-mask.npy')
     if not path.exists(save_dir):
         makedirs(save_dir)
 
@@ -42,17 +44,22 @@ if __name__ == '__main__':
 
         implant_mask = get_implant_mask(images[0])
         ia_maps = [get_artifact_map(images[2*i], images[2*i+1], implant_mask) for i in range(num_trials)]
+        sig_refs = [get_signal_reference(images[2*i], implant_mask) for i in range(num_trials)]
         ia_maps = np.stack(ia_maps)
+        sig_refs = np.stack(sig_refs)
 
         np.save(images_file, images)
         np.save(maps_file, ia_maps)
-        np.save(path.join(save_dir, 'implant-mask.npy'), implant_mask)
+        np.save(mask_file, implant_mask)
     
     else:
         images = np.load(images_file)
         ia_maps = np.load(maps_file)
+        implant_mask = np.load(mask_file)
     
     plot_artifact_results(images, ia_maps, save_dir=save_dir)
+    # image_masked = masked_copy(images[0], implant_mask)
+    # fig, tracker = plotVolumes((images[0], image_masked, sig_refs[0]), nrows=1, ncols=3) # for debugging
 
     if args.plot:
         plt.show()
