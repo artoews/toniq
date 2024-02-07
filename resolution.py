@@ -7,11 +7,14 @@ import masks
 from filter import generic_filter
 from util import safe_divide
 
-reg_psf_shape = (9, 9, 5)
-psf_ndim = 3
+# reg_psf_shape = (9, 9, 5)
+# reg_psf_shape = (9, 9, 5)
+reg_psf_shape = (9, 9, 1)
+psf_ndim = 2
 
 def map_resolution(reference, target, unit_cell_pixels, resolution_mm, mask, stride, num_workers=1):
-    patch_shape = (unit_cell_pixels[0], unit_cell_pixels[0], unit_cell_pixels[0])
+    # patch_shape = (unit_cell_pixels[0], unit_cell_pixels[0], unit_cell_pixels[0])
+    patch_shape = (2*unit_cell_pixels[0], 2*unit_cell_pixels[1], 2*unit_cell_pixels[2])
     filter_size = (int(patch_shape[0]/stride/2), int(patch_shape[1]/stride/2), int(patch_shape[2]/2))
     print('patch shape', patch_shape)
     # print('filter size', filter_size)
@@ -43,10 +46,15 @@ def deconvolve_by_division(patch_pair):
     return psf
 
 def deconvolve_by_model(patch_pair, psf_shape=reg_psf_shape, lamda=1e-1, tol=1e-4, max_iter=1e4, verbose=False):
-    kspace_pair = sp.fft(patch_pair, axes=(0, 1, 2))
+    # kspace_pair = sp.fft(patch_pair, axes=(0, 1, 2))
+    kspace_pair = sp.fft(patch_pair, axes=(0, 1))
     kspace_in, kspace_out = kspace_pair[..., 0], kspace_pair[..., 1]
-    A = forward_model(kspace_in, psf_shape)
-    y = kspace_out
+    # A = forward_model(kspace_in, psf_shape)
+    # y = kspace_out
+    # A = forward_model_2(kspace_in, psf_shape)
+    # y = sp.resize(sp.ifft(kspace_out), A.oshape)
+    A = forward_model_22(kspace_in, psf_shape)
+    y = sp.resize(sp.ifft(kspace_out, axes=(0, 1)), A.oshape)
     app = sp.app.LinearLeastSquares(A, y, x=np.zeros(A.ishape, dtype=np.complex128), tol=tol, max_iter=max_iter, show_pbar=verbose, lamda=lamda)
     soln = app.run()
     psf = np.abs(soln)  # was real before, does that make more sense?
@@ -57,6 +65,27 @@ def forward_model(input_kspace, psf_shape):
     F = sp.linop.FFT(Z.oshape)
     D = sp.linop.Multiply(F.oshape, input_kspace)
     return D * F * Z
+
+def forward_model_2(input_kspace, psf_shape):
+    # expects 3D k-space and 3D psf with singleton 3rd dimension
+    Z = sp.linop.Resize(input_kspace.shape, psf_shape)
+    F = sp.linop.FFT(Z.oshape)
+    D = sp.linop.Multiply(F.oshape, input_kspace)
+    no_wrap_size = tuple(np.array(input_kspace.shape[:2]) - np.array(psf_shape[:2]) + np.ones(2, dtype=int))
+    C = sp.linop.Resize(no_wrap_size + input_kspace.shape[2:], F.ishape)
+    # return D * F * Z
+    return C * F.H * D * F * Z
+
+def forward_model_22(input_kspace, psf_shape):
+    # expects stack of 2D k-space slices and 3D psf with singleton 3rd dimension
+    Z = sp.linop.Resize(input_kspace.shape[:2] + (1,), psf_shape)
+    F = sp.linop.FFT(Z.oshape, axes=(0, 1))
+    D = sp.linop.Multiply(F.oshape, input_kspace)
+    no_wrap_size = tuple(np.array(input_kspace.shape[:2]) - np.array(psf_shape[:2]) + np.ones(2, dtype=int))
+    FH = sp.linop.FFT(D.oshape, axes=(0, 1)).H
+    C = sp.linop.Resize(no_wrap_size + input_kspace.shape[2:], FH.oshape)
+    # return C * FH * D * F * Z
+    return FH * D * F * Z
 
 def forward_model_explicit(kspace, psf_shape):
     # old, and not sure this was ever proved to be correct
