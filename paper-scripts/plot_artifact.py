@@ -10,7 +10,7 @@ def plot_artifact_results(images, maps_artifact, save_dir=None, lim=0.6):
     num_trials = len(maps_artifact)
     slc_xy = (slice(None), slice(None), shape[2] // 2)
     slc_xz = (slice(None), shape[1] // 2, slice(None))
-    fig = plt.figure(figsize=(14, 6), layout='constrained')
+    fig = plt.figure(figsize=(12, 6), layout='constrained')
     axes = fig.subplots(nrows=num_trials, ncols=3)
     if num_trials == 1:
         axes = axes[None, :]
@@ -21,7 +21,11 @@ def plot_artifact_results(images, maps_artifact, save_dir=None, lim=0.6):
         imshow2(axes[i, 0], images[2*i], slc_xy, slc_xz, y_label='Read', x1_label='Phase', x2_label='Slice')
         imshow2(axes[i, 1], images[2*i+1], slc_xy, slc_xz)
         im, _ = imshow2(axes[i, 2], maps_artifact[i], slc_xy, slc_xz, cmap=CMAP['artifact'], vmin=-lim, vmax=lim)
-        cbar = fig.colorbar(im, ax=axes[i, 2], ticks=[-lim, -lim/2, 0, lim/2, lim], label='Relative Error (%)')
-        cbar.ax.set_yticklabels(['<-{:.0f}'.format(lim*100), '-{:.0f}'.format(lim*50), '0', '{:.0f}'.format(lim*50), '>{:.0f}'.format(lim*100)])
+        colorbar(fig, axes[i, 2], im)
     if save_dir is not None:
         plt.savefig(path.join(save_dir, 'ia_results.png'), dpi=300)
+
+def colorbar(fig, axes, im, lim=0.6):
+    cbar = fig.colorbar(im, ax=axes, ticks=[-lim, -lim/2, 0, lim/2, lim], label='Relative Error (%)', extend='both', shrink=0.9)
+    cbar.ax.set_yticklabels(['-{:.0f}'.format(lim*100), '-{:.0f}'.format(lim*50), '0', '{:.0f}'.format(lim*50), '{:.0f}'.format(lim*100)])
+    return cbar
