@@ -67,7 +67,7 @@ def plot_field_results(fig, results, true_field, deformation_fields, rbw, pbw, f
     # TODO pass these in
     gx = [1.912, 0.956, 0.478] # G/cm
     gz = 1.499 # G/cm
-    kwargs = {'vmin': -4, 'vmax': 4, 'cmap': CMAP['field']}
+    kwargs = {'vmin': -2, 'vmax': 2, 'cmap': CMAP['field']}
     for i in range(num_trials):
         net_pbw = pbw[i] # assumes registration's fixed image was plastic, so no distortion
         # net_pbw = net_pixel_bandwidth(pbw[1+i], pbw[0])  # Hz
@@ -80,8 +80,11 @@ def plot_field_results(fig, results, true_field, deformation_fields, rbw, pbw, f
         imshow2(axes[i, 0], simulated_deformation[..., field_dir] * result_mask, slc_xy, slc_xz, mask=~result_mask, y_label='Read', x1_label='Phase', x2_label='Slice', **kwargs)
         imshow2(axes[i, 1], measured_deformation * result_mask, slc_xy, slc_xz, mask=~result_mask, **kwargs)
         im, _ = imshow2(axes[i, 2], (simulated_deformation[..., field_dir] - measured_deformation) * result_mask, slc_xy, slc_xz, mask=~result_mask, **kwargs)
-        fig.colorbar(im, ax=axes[i, :], ticks=[-4, -2, 0, 2, 4], label='Displacement (pixels)', location='right')
+        colorbar(fig, axes[i, :], im)
     return axes
+
+def colorbar(fig, axes, im, lim=2):
+    fig.colorbar(im, ax=axes, ticks=[-lim, -lim/2, 0, lim/2, lim], label='Displacement (pixels, read)', location='right', shrink=0.9)
 
 def plot_summary_results(fig, results, reference, field, rbw, pbw):
     axes = fig.subplots()
