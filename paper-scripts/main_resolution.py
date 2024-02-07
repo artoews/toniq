@@ -16,6 +16,7 @@ from slice_params import *
 from plot_params import *
 
 slc = tuple(slice(s.start*2, s.stop*2) for s in LATTICE_SLC[:2]) + (LATTICE_SLC[2],)
+# slc = tuple(slice(s.start*2, s.stop*2) for s in LATTICE_SLC)
 
 p = argparse.ArgumentParser(description='Resolution analysis of image volumes with common dimensions.')
 p.add_argument('root', type=str, help='path where outputs are saved')
@@ -36,6 +37,7 @@ if __name__ == '__main__':
 
     save_dir = path.join(args.root, 'resolution')
     artifact_dir = path.join(args.root, 'artifact')
+    distortion_dir = path.join(args.root, 'distortion')
     if not path.exists(save_dir):
         makedirs(save_dir)
 
@@ -47,6 +49,8 @@ if __name__ == '__main__':
         matrix_shapes = np.stack([np.array(image.meta.acqMatrixShape) for image in images])
         resolution_mm = images[0].meta.resolution_mm
         unit_cell_pixels = np.array([int(args.unit_cell_mm / r) for r in resolution_mm])
+
+        print(matrix_shapes)
 
         if args.overwrite:
             images = [images[0].data for _ in images]
@@ -76,13 +80,22 @@ if __name__ == '__main__':
             mask = get_signal_mask(implant_mask)
         else:
             ia_maps = np.load(path.join(artifact_dir, 'ia-maps.npy'))
-            artifact_mask = get_artifact_mask(ia_maps[0], args.threshold, empty=False)  # TODO update to True when you get res data in same session as empty data
-            mask = get_signal_mask(implant_mask, artifact_masks=[artifact_mask])
+            gd_maps = np.load(path.join(distortion_dir, 'gd-maps.npy'))
+            ia_mask = get_artifact_mask(ia_maps[0], args.threshold)
+            gd_masks = [get_artifact_mask(gd_maps[0][..., i], 1) for i in range(3)]
+            mask = get_signal_mask(implant_mask, artifact_masks=[ia_mask] + gd_masks)
         mask = transform.resize(mask, images[0].shape)
 
         # titles = ['{}x{}'.format(shape[0], shape[1]) for shape in matrix_shapes]
-        # # fig0, tracker0 = plotVolumes((images[0], images[1]), titles=titles[:2])
+        # fig0, tracker0 = plotVolumes((images[0], images[1]), titles=titles[:2])
         # fig1, tracker1 = plotVolumes((images[0], mask))
+        # fig, ax = plt.subplots(figsize=(4, 2), ncols=4, layout='constrained')
+        # slc = (slice(9, 49), slice(10, 50), images.shape[-1]//2)
+        # for i in range(4):
+        #     ax[i].imshow(images[i+1][slc], vmin=0, vmax=1, cmap=CMAP['image'])
+        #     ax[i].set_xticks([])
+        #     ax[i].set_yticks([])
+        # plt.savefig(path.join(save_dir, 'images.png'), dpi=300)
         # plt.show()
         # quit()
         
@@ -122,8 +135,8 @@ if __name__ == '__main__':
     figs = [None] * len(fwhms)
     trackers = [None] * len(fwhms)
     for i in range(len(fwhms)):
-        volumes = (fwhms[i][..., 0], fwhms[i][..., 1], fwhms[i][..., 2])
-        titles = ('FWHM in x (mm)', 'FWHM in y (mm)', 'FWHM in z (mm)')
+        volumes = (fwhms[i][..., 0], fwhms[i][..., 1]) # , fwhms[i][..., 2])
+        titles = ('FWHM in x (mm)', 'FWHM in y (mm)') # , 'FWHM in z (mm)')
         figs[i], trackers[i] = plotVolumes(volumes, titles=titles, figsize=(12, 4), vmin=1, vmax=3, cmap=CMAP['resolution'], cbar=True)
     
     # fig0, tracker0 = plotVolumes((images[0], images[1]), titles=('512x512', '256x256'))
