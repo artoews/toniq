@@ -84,8 +84,8 @@ def forward_model_22(input_kspace, psf_shape):
     no_wrap_size = tuple(np.array(input_kspace.shape[:2]) - np.array(psf_shape[:2]) + np.ones(2, dtype=int))
     FH = sp.linop.FFT(D.oshape, axes=(0, 1)).H
     C = sp.linop.Resize(no_wrap_size + input_kspace.shape[2:], FH.oshape)
-    # return C * FH * D * F * Z
-    return FH * D * F * Z
+    return C * FH * D * F * Z
+    # return FH * D * F * Z
 
 def forward_model_explicit(kspace, psf_shape):
     # old, and not sure this was ever proved to be correct

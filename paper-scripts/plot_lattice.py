@@ -84,10 +84,11 @@ if __name__ == '__main__':
     psf_sizes = range(5, 11)
     psf_shapes = [(size, size, 1) for size in psf_sizes]
 
-    gyroid = make_lattice('gyroid', resolution=res, shape=(2, 2, 2))
+    cell_shape = (2, 2, 2)
+    gyroid = make_lattice('gyroid', resolution=res, shape=cell_shape)
     # gyroid_k = get_kspace_center(gyroid, patch_shape) # TODO could try adding Fermi filter type of thing here
     gyroid_k = get_kspace_center_2(gyroid, patch_shape)
-    cubic = make_lattice('cubic', resolution=res, shape=(2, 2, 2))
+    cubic = make_lattice('cubic', resolution=res, shape=cell_shape)
     cubic = np.roll(np.roll(cubic, -1, axis=0), -1, axis=2) # better form for visualization purposes
     # cubic_k = get_kspace_center(cubic, patch_shape)
     cubic_k = get_kspace_center_2(cubic, patch_shape)
@@ -112,7 +113,7 @@ if __name__ == '__main__':
     fig_A, fig_B, fig_C = fig.subfigures(1, 3, wspace=0.1, width_ratios=(2, 5, 3))
     # axes_A = plot_cells(fig_A, cubic, gyroid)
     start = cubic_k.shape[-1] // 2
-    axes_B = plot_image_panel(fig_B, cubic_k[:, :, start:start+5], gyroid_k[:, :, start:start+5], vmax=7, log=True)
+    axes_B = plot_image_panel(fig_B, cubic_k[:, :, :3], gyroid_k[:, :, :3], vmax=7, log=True)
     axes_C = plot_condition(fig_C, l2_list, psf_sizes, condition_cubic, condition_gyroid)
     # letter_annotation(axes_A[0], -0.2, 1.1, 'A')
     # letter_annotation(axes_B[0][0], -0.2, 1.1, 'B')
