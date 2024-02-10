@@ -16,12 +16,17 @@ def load_series(exam_root, series_name):
     image = dicom.load_series(files)
     return image
 
-def equalize(images, pct=99):
-    if type(images) == list:
-        images = np.stack(images, axis=0)
-        is_list = True
+def load_series_from_path(series_path):
+    files = Path(series_path).glob('*MRDC*')
+    image = dicom.load_series(files)
+    return image
+
+def equalize(images, pct=99, axis=0):
+    if type(images) == np.ndarray:
+        images = list(np.moveaxis(images, axis, 0))
+        is_array = True
     else:
-        is_list = False
+        is_array = False
     images = np.abs(images)
     images[0] = normalize(images[0], pct=pct)
     otsu_thresholds = [filters.threshold_otsu(image) for image in images]
@@ -29,8 +34,8 @@ def equalize(images, pct=99):
     signal_masks = [morphology.binary_erosion(mask, footprint=morphology.cube(4)) for mask in signal_masks]
     for i in range(1, len(images)):
         images[i] *= np.median(images[0][signal_masks[i]]) / np.median(images[i][signal_masks[i]])
-    if is_list:
-        images = list(images)
+    if is_array:
+        images = np.moveaxis(np.array(images), 0, axis)
     return images
 
 def normalize(image, pct=99):
