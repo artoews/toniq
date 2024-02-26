@@ -27,15 +27,16 @@ def equalize(images, pct=99, axis=0):
         is_array = True
     else:
         is_array = False
-    images = np.abs(images)
+    images = [np.abs(image) for image in images]
     images[0] = normalize(images[0], pct=pct)
     otsu_thresholds = [filters.threshold_otsu(image) for image in images]
     signal_masks = [image > thresh for image, thresh in zip(images, otsu_thresholds)]
-    signal_masks = [morphology.binary_erosion(mask, footprint=morphology.cube(4)) for mask in signal_masks]
+    signal_masks = [morphology.binary_erosion(mask, footprint=np.ones((4,)*images[0].ndim)) for mask in signal_masks]
     for i in range(1, len(images)):
-        images[i] *= np.median(images[0][signal_masks[i]]) / np.median(images[i][signal_masks[i]])
+        images[i] *= np.median(images[0][signal_masks[0]]) / np.median(images[i][signal_masks[i]])
+        # images[i] *= np.median(images[0][signal_masks[i]]) / np.median(images[i][signal_masks[i]])
     if is_array:
-        images = np.moveaxis(np.array(images), 0, axis)
+        images = np.moveaxis(np.stack(images), 0, axis)
     return images
 
 def normalize(image, pct=99):
