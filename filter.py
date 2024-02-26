@@ -31,7 +31,7 @@ def generic_filter(image, function, filter_shape, out_shape, stride, batch_axis,
             (filter_shape,) * num_batches,
             (out_shape,) * num_batches,
             (stride,) * num_batches,
-            (batch_axis,) * num_batches,
+            (batch_axis,) * num_batches
             ))
         with Pool(num_batches) as p:
             result = p.starmap(generic_filter, inputs)
