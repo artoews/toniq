@@ -1,6 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+
+from string import ascii_uppercase
+import matplotlib.transforms as mtransforms
 
 from plot_params import *
 
@@ -112,7 +116,7 @@ def plotVolumes(volumes, nrows=None, ncols=None, vmin=0, vmax=1, cmap='gray', ti
     fig.canvas.mpl_connect('key_press_event', tracker.on_press)
     return fig, tracker
 
-def overlay_mask(ax, mask, color=[100, 100, 100], alpha=255):
+def overlay_mask(ax, mask, color=[0, 0, 0], alpha=255):
     color_mask = np.zeros(mask.shape + (4,), dtype=np.uint8)
     color_mask[mask, :] = np.array(color + [alpha], dtype=np.uint8)
     ax.imshow(color_mask)
@@ -161,3 +165,32 @@ def readout_arrow_annotation(ax, xy=(0.5, 0.7), xytext=(0.5, 0.1), color='black'
         horizontalalignment='center',
         arrowprops=dict(width=2, headwidth=8, headlength=8, color=color)
     )
+
+def remove_ticks(ax):
+    if type(ax) is np.ndarray:
+        for a in ax.flat: 
+            remove_ticks(a)
+    else:
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+def colorbar_axis(ax):
+    return inset_axes(
+        ax,
+        width="5%",
+        height="100%",
+        loc="lower left",
+        bbox_to_anchor=(1.05, 0., 1, 1),
+        bbox_transform=ax.transAxes,
+        borderpad=0,
+    )
+
+def color_panels(subfigs):
+    for panel in subfigs:
+         panel.set_facecolor('0.9')
+
+def label_panels(subfigs, trans_x=0.035, trans_y=-0.13):
+    labels = ('({})'.format(letter) for letter in ascii_uppercase[:len(subfigs)])
+    for label, subfig in zip(labels, subfigs):
+        trans = mtransforms.ScaledTranslation(trans_x, trans_y, subfig.dpi_scale_trans)
+        plt.text(0, 1, label, transform=subfig.transSubfigure + trans)
