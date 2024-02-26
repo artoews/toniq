@@ -4,7 +4,7 @@ import seaborn as sns
 
 from os import path
 
-from plot import imshow2
+from plot import imshow2, colorbar_axis, overlay_mask
 from plot_params import *
 
 def setup_axes(ax, rbw1, rbw2, fontsize):
@@ -72,6 +72,16 @@ def demo(image1, image2, signal, noise_std, snr):
     ax4.set_title('SNR')
 
     return fig
+
+def plot_snr_map(ax, snr_map, mask, lim=0.6, show_cbar=True):
+    lim = np.round(np.max(snr_map)+4.99, -1)
+    im = ax.imshow(snr_map, cmap=CMAP['snr'], vmin=0, vmax=lim)
+    if mask is not None:
+        overlay_mask(ax, ~mask)
+    if show_cbar:
+        cbar = plt.colorbar(im, cax=colorbar_axis(ax), ticks=[0, lim/2, lim])
+        cbar.set_label('SNR', size=SMALL_SIZE)
+        cbar.ax.tick_params(labelsize=SMALLER_SIZE)
 
 if __name__ == '__main__':
 
