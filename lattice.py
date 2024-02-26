@@ -65,9 +65,12 @@ def get_condition(kspace, psf_shape, lamda=0):
     A_op = forward_model_22(kspace, psf_shape)
     # print(A_op)
     A_mtx = get_matrix(A_op, verify=True)
+    # diff_mtx = np.eye(A_mtx.shape[1]) - np.diag(np.ones(A_mtx.shape[1]-1), 1)
+    # print(diff_mtx)
     # print(A_mtx.shape)
     if lamda != 0:
         A_mtx = np.vstack((A_mtx, np.eye(A_mtx.shape[-1]) * np.sqrt(lamda)))
+        # A_mtx = np.vstack((A_mtx, diff_mtx * np.sqrt(lamda)))
     return np.linalg.cond(A_mtx)
 
 def get_kspace_center(lattice, shape):
