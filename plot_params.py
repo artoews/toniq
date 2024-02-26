@@ -1,17 +1,19 @@
 import matplotlib.pyplot as plt
 
-SMALL_SIZE = 10
-MEDIUM_SIZE = 12
-LARGE_SIZE = 14
-plt.rc('font', size=MEDIUM_SIZE)         # controls default text sizes
-plt.rc('axes', titlesize=LARGE_SIZE)     # fontsize of the axes title
+SMALLER_SIZE = 4
+SMALL_SIZE = 6
+MEDIUM_SIZE = 8
+LARGE_SIZE = 10
+plt.rc('font', size=MEDIUM_SIZE, family='serif')         # controls default text sizes
+plt.rc('axes', titlesize=MEDIUM_SIZE)     # fontsize of the axes title
 plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
 plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the x tick labels
 plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the y tick labels
 plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
-plt.rc('figure', titlesize=LARGE_SIZE)   # fontsize of the figure title
+plt.rc('figure', titlesize=MEDIUM_SIZE)   # fontsize of the figure title
 
-plt.rc('lines', linewidth=2.0)
+plt.rc('lines', linewidth=1.0)
+plt.rc('axes', linewidth=0.7)
 
 # colormaps
 CMAP = {
@@ -22,3 +24,7 @@ CMAP = {
     'snr': 'viridis',
     'resolution': 'viridis'
 }
+
+DPI = 300
+
+FIG_WIDTH = (3.42, 5.12, 6.9)  # MRM figure widths (in inches) for single-column, 1.5 column, double column
