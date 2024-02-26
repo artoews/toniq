@@ -19,6 +19,7 @@ def plot_cell(ax, vol):
     ax.set(xlabel='x', ylabel='y', zlabel='z')
     ax.set_aspect('equal')
     ax.set_axis_off()
+    ax.patch.set_alpha(0)
     return ax
 
 def plot_cells(fig, cubic, gyroid):
@@ -69,24 +70,24 @@ def plot_condition(fig, l2_list, psf_sizes, cubic, gyroid):
     # ax.set_ylim([1e0, 1e4])
     ax.legend()
     ax.set_xlim([min(psf_sizes), max(psf_sizes)])
-    ax.set_ylim([50, 300])
+    ax.set_ylim([0, 300])
     plt.grid()
     return ax
 
 
 if __name__ == '__main__':
 
-    save_dir = '/Users/artoews/root/code/projects/metal-phantom/lattice/'
+    save_dir = '/Users/artoews/root/code/projects/metal-phantom/lattice-feb15/'
     res = 1  # should be 1, but can increase to save time
     load_cond = False
-    l2_list = [1e-2, 1e-1, 1]
-    patch_shape = (40, 40, 20)
-    psf_sizes = range(5, 11)
+    l2_list = [1e-10,]
+    patch_shape = (10, 10, 10) 
+    psf_sizes = range(1, 10)
     psf_shapes = [(size, size, 1) for size in psf_sizes]
 
-    cell_shape = (2, 2, 2)
+    cell_shape = (1, 1, 1)
     gyroid = make_lattice('gyroid', resolution=res, shape=cell_shape)
-    # gyroid_k = get_kspace_center(gyroid, patch_shape) # TODO could try adding Fermi filter type of thing here
+    # gyroid_k = get_kspace_center(gyroid, patch_shape)
     gyroid_k = get_kspace_center_2(gyroid, patch_shape)
     cubic = make_lattice('cubic', resolution=res, shape=cell_shape)
     cubic = np.roll(np.roll(cubic, -1, axis=0), -1, axis=2) # better form for visualization purposes
@@ -109,15 +110,17 @@ if __name__ == '__main__':
     print('cubic condition', condition_cubic)
     print('gyroid condition', condition_gyroid)
 
-    fig = plt.figure(figsize=(12, 4), layout='constrained')
-    fig_A, fig_B, fig_C = fig.subfigures(1, 3, wspace=0.1, width_ratios=(2, 5, 3))
+    # fig = plt.figure(figsize=(12, 4), layout='constrained')
+    # fig_A, fig_B, fig_C = fig.subfigures(1, 3, wspace=0.1, width_ratios=(2, 5, 3))
     # axes_A = plot_cells(fig_A, cubic, gyroid)
-    start = cubic_k.shape[-1] // 2
-    axes_B = plot_image_panel(fig_B, cubic_k[:, :, :3], gyroid_k[:, :, :3], vmax=7, log=True)
-    axes_C = plot_condition(fig_C, l2_list, psf_sizes, condition_cubic, condition_gyroid)
+    # start = cubic_k.shape[-1] // 2
+    # axes_B = plot_image_panel(fig_B, cubic_k[:, :, :3], gyroid_k[:, :, :3], vmax=7, log=True)
+    # axes_C = plot_condition(fig_C, l2_list, psf_sizes, condition_cubic, condition_gyroid)
     # letter_annotation(axes_A[0], -0.2, 1.1, 'A')
     # letter_annotation(axes_B[0][0], -0.2, 1.1, 'B')
     # letter_annotation(axes_C, -0.2, 1.1, 'C')
 
+    fig = plt.figure(figsize=(5, 5), layout='constrained')
+    axes = plot_condition(fig, l2_list, psf_sizes, condition_cubic, condition_gyroid)
     plt.savefig(path.join(save_dir, 'condition_analysis.png'), dpi=300)
     plt.show()
