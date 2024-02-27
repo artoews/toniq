@@ -5,8 +5,8 @@ from os import path, makedirs
 
 from artifact import get_artifact_map, get_signal_reference
 from masks import get_implant_mask
-from plot_artifact import plot_artifact_results
-from plot import plotVolumes
+from plot_artifact import plot_artifact_results, plot_signal_ref
+from plot import plotVolumes, imshow2
 
 from util import equalize, load_series, save_args, masked_copy
 from slice_params import *
@@ -27,6 +27,7 @@ if __name__ == '__main__':
     images_file = path.join(save_dir, 'images.npy')
     maps_file = path.join(save_dir, 'ia-maps.npy')
     mask_file = path.join(save_dir, 'implant-mask.npy')
+    sigref_file = path.join(save_dir, 'signal-reference.npy')
     if not path.exists(save_dir):
         makedirs(save_dir)
 
@@ -51,13 +52,16 @@ if __name__ == '__main__':
         np.save(images_file, images)
         np.save(maps_file, ia_maps)
         np.save(mask_file, implant_mask)
+        np.save(sigref_file, sig_refs)
     
     else:
         images = np.load(images_file)
         ia_maps = np.load(maps_file)
         implant_mask = np.load(mask_file)
+        sig_refs = np.load(sigref_file)
     
     plot_artifact_results(images, ia_maps, save_dir=save_dir)
+    plot_signal_ref(images, sig_refs, save_dir=save_dir)
     # image_masked = masked_copy(images[0], implant_mask)
     # fig, tracker = plotVolumes((images[0], image_masked, sig_refs[0]), nrows=1, ncols=3) # for debugging
 

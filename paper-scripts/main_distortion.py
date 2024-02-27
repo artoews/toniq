@@ -99,7 +99,7 @@ if __name__ == '__main__':
         slc_z = (slice(None), slice(None), slice(None), images.shape[-1]//2)
         slc_y = (slice(None), slice(None), images.shape[-2]//2, slice(None))
 
-    plot_image_results(plt.figure(figsize=(12, 5)), masks, images, results, rbw)
+    plot_image_results(plt.figure(figsize=(12, 5)), masks, images, results)
     plt.savefig(path.join(save_dir, 'images.png'), dpi=300)
 
     # plot_field_results(plt.figure(figsize=(12, 5)), results, true_field_kHz, deformation_fields, rbw, pbw, field_dir=0)
