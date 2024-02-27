@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
 from os import path
 import sigpy as sp
 
@@ -11,28 +12,29 @@ from slice_params import *
 from util import equalize, load_series
 
 exam_root = '/Users/artoews/root/data/mri/240202/14446_dicom/'
-series = 'Series4' # 512x512
+series = 'Series5' # 256x256
 save_dir = '/Users/artoews/root/code/projects/metal-phantom/feb2'
 
-lattice_slc = (slice(None),) + tuple(slice(s.start*2, s.stop*2) for s in LATTICE_SLC[:2]) + (LATTICE_SLC[2],)
+# lattice_slc = (slice(None),) + tuple(slice(s.start*2, s.stop*2) for s in LATTICE_SLC[:2]) + (LATTICE_SLC[2],)
+lattice_slc = (slice(None),) + LATTICE_SLC
 slc = (slice(None), slice(None), 18)
-inset_shape = (40, 40, 20)
-inset = (slice(160, 200), slice(160, 200))
-crop_shape = (256, 172)
-psf_shape = (9, 9)
+inset_shape = (10, 10, 10)
+inset = (slice(87, 96), slice(87, 96))
+crop_shape = (128, 172)
+psf_shape = (5, 5)
 
 def plot_panel(ax, image, kspace=False):
     if kspace:
-        vmax = 2
+        vmax = 0.5
         image = np.abs(sp.fft(image))
-        # image = np.log(image + 1)
+        image = np.log(image + 1)
     else:
         vmax = 1
     ax.imshow(image, cmap=CMAP['image'], vmin=0, vmax=vmax) 
     ax.axis('off')
 
 def make_lattice_to_shape(cell, shape):
-    lattice = make_lattice(cell, resolution=1, shape=(2, 2, 2))
+    lattice = make_lattice(cell, resolution=1, shape=(1, 1, 1))
     lattice = np.abs(sp.ifft(sp.resize(sp.fft(lattice), shape)))
     lattice = lattice / np.max(lattice) / 1.5
     return lattice
@@ -50,15 +52,21 @@ def plot_lattice(fig, cube, gyroid):
 def plot_model(fig, reference, target, inset, psf):
     axes = fig.subplots(nrows=3, ncols=3)
     plot_panel(axes[0, 0], target)
+    box_inset(axes[0, 0], inset)
     plot_panel(axes[1, 0], target[inset])
     plot_panel(axes[2, 0], target[inset], kspace=True)
     plot_panel(axes[0, 1], reference)
+    box_inset(axes[0, 1], inset)
     plot_panel(axes[1, 1], reference[inset])
     plot_panel(axes[2, 1], reference[inset], kspace=True)
     axes[0, 2].axis('off')
     plot_panel(axes[1, 2], psf)
     plot_panel(axes[2, 2], psf, kspace=True)
     return axes
+
+def box_inset(axes, slc):
+    rect = Rectangle((slc[0].start, slc[1].start), slc[1].stop - slc[1].start, slc[0].stop - slc[0].start, linewidth=3, edgecolor='r', facecolor='none')
+    axes.add_patch(rect)
 
 def downsample(image, shape):
     k = sp.fft(image)
