@@ -6,18 +6,17 @@ import scipy.ndimage as ndi
 from skimage import morphology
 
 from distortion import net_pixel_bandwidth, simulated_deformation_fse
-from plot import overlay_mask, letter_annotation, imshow2
+from plot import overlay_mask, letter_annotation, imshow2, colorbar_axis
 from util import masked_copy, list_to_formatted_string
 
 from plot_params import *
 from slice_params import *
 
-def plot_image_results(fig, masks, images, results, rbw, show_masks=True):
+def plot_image_results(fig, masks, images, results, show_masks=True):
     slc_xy = (slice(None), slice(None), images[0].shape[2] // 2)
     slc_xz = (slice(None), images[0].shape[1] // 2, slice(None))
     num_trials = len(results)
     axes = fig.subplots(nrows=2*num_trials, ncols=3)
-    # fig.suptitle('Readout BWs {} kHz'.format(list_to_formatted_string(rbw)))
     error_multiplier = 2
 
     titles = ('Plastic', 'Metal', 'Registration')
@@ -109,6 +108,15 @@ def plot_summary_results(fig, results, reference, field, rbw, pbw):
     plt.legend()
     plt.grid()
     return axes
+
+def plot_gd_map(ax, gd_map, mask, lim=2, show_cbar=True):
+    im = ax.imshow(gd_map, cmap=CMAP['field'], vmin=-lim, vmax=lim)
+    if mask is not None:
+        overlay_mask(ax, ~mask)
+    if show_cbar:
+        cbar = plt.colorbar(im, cax=colorbar_axis(ax), ticks=[-lim, -lim/2, 0, lim/2, lim], extend='both')
+        cbar.set_label('Displacement\n(pixels, readout)', size=SMALL_SIZE)
+        cbar.ax.tick_params(labelsize=SMALLER_SIZE)
 
 if __name__ == '__main__':
 
