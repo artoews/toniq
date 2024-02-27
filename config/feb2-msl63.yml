@@ -1,0 +1,15 @@
+dicom-series:
+  empty-plastic: '/Users/artoews/root/data/mri/240202/14446_dicom/Series29'
+  empty-metal: '/Users/artoews/root/data/mri/240202/14446_dicom/Series36'
+  empty-metal-2: '/Users/artoews/root/data/mri/240202/14446_dicom/Series37'
+  lattice-plastic: '/Users/artoews/root/data/mri/240202/14446_dicom/Series17'
+  lattice-metal: '/Users/artoews/root/data/mri/240202/14446_dicom/Series21'
+  lattice-plastic-hr: '/Users/artoews/root/data/mri/240202/14446_dicom/Series4'
+
+params:
+  slice: [[38, 158], [66, 186], [12, 48]]
+  IA-thresh-relative: 0.3
+  GD-thresh-pixels: 1
+  psf-window-size: [40, 40, 20]
+  psf-stride: 1
+  num-workers: 8
