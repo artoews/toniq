@@ -10,19 +10,20 @@ from skimage import morphology, transform
 from masks import get_signal_mask, get_artifact_mask
 from resolution import map_resolution, get_FWHM_from_pixel
 from plot import plotVolumes
-from plot_resolution import box_plots
+from plot_resolution import box_plots, plot_fwhm
 from util import equalize, load_series, save_args
 from slice_params import *
 from plot_params import *
 
-slc = tuple(slice(s.start*2, s.stop*2) for s in LATTICE_SLC[:2]) + (LATTICE_SLC[2],)
-# slc = tuple(slice(s.start*2, s.stop*2) for s in LATTICE_SLC)
+# slc = tuple(slice(s.start*2, s.stop*2) for s in LATTICE_SLC[:2]) + (LATTICE_SLC[2],)
+# patch_shape = (20, 20, 10)
+slc = LATTICE_SLC
+patch_shape = (10, 10, 10)
 
 p = argparse.ArgumentParser(description='Resolution analysis of image volumes with common dimensions.')
 p.add_argument('root', type=str, help='path where outputs are saved')
 p.add_argument('-e', '--exam_root', type=str, default=None, help='directory where exam data exists in subdirectories')
 p.add_argument('-s', '--series_list', type=str, nargs='+', default=None, help='list of exam_root subdirectories to be analyzed, with the first serving as reference')
-p.add_argument('-c', '--unit_cell_mm', type=float, default=12.0, help='size of lattice unit cell (in mm); default=12')
 p.add_argument('--stride', type=int, default=5, help='window stride length for stepping between PSF measurements, in units of pixels; default=5')
 p.add_argument('-n', '--noise', type=float, default=0, help='st. dev. of noise added to k-space; default=0')
 p.add_argument('-o', '--overwrite', action='store_true', help='overwrite target k-space with samples from reference')
@@ -47,15 +48,21 @@ if __name__ == '__main__':
 
         images = [load_series(args.exam_root, series_name) for series_name in args.series_list]
         matrix_shapes = np.stack([np.array(image.meta.acqMatrixShape) for image in images])
-        resolution_mm = images[0].meta.resolution_mm
-        unit_cell_pixels = np.array([int(args.unit_cell_mm / r) for r in resolution_mm])
-
-        print(matrix_shapes)
+        matrix_shapes[1:, 0] = np.array([[240, 230, 220, 210, 200, 190, 180, 170]])
+        # resolution_mm = images[0].meta.resolution_mm
+        resolution_mm = images[1].meta.resolution_mm
 
         if args.overwrite:
             images = [images[0].data for _ in images]
+            # images[0] = np.abs(sp.ifft(sp.resize(sp.resize(sp.fft(images[0]), matrix_shapes[1]), matrix_shapes[0]))) # TODO just debugging see if outer k-space does anything 
         else:
             images = [image.data for image in images]
+
+        # TODO temporary to try downsampling high-res reference; TODO also compare with just using a 256x256 image here
+        images[0] = np.abs(sp.ifft(sp.resize(sp.fft(images[0]), (256, 256, 64))))
+        matrix_shapes[0] = images[0].shape
+
+        print(matrix_shapes)
 
         for i in range(1, len(images)):
             k = sp.fft(images[i])
@@ -69,7 +76,8 @@ if __name__ == '__main__':
         if args.noise != 0:
             for i in range(1, len(images)):
                 k = sp.fft(images[i])
-                noise = np.random.normal(size=matrix_shapes[1], scale=args.noise) # assumes all non-reference images have same DICOM array shape, even if k-space was undersampled
+                # noise = np.random.normal(size=matrix_shapes[1], scale=args.noise) # assumes all non-reference images have same DICOM array shape, even if k-space was undersampled
+                noise = np.random.normal(size=k.shape, scale=args.noise) # assumes all non-reference images have same DICOM array shape, even if k-space was undersampled
                 k += sp.resize(noise, k.shape)
                 images[i] = np.abs(sp.ifft(k))
 
@@ -103,7 +111,7 @@ if __name__ == '__main__':
         fwhms = []
         for i in range(1, len(images)):
             print('working on matrix shape {} with reference {}'.format(i, matrix_shapes[i], matrix_shapes[0]))
-            psf_i, fwhm_i = map_resolution(images[0], images[i], unit_cell_pixels, resolution_mm, mask, args.stride, num_workers=args.workers)
+            psf_i, fwhm_i = map_resolution(images[0], images[i], patch_shape, resolution_mm, mask, args.stride, num_workers=args.workers)
             psfs.append(psf_i)
             fwhms.append(fwhm_i) 
         psfs = np.stack(psfs)
@@ -132,20 +140,21 @@ if __name__ == '__main__':
     
     box_plots(fwhms / resolution_mm[0], matrix_shapes, save_dir=save_dir)
 
-    figs = [None] * len(fwhms)
-    trackers = [None] * len(fwhms)
-    for i in range(len(fwhms)):
-        volumes = (fwhms[i][..., 0], fwhms[i][..., 1]) # , fwhms[i][..., 2])
-        titles = ('FWHM in x (mm)', 'FWHM in y (mm)') # , 'FWHM in z (mm)')
-        figs[i], trackers[i] = plotVolumes(volumes, titles=titles, figsize=(12, 4), vmin=1, vmax=3, cmap=CMAP['resolution'], cbar=True)
-    
-    # fig0, tracker0 = plotVolumes((images[0], images[1]), titles=('512x512', '256x256'))
-    # fig1, tracker1 = plotVolumes((psfs[0, 0, 0, 0], psfs[0, 5, 5, 5], psfs[0, 40, 40, 10]), vmin=0, vmax=10)
+    plot_fwhm(fwhms / resolution_mm[0], (slice(None), slice(None), fwhms[0].shape[2]//2), save_dir=save_dir)
+
+    volumes = []
+    for i in range(2):
+        for j in range(len(fwhms)):
+            volumes += [fwhms[j][..., i] / resolution_mm[i]]
+    fig, tracker = plotVolumes(volumes, figsize=(12, 4), nrows=2, ncols=len(fwhms), vmin=0, vmax=3, cmap=CMAP['resolution'], cbar=True)
+
+    fig0, tracker0 = plotVolumes((images[0], images[1]), titles=('512x512', '256x256'))
+    # fig1, tracker1 = plotVolumes((psfs[0, 0, 0, 0], psfs[0, 5, 5, 5]), vmin=0, vmax=3)
     # print(psfs.shape, fwhms.shape)
-    # print(fwhms[0, 0, 0, 0], fwhms[0, 5, 5, 5], fwhms[0, 40, 40, 10])
+    # print(fwhms[0, 0, 0, 0], fwhms[0, 5, 5, 5])
     # psf = psfs[0, 0, 0, 0]
     # f = get_FWHM_from_pixel(psf)
-    # print(f[0] * resolution_mm[0], f[1] * resolution_mm[1], f[2] * resolution_mm[2])
+    # print(f[0] * resolution_mm[0], f[1] * resolution_mm[1])
     # print('FWHM in pixels', f)
     
     if args.plot:
