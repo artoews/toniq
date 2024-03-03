@@ -81,16 +81,22 @@ if __name__ == '__main__':
     res = 1  # should be 1, but can increase to save time
     load_cond = False
     l2_list = [0,]
+
+    # TODO to test this 10x10x10 case want circular convolution. then it should very close to the same as the 14x14x10 case with no circular convolution
+    # init_patch_shape = (10, 10, 10) # for cropping in k-space
+    # cell_shape = (1, 1, 1)
+    # final_patch_shape = None
     init_patch_shape = (20, 20, 10) # for cropping in k-space
+    cell_shape = (2, 2, 1)
     final_patch_shape = (14, 14, 10) # for cropping in image space
-    psf_sizes = range(1, 11)
+
+    psf_sizes = range(1, 9)
     psf_shapes = [(size, size, 1) for size in psf_sizes]
     
-    cell_shape = (2, 2, 1)
     gyroid = make_lattice('gyroid', resolution=res, shape=cell_shape)
-    gyroid_k = get_kspace_center(gyroid, init_patch_shape, final_patch_shape)
+    gyroid_k = get_kspace_center(gyroid, init_patch_shape, final_shape=final_patch_shape)
     cubic = make_lattice('cubic', resolution=res, shape=cell_shape)
-    cubic_k = get_kspace_center(cubic, init_patch_shape, final_patch_shape)
+    cubic_k = get_kspace_center(cubic, init_patch_shape, final_shape=final_patch_shape)
 
     if load_cond:
         data = np.load(path.join(save_dir, 'outputs.npz'))

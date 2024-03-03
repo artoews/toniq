@@ -77,9 +77,10 @@ def get_condition(kspace, psf_shape, lamda=0):
         A_mtx = np.vstack((A_mtx, np.eye(A_mtx.shape[-1]) * np.sqrt(lamda)))
     return np.linalg.cond(A_mtx)
 
-def get_kspace_center(lattice, init_shape, final_shape):
+def get_kspace_center(lattice, init_shape, final_shape=None):
     kspace = sp.ifft(sp.resize(sp.fft(lattice), init_shape), axes=(2,))
-    kspace = sp.fft(sp.resize(sp.ifft(kspace, axes=(0, 1)), final_shape), axes=(0, 1))
+    if final_shape is not None:
+        kspace = sp.fft(sp.resize(sp.ifft(kspace, axes=(0, 1)), final_shape), axes=(0, 1))
     # kspace = sp.ifft(sp.resize(sp.fft(lattice), shape), axes=(0, 1, 2)) # temp fix for conv model
     return kspace
 
