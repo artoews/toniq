@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from os import path
 import sigpy as sp
 
-from plot import remove_ticks, color_panels, label_panels
+from plot import remove_ticks, color_panels, label_panels, plotVolumes
 from plot_lattice import plot_cell
 from lattice import make_lattice
 from plot_params import *
@@ -11,12 +11,12 @@ from slice_params import *
 
 root = '/Users/artoews/root/code/projects/metal-phantom/feb2/'
 inset_shape = (10, 10, 10)
-kwargs = {'vmin': 0, 'vmax': 1, 'cmap': CMAP['image']}
+kwargs = {'vmin': 0, 'vmax': 1.2, 'cmap': CMAP['image']}
 
 def make_lattice_to_shape(cell, shape):
     lattice = make_lattice(cell, resolution=1, shape=(1, 1, 1))
     lattice = np.abs(sp.ifft(sp.resize(sp.fft(lattice), shape)))
-    lattice = lattice / np.max(lattice) / 1.5
+    lattice = lattice / np.max(lattice)
     return lattice
 
 def plot_slices(fig, lattice):
@@ -25,7 +25,7 @@ def plot_slices(fig, lattice):
     for i in range(num_slices):
         image = lattice[:, :, i]
         kspace = np.abs(sp.fft(image))
-        kspace = np.log(kspace + 1) * 2
+        kspace = np.log(kspace + 1)
         axes[0, i].imshow(image, **kwargs)
         axes[1, i].imshow(kspace, **kwargs)
     axes[0, 0].set_ylabel('Image')
@@ -35,14 +35,14 @@ def plot_slices(fig, lattice):
 
 def plot_lattice(subfig, lattice):
     ax = subfig.subplots(subplot_kw={'projection': '3d'}, gridspec_kw={'left': 0, 'right': 1, 'bottom': 0, 'top': 1})
-    plot_cell(ax, lattice)
+    plot_cell(ax, lattice, vmax=kwargs['vmax'])
 
 fig = plt.figure(figsize=(FIG_WIDTH[2], FIG_WIDTH[2]*0.55))
 subfigs = fig.subfigures(2, 2, wspace=0.03, hspace=0.05, width_ratios=[1, 2.5])
 
 cubic_lattice = make_lattice('cubic', resolution=1, shape=(1, 1, 1))
-cubic_lattice = np.roll(np.roll(cubic_lattice, -1, axis=0), -1, axis=2) # better form for visualization purposes
 gyroid_lattice = make_lattice('gyroid', resolution=1, shape=(1, 1, 1))
+# fig, tracker = plotVolumes((cubic_lattice, gyroid_lattice))
 plot_lattice(subfigs[0, 0], cubic_lattice)
 plot_lattice(subfigs[1, 0], gyroid_lattice)
 
