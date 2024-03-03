@@ -1,7 +1,5 @@
 import numpy as np
-import seaborn as sns
 import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 
 
 from os import path
@@ -31,7 +29,6 @@ def box_plots(fwhms, shapes, save_dir=None, figsize=(5, 5)):
 
     fig, axes = plt.subplots(nrows=2, ncols=1, figsize=figsize)
     ax = axes[0]
-    # sns.boxplot(fwhm_x_nonzero, ax=ax)
     ax.violinplot(fwhm_x_nonzero, showmedians=True)
     ax.set_ylim(y_lim)
     ax.set_yticks(y_ticks)
@@ -43,7 +40,6 @@ def box_plots(fwhms, shapes, save_dir=None, figsize=(5, 5)):
     ax.grid(axis='y')
 
     ax = axes[1]
-    # sns.boxplot(fwhm_y_nonzero, ax=ax)
     ax.violinplot(fwhm_y_nonzero, showmedians=True)
     ax.set_ylim(y_lim)
     ax.set_yticks(y_ticks)
