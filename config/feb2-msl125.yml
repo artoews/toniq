@@ -1,15 +1,15 @@
 dicom-series:
-  empty-plastic: '/Users/artoews/root/data/mri/240202/14446_dicom/Series28'
-  empty-metal: '/Users/artoews/root/data/mri/240202/14446_dicom/Series34'
-  empty-metal-2: '/Users/artoews/root/data/mri/240202/14446_dicom/Series35'
-  lattice-plastic: '/Users/artoews/root/data/mri/240202/14446_dicom/Series16'
-  lattice-metal: '/Users/artoews/root/data/mri/240202/14446_dicom/Series20'
-  lattice-plastic-hr: '/Users/artoews/root/data/mri/240202/14446_dicom/Series4'
+  uniform-plastic: '/Users/artoews/root/data/mri/240202/14446_dicom/Series28'
+  uniform-metal: '/Users/artoews/root/data/mri/240202/14446_dicom/Series34'
+  uniform-metal-2: '/Users/artoews/root/data/mri/240202/14446_dicom/Series35'
+  structured-plastic: '/Users/artoews/root/data/mri/240202/14446_dicom/Series16'
+  structured-metal: '/Users/artoews/root/data/mri/240202/14446_dicom/Series20'
+  structured-plastic-reference: '/Users/artoews/root/data/mri/240202/14446_dicom/Series4'
 
 params:
   slice: [[38, 158], [66, 186], [12, 48]]
   IA-thresh-relative: 0.3
   GD-thresh-pixels: 1
-  psf-window-size: [40, 40, 20]
-  psf-stride: 1
+  psf-window-size: [14, 14, 10]
+  psf-stride: 3
   num-workers: 8
