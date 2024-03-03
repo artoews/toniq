@@ -64,7 +64,7 @@ if __name__ == '__main__':
     
     # IA mapping
     if args.ia or map_all:
-        plastic_image, metal_image = prepare_inputs((images['empty-plastic'].data, images['empty-metal'].data), slc)
+        plastic_image, metal_image = prepare_inputs((images['uniform-plastic'].data, images['uniform-metal'].data), slc)
         implant_mask = get_implant_mask(plastic_image)
         ia_map = get_artifact_map(plastic_image, metal_image, implant_mask)
         np.save(path.join(save_dir, 'ia-plastic.npy'), plastic_image)
@@ -79,7 +79,7 @@ if __name__ == '__main__':
     if args.gd or map_all:
         ia_map = np.load(path.join(save_dir, 'ia-map.npy'))
         implant_mask = np.load(path.join(save_dir, 'implant-mask.npy'))
-        plastic_image, metal_image = prepare_inputs((images['lattice-plastic'].data, images['lattice-metal'].data), slc)
+        plastic_image, metal_image = prepare_inputs((images['structured-plastic'].data, images['structured-metal'].data), slc)
         plastic_mask, metal_mask = get_registration_masks(implant_mask, ia_map, config['params']['IA-thresh-relative'])
         result, result_masked, gd_map = get_distortion_map(plastic_image, metal_image, plastic_mask, metal_mask)
         np.save(path.join(save_dir, 'gd-plastic.npy'), plastic_image)
@@ -100,8 +100,8 @@ if __name__ == '__main__':
     if args.snr or map_all:
         ia_map = np.load(path.join(save_dir, 'ia-map.npy'))
         implant_mask = np.load(path.join(save_dir, 'implant-mask.npy'))
-        image_1, image_2 = prepare_inputs((images['empty-metal'].data, images['empty-metal-2'].data), slc)
-        # image_1, image_2 = prepare_inputs((images['empty-plastic'].data, images['empty-plastic-2'].data), slc)
+        image_1, image_2 = prepare_inputs((images['uniform-metal'].data, images['uniform-metal-2'].data), slc)
+        # image_1, image_2 = prepare_inputs((images['uniform-plastic'].data, images['uniform-plastic-2'].data), slc)
         ia_mask = get_artifact_mask(ia_map, config['params']['IA-thresh-relative'])
         snr_mask = get_signal_mask(implant_mask, artifact_masks=[ia_mask])
         snr, signal, noise_std = map_snr(image_1, image_2, snr_mask)
@@ -109,7 +109,7 @@ if __name__ == '__main__':
         np.save(path.join(save_dir, 'snr-image-2.npy'), image_2)
         np.save(path.join(save_dir, 'snr-mask.npy'), snr_mask)
         np.save(path.join(save_dir, 'snr-map.npy'), snr)
-        fig4, tracker4 = plotVolumes((image_1, image_2, snr/100))
+        fig4, tracker4 = plotVolumes((image_1, image_2, snr/200))
 
     # Resolution mapping
     if args.res or map_all:
@@ -117,19 +117,20 @@ if __name__ == '__main__':
         ia_map = np.load(path.join(save_dir, 'ia-map.npy'))
         ia_mask = get_artifact_mask(ia_map, config['params']['IA-thresh-relative'])
         implant_mask = np.load(path.join(save_dir, 'implant-mask.npy'))
-        image_ref = images['lattice-plastic-hr'].data
-        image_blurred = images['lattice-metal'].data
-        # image_blurred = images['lattice-plastic'].data
-        image_blurred = np.abs(sp.ifft(sp.resize(sp.fft(image_blurred), image_ref.shape)))
-        slc_hr = tuple(slice(s.start*2, s.stop*2) for s in slc[:2]) + slc[2:]
-        image_ref, image_blurred = prepare_inputs((image_ref, image_blurred), slc_hr)
-        resolution_mm = images['lattice-plastic-hr'].meta.resolution_mm
+        image_ref = images['structured-plastic-reference'].data
+        # image_blurred = images['structured-metal'].data
+        image_blurred = images['structured-plastic'].data
+        image_ref = np.abs(sp.ifft(sp.resize(sp.fft(image_ref), image_blurred.shape)))
+        # image_blurred = np.abs(sp.ifft(sp.resize(sp.fft(image_blurred), image_ref.shape)))
+        # slc = tuple(slice(s.start*2, s.stop*2) for s in slc[:2]) + slc[2:]
+        image_ref, image_blurred = prepare_inputs((image_ref, image_blurred), slc)
+        resolution_mm = images['structured-plastic'].meta.resolution_mm
         patch_shape = tuple(config['params']['psf-window-size'])
         num_workers = config['params']['num-workers']
         gd_masks = [get_artifact_mask(gd_map[..., i], config['params']['GD-thresh-pixels']) for i in range(3)]
         # mask = get_signal_mask(implant_mask, artifact_masks=[ia_mask] + gd_masks)
-        mask = get_signal_mask(implant_mask, artifact_masks=[ia_mask]) # ignores GD mask; good for MSL protocols
-        # mask = get_signal_mask(implant_mask) # good for evaluation on plastic
+        # mask = get_signal_mask(implant_mask, artifact_masks=[ia_mask]) # ignores GD mask; good for MSL protocols
+        mask = get_signal_mask(implant_mask) # good for evaluation on plastic
         mask = transform.resize(mask, image_ref.shape)
         psf, fwhm = map_resolution(image_ref, image_blurred, patch_shape, resolution_mm, mask, config['params']['psf-stride'], num_workers=num_workers)
         np.save(path.join(save_dir, 'res-image-ref.npy'), image_ref)
@@ -137,8 +138,13 @@ if __name__ == '__main__':
         np.save(path.join(save_dir, 'res-mask.npy'), mask)
         np.save(path.join(save_dir, 'psf-map.npy'), psf)
         np.save(path.join(save_dir, 'fwhm-map.npy'), fwhm)
-        # fig5, tracker5 = plotVolumes((image_ref, image_blurred))
-        fig6, tracker6 = plotVolumes((fwhm[..., 0], fwhm[..., 1]), vmin=1, vmax=3, cmap=CMAP['resolution'], cbar=True)
+        fig5, tracker5 = plotVolumes((image_ref, image_blurred, mask))
+        res_x_map = fwhm[..., 0] / resolution_mm[0]
+        res_y_map = fwhm[..., 1] / resolution_mm[1]
+        fig6, tracker6 = plotVolumes((res_x_map, res_y_map), vmin=1, vmax=3, cmap=CMAP['resolution'], cbar=True)
+        res_x_map = np.round(fwhm[..., 0] / resolution_mm[0] * 2) / 2
+        res_y_map = np.round(fwhm[..., 1] / resolution_mm[1] * 2) / 2
+        fig7, tracker7 = plotVolumes((res_x_map, res_y_map), vmin=1, vmax=3, cmap=CMAP['resolution'], cbar=True)
 
     # TODO write an accompanying plotting script to take a demo root folder and make the last figure of the paper
 
