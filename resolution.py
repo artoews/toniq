@@ -53,6 +53,7 @@ def forward_model(input_kspace, psf_shape):
     FH = sp.linop.FFT(D.oshape, axes=(0, 1)).H
     C = sp.linop.Resize(no_wrap_size + input_kspace.shape[2:], FH.oshape)
     return C * FH * D * F * Z
+    # return FH * D * F * Z
 
 def forward_model_conv(input_image, psf_shape):
     A = sp.linop.ConvolveFilter(psf_shape, input_image, mode='valid')

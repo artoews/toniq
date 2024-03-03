@@ -82,13 +82,13 @@ if __name__ == '__main__':
     load_cond = False
     l2_list = [0,]
 
-    # TODO to test this 10x10x10 case want circular convolution. then it should very close to the same as the 14x14x10 case with no circular convolution
-    # init_patch_shape = (10, 10, 10) # for cropping in k-space
-    # cell_shape = (1, 1, 1)
-    # final_patch_shape = None
-    init_patch_shape = (20, 20, 10) # for cropping in k-space
-    cell_shape = (2, 2, 1)
-    final_patch_shape = (14, 14, 10) # for cropping in image space
+    # for the 10x10x10 to approximate implementation, need to suppress final crop in the forward model; but the 20x20x10->14x14x10 case below is more accurate anyway
+    init_patch_shape = (10, 10, 10) # for cropping in k-space
+    cell_shape = (1, 1, 1)
+    final_patch_shape = None
+    # init_patch_shape = (20, 20, 10) # for cropping in k-space
+    # cell_shape = (2, 2, 1)
+    # final_patch_shape = (14, 14, 10) # for cropping in image space
 
     psf_sizes = range(1, 9)
     psf_shapes = [(size, size, 1) for size in psf_sizes]
