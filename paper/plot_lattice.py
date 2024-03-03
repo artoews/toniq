@@ -77,21 +77,20 @@ def plot_condition(fig, l2_list, psf_sizes, cubic, gyroid):
 
 if __name__ == '__main__':
 
-    save_dir = '/Users/artoews/root/code/projects/metal-phantom/lattice-feb27/'
+    save_dir = '/Users/artoews/root/code/projects/metal-phantom/sandbox'
     res = 1  # should be 1, but can increase to save time
     load_cond = False
     l2_list = [0,]
-    patch_shape = (10, 10, 10) # remember the cell shape is in integer steps of unit cell. so don't set this to 14!!
-    psf_sizes = range(3, 8)
+    init_patch_shape = (20, 20, 10) # for cropping in k-space
+    final_patch_shape = (14, 14, 10) # for cropping in image space
+    psf_sizes = range(1, 11)
     psf_shapes = [(size, size, 1) for size in psf_sizes]
     
-    # TODO update to accomodate non-integer cell sizes, i.e. cropping in spatial domain
-
-    cell_shape = (1, 1, 1)
+    cell_shape = (2, 2, 1)
     gyroid = make_lattice('gyroid', resolution=res, shape=cell_shape)
-    gyroid_k = get_kspace_center(gyroid, patch_shape)
+    gyroid_k = get_kspace_center(gyroid, init_patch_shape, final_patch_shape)
     cubic = make_lattice('cubic', resolution=res, shape=cell_shape)
-    cubic_k = get_kspace_center(cubic, patch_shape)
+    cubic_k = get_kspace_center(cubic, init_patch_shape, final_patch_shape)
 
     if load_cond:
         data = np.load(path.join(save_dir, 'outputs.npz'))
