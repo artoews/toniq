@@ -9,12 +9,12 @@ from plot_params import *
 
 styles = ['dotted', 'solid', 'dashed']
 
-def plot_cell(ax, vol):
+def plot_cell(ax, vol, vmax=1):
     filled = np.ones_like(vol)
     filled[1:-1, 1:-1, 1:-1] = 0
-    facecolors = np.empty(vol.shape, dtype=str)
-    facecolors[vol==0] = 'k'
-    facecolors[vol==1] = 'w'
+    facecolors = np.empty(vol.shape + (3,), dtype=np.float)
+    facecolors[vol==0] = np.zeros(3)
+    facecolors[vol==1] = np.ones(3) / vmax
     ax.voxels(filled, facecolors=facecolors, edgecolors=facecolors)
     ax.set(xlabel='x', ylabel='y', zlabel='z')
     ax.set_aspect('equal')
@@ -77,12 +77,12 @@ def plot_condition(fig, l2_list, psf_sizes, cubic, gyroid):
 
 if __name__ == '__main__':
 
-    save_dir = '/Users/artoews/root/code/projects/metal-phantom/lattice-feb15/'
+    save_dir = '/Users/artoews/root/code/projects/metal-phantom/lattice-feb27/'
     res = 1  # should be 1, but can increase to save time
     load_cond = False
-    l2_list = [1e-10,]
-    patch_shape = (10, 10, 10) 
-    psf_sizes = range(1, 10)
+    l2_list = [0,]
+    patch_shape = (10, 10, 10) # remember the cell shape is in intenger steps of unit cell. so don't set this to 14!!
+    psf_sizes = range(3, 8)
     psf_shapes = [(size, size, 1) for size in psf_sizes]
 
     cell_shape = (1, 1, 1)
@@ -90,7 +90,6 @@ if __name__ == '__main__':
     # gyroid_k = get_kspace_center(gyroid, patch_shape)
     gyroid_k = get_kspace_center_2(gyroid, patch_shape)
     cubic = make_lattice('cubic', resolution=res, shape=cell_shape)
-    cubic = np.roll(np.roll(cubic, -1, axis=0), -1, axis=2) # better form for visualization purposes
     # cubic_k = get_kspace_center(cubic, patch_shape)
     cubic_k = get_kspace_center_2(cubic, patch_shape)
 
