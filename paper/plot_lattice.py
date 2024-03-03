@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from os import path
 
-from lattice import make_lattice, get_kspace_center, get_kspace_center_2, get_condition
+from lattice import make_lattice, get_kspace_center, get_condition
 from plot import letter_annotation
 
 from plot_params import *
@@ -81,17 +81,17 @@ if __name__ == '__main__':
     res = 1  # should be 1, but can increase to save time
     load_cond = False
     l2_list = [0,]
-    patch_shape = (10, 10, 10) # remember the cell shape is in intenger steps of unit cell. so don't set this to 14!!
+    patch_shape = (10, 10, 10) # remember the cell shape is in integer steps of unit cell. so don't set this to 14!!
     psf_sizes = range(3, 8)
     psf_shapes = [(size, size, 1) for size in psf_sizes]
+    
+    # TODO update to accomodate non-integer cell sizes, i.e. cropping in spatial domain
 
     cell_shape = (1, 1, 1)
     gyroid = make_lattice('gyroid', resolution=res, shape=cell_shape)
-    # gyroid_k = get_kspace_center(gyroid, patch_shape)
-    gyroid_k = get_kspace_center_2(gyroid, patch_shape)
+    gyroid_k = get_kspace_center(gyroid, patch_shape)
     cubic = make_lattice('cubic', resolution=res, shape=cell_shape)
-    # cubic_k = get_kspace_center(cubic, patch_shape)
-    cubic_k = get_kspace_center_2(cubic, patch_shape)
+    cubic_k = get_kspace_center(cubic, patch_shape)
 
     if load_cond:
         data = np.load(path.join(save_dir, 'outputs.npz'))

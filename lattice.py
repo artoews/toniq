@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from linop import get_matrix
 from plot import plotVolumes
-from resolution import forward_model, forward_model_2, forward_model_22, forward_model_conv
+from resolution import forward_model, forward_model_conv
 import sigpy as sp
 import scipy.ndimage as ndi
 from skimage import morphology
@@ -68,24 +68,18 @@ def make_lattice(type, shape=(1, 1, 1), resolution=1):
     return lattice
 
 def get_condition(kspace, psf_shape, lamda=0):
-    A_op = forward_model_22(kspace, psf_shape)
+    A_op = forward_model(kspace, psf_shape)
     # A_op = forward_model_conv(kspace, psf_shape)
     # print(A_op)
     A_mtx = get_matrix(A_op, verify=True)
-    # diff_mtx = np.eye(A_mtx.shape[1]) - np.diag(np.ones(A_mtx.shape[1]-1), 1)
-    # print(diff_mtx)
     # print(A_mtx.shape)
     if lamda != 0:
         A_mtx = np.vstack((A_mtx, np.eye(A_mtx.shape[-1]) * np.sqrt(lamda)))
-        # A_mtx = np.vstack((A_mtx, diff_mtx * np.sqrt(lamda)))
     return np.linalg.cond(A_mtx)
 
 def get_kspace_center(lattice, shape):
-    return sp.resize(sp.fft(lattice), shape)
-
-def get_kspace_center_2(lattice, shape):
     return sp.ifft(sp.resize(sp.fft(lattice), shape), axes=(2,))
-    # return sp.ifft(sp.resize(sp.fft(lattice), shape), axes=(0, 1, 2)) # temp fix
+    # return sp.ifft(sp.resize(sp.fft(lattice), shape), axes=(0, 1, 2)) # temp fix for conv model
 
 
 if __name__ == '__main__':
