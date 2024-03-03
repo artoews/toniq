@@ -22,7 +22,7 @@ CMAP = {
     'artifact': 'RdBu_r',
     'distortion': 'RdBu_r',
     'snr': 'viridis',
-    'resolution': 'viridis'
+    'resolution': 'gray'
 }
 
 DPI = 300
