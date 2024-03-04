@@ -12,6 +12,7 @@ from scipy.signal import unit_impulse
 
 from plot_params import *
 
+from config import parse_slice
 from masks import get_implant_mask, get_signal_mask
 from resolution import map_resolution, get_FWHM_from_pixel
 from util import normalize, load_series_from_path
@@ -25,9 +26,6 @@ def gaussian_blur(image, sigma, axes=(0,)):
 def gaussian_psf(shape, sigma, axes=(0,)):
     image = unit_impulse(shape, idx='mid')
     return gaussian_blur(image, sigma, axes)
-
-def parse_slice(config):
-    return tuple(slice(start, stop) for start, stop in config['params']['slice'])
 
 def plot_fwhm_maps(maps):
     volumes = []

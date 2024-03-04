@@ -8,6 +8,7 @@ import yaml
 from os import path, makedirs
 from pathlib import Path
 
+from config import parse_slice
 from retro_res import gaussian_blur, gaussian_psf
 from slice_params import *
 from plot_params import *
@@ -15,9 +16,6 @@ from plot import remove_ticks, color_panels, label_panels
 from util import load_series_from_path, normalize
 
 kwargs = {'vmin': 0, 'vmax': 1, 'cmap': CMAP['image']}
-
-def parse_slice(config):
-    return tuple(slice(start, stop) for start, stop in config['params']['slice'])
 
 def plot_inputs(fig, target, reference, inset):
     axes = fig.subplots(2, 1, gridspec_kw={'left': 0.05, 'right': 0.95, 'bottom': 0.05, 'top': 0.92})
