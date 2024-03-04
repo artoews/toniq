@@ -2,16 +2,14 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.transforms as mtransforms
-import yaml
 
 from os import path, makedirs
-from pathlib import Path
 
-from config import parse_slice  
+from config import read_config, parse_slice
 from plot_params import *
 from util import equalize, load_series_from_path
 
-def plot_panel(ax, image, cmap=CMAP['image'], vmin=0, vmax=1):
+def plot_panel(ax, image, cmap=CMAP['image'], vmin=0, vmax=1.5):
     ax.imshow(image, cmap=cmap, vmin=vmin, vmax=vmax)
     ax.set_xticks([])
     ax.set_yticks([])
@@ -38,10 +36,8 @@ if __name__ == '__main__':
     if not path.exists(args.save_dir):
         makedirs(args.save_dir)
 
-    with open(args.config1, 'r') as file:
-        config1 = yaml.safe_load(file)
-    with open(args.config2, 'r') as file:
-        config2 = yaml.safe_load(file)
+    config1 = read_config(args.config1)
+    config2 = read_config(args.config2)
     slc = parse_slice(config2)[:2] + (slice(None),)
 
     slices = (
@@ -49,7 +45,6 @@ if __name__ == '__main__':
         slc[:2] + (args.slice2,),
         slc[:1] + (args.slice3,) + slc[2:]
     )
-
     paths = (
         config1['dicom-series']['uniform-plastic'],
         config1['dicom-series']['uniform-metal'],
@@ -71,7 +66,7 @@ if __name__ == '__main__':
     
     for i in range(len(paths)):
         for j in range(len(slices)):
-            plot_panel(axes[i, j], images[i][slices[j]], vmax=1.5)
+            plot_panel(axes[i, j], images[i][slices[j]])
             if j < len(slices) - 1:
                 plot_line(axes[i, -1], slices[j][-1])
             axes[0, j].set_title(slice_names[j])
