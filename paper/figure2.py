@@ -1,9 +1,9 @@
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-import matplotlib.transforms as mtransforms
 
-from os import path
+from os import path, makedirs
 
 from plot_artifact import plot_ia_map
 from plot_distortion import plot_gd_map
@@ -11,7 +11,6 @@ from plot_snr import plot_snr_map
 from plot_resolution import plot_res_map
 from plot_params import *
 from plot import remove_ticks, color_panels, label_panels
-from string import ascii_uppercase
 
 def plot_inputs_panel(fig, up, um, sp, sm):
     kwargs = {'vmin': 0, 'vmax': 1, 'cmap': CMAP['image']}
@@ -52,50 +51,65 @@ def plot_output_panel(fig, input1, input2, map, mask, map_plotter, title):
         remove_ticks(ax)
     return ax1, ax2, ax3
 
-root = '/Users/artoews/root/code/projects/metal-phantom/feb2/'
-slc = (slice(None), slice(None), 19)
+p = argparse.ArgumentParser(description='Make figure 2')
+p.add_argument('root', type=str, help='root to demo data subfolder')
+p.add_argument('save_dir', type=str, help='path where figure is saved')
+p.add_argument('-s', '--slice', type=int, default=19, help='z index of slice')
+p.add_argument('-p', '--plot', action='store_true', help='show plots')
 
-empty_images = np.load(path.join(root, 'artifact', 'images.npy'))
-lattice_images = np.load(path.join(root, 'distortion', 'images.npy'))
-implant_mask = np.load(path.join(root, 'artifact', 'implant-mask.npy'))
-ia_maps = np.load(path.join(root, 'artifact', 'ia-maps.npy'))
-gd_maps = np.load(path.join(root, 'distortion', 'gd-maps.npy'))
-gd_masks = np.load(path.join(root, 'distortion', 'gd-masks.npy'))
-snr_maps = np.load(path.join(root, 'snr', 'snr-maps.npy'))
-snr_masks = np.load(path.join(root, 'snr', 'snr-masks.npy'))
-res_maps = np.load(path.join(root, 'resolution', 'res-maps.npy'))
-res_masks = np.load(path.join(root, 'resolution', 'res-masks.npy'))
+if __name__ == '__main__':
 
-up = empty_images[0][slc]
-um = empty_images[1][slc]
-sp = lattice_images[0][slc]
-sm = lattice_images[1][slc]
+    args = p.parse_args()
+    if not path.exists(args.save_dir):
+        makedirs(args.save_dir)
 
-ia_map = ia_maps[0][slc]
-gd_map = -gd_maps[0][..., 0][slc]
-gd_mask = gd_masks[1][slc]
-snr_map = snr_maps[0][slc]
-snr_mask = snr_masks[0][slc]
-res_map = res_maps[0][..., 0][slc]
-res_mask = (res_map != 0)
+    slc = (slice(None), slice(None), args.slice)
 
-fig = plt.figure(figsize=(FIG_WIDTH[2], FIG_WIDTH[2]*0.35))
-margin = 0.04
-subfigs = fig.subfigures(1, 2, width_ratios=[1, 2], wspace=margin/2, hspace=margin)
-subsubfigs = subfigs[1].subfigures(2, 2, wspace=margin/2, hspace=margin)
+    implant_mask = np.load(path.join(args.root, 'implant-mask.npy'))
+    ia_map = np.load(path.join(args.root, 'ia-map.npy'))
+    gd_map = np.load(path.join(args.root, 'gd-map.npy'))
+    gd_mask = np.load(path.join(args.root, 'gd-metal-registered-masked.npy')) != 0
+    # gd_mask = np.load(path.join(args.root, 'gd-plastic-mask.npy'))
+    snr_map = np.load(path.join(args.root, 'snr-map.npy'))
+    snr_mask = np.load(path.join(args.root, 'snr-mask.npy'))
+    res_map = np.load(path.join(args.root, 'fwhm-map.npy'))
+    res_mask = np.load(path.join(args.root, 'res-mask.npy'))
 
-plot_inputs_panel(subfigs[0], up, um, sp, sm)
-plot_output_panel(subsubfigs[0, 0], up, um, ia_map, None, plot_ia_map, 'Intensity Artifact')
-plot_output_panel(subsubfigs[0, 1], um, um, snr_map, snr_mask, plot_snr_map, 'SNR')
-plot_output_panel(subsubfigs[1, 0], sp, sm, gd_map, gd_mask, plot_gd_map, 'Geometric Distortion')
-ax, _, _ = plot_output_panel(subsubfigs[1, 1], sp, sm, res_map, res_mask, plot_res_map, 'Spatial Resolution')
+    ia_plastic = np.load(path.join(args.root, 'ia-plastic.npy'))[slc]
+    ia_metal = np.load(path.join(args.root, 'ia-metal.npy'))[slc]
+    gd_plastic = np.load(path.join(args.root, 'gd-plastic.npy'))[slc]
+    gd_metal = np.load(path.join(args.root, 'gd-metal.npy'))[slc]
+    snr_image1 = np.load(path.join(args.root, 'snr-image-1.npy'))[slc]
+    snr_image2 = np.load(path.join(args.root, 'snr-image-2.npy'))[slc]
+    res_reference = np.load(path.join(args.root, 'res-image-ref.npy'))[slc]
+    res_target = np.load(path.join(args.root, 'res-image-blurred.npy'))[slc]
 
-for spine in ax.spines.values():
-    spine.set_edgecolor('blue')
+    ia_map = ia_map[slc]
+    gd_map = -gd_map[..., 0][slc]
+    gd_mask = gd_mask[slc]
+    snr_map = snr_map[slc]
+    snr_mask = snr_mask[slc]
+    res_map = res_map[..., 0][slc]
+    res_mask = (res_map != 0)
 
-color_panels([subfigs[0],] + list(subsubfigs.ravel()))
-label_panels([subfigs[0],] + list(subsubfigs.ravel()))
+    fig = plt.figure(figsize=(FIG_WIDTH[2], FIG_WIDTH[2]*0.35))
+    margin = 0.04
+    subfigs = fig.subfigures(1, 2, width_ratios=[1, 2], wspace=margin/2, hspace=margin)
+    subsubfigs = subfigs[1].subfigures(2, 2, wspace=margin/2, hspace=margin)
 
-plt.savefig(path.join(root, 'figure2.png'), dpi=DPI)
+    plot_inputs_panel(subfigs[0], ia_plastic, ia_metal, gd_plastic, gd_metal)
+    plot_output_panel(subsubfigs[0, 0], ia_plastic, ia_metal, ia_map, None, plot_ia_map, 'Intensity Artifact')
+    plot_output_panel(subsubfigs[0, 1], snr_image1, snr_image2, snr_map, snr_mask, plot_snr_map, 'SNR')
+    plot_output_panel(subsubfigs[1, 0], gd_plastic, gd_metal, gd_map, gd_mask, plot_gd_map, 'Geometric Distortion')
+    ax, _, _ = plot_output_panel(subsubfigs[1, 1], res_reference, res_target, res_map, res_mask, plot_res_map, 'Spatial Resolution')
 
-plt.show()
+    for spine in ax.spines.values():
+        spine.set_edgecolor('blue')
+
+    color_panels([subfigs[0],] + list(subsubfigs.ravel()))
+    label_panels([subfigs[0],] + list(subsubfigs.ravel()))
+
+    plt.savefig(path.join(args.save_dir, 'figure2.png'), dpi=DPI)
+
+    if args.plot:
+        plt.show()
