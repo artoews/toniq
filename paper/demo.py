@@ -104,6 +104,7 @@ if __name__ == '__main__':
         # image_1, image_2 = prepare_inputs((images['uniform-plastic'].data, images['uniform-plastic-2'].data), slc)
         ia_mask = get_artifact_mask(ia_map, config['params']['IA-thresh-relative'])
         snr_mask = get_signal_mask(implant_mask, artifact_masks=[ia_mask])
+        # snr_mask = get_signal_mask(implant_mask) # good for evaluation on plastic
         snr, signal, noise_std = map_snr(image_1, image_2, snr_mask)
         np.save(path.join(save_dir, 'snr-image-1.npy'), image_1)
         np.save(path.join(save_dir, 'snr-image-2.npy'), image_2)
