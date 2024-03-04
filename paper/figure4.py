@@ -48,7 +48,7 @@ def plot_model(fig, target, reference, psf):
     remove_ticks(axes)
 
 p = argparse.ArgumentParser(description='Make figure 4')
-p.add_argument('root', type=str, help='path where outputs are saved')
+p.add_argument('save_dir', type=str, help='path where figure is saved')
 p.add_argument('config', type=str, default=None, help='yaml config file specifying data paths and mapping parameters')
 p.add_argument('-x', type=int, default=100, help='x coordinate of inset location')
 p.add_argument('-y', type=int, default=92, help='x coordinate of inset location')
@@ -60,9 +60,8 @@ if __name__ == '__main__':
 
     # process args
     args = p.parse_args()
-    save_dir = path.join(args.root, Path(args.config).stem)
-    if not path.exists(save_dir):
-        makedirs(save_dir)
+    if not path.exists(args.save_dir):
+        makedirs(args.save_dir)
 
     # process config
     with open(args.config, 'r') as file:
@@ -93,6 +92,6 @@ if __name__ == '__main__':
     label_panels(subfigs)
     color_panels(subfigs)
 
-    plt.savefig(path.join(args.root, 'figure4.png'), dpi=DPI)
+    plt.savefig(path.join(args.save_dir, 'figure4.png'), dpi=DPI)
 
     plt.show()
