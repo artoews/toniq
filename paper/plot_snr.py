@@ -73,8 +73,9 @@ def demo(image1, image2, signal, noise_std, snr):
 
     return fig
 
-def plot_snr_map(ax, snr_map, mask, lim=0.6, show_cbar=True):
-    lim = np.round(np.max(snr_map)+4.99, -1)
+def plot_snr_map(ax, snr_map, mask, show_cbar=True):
+    # lim = np.round(np.max(snr_map)+4.99, -1)
+    lim = 100
     im = ax.imshow(snr_map, cmap=CMAP['snr'], vmin=0, vmax=lim)
     if mask is not None:
         overlay_mask(ax, ~mask)

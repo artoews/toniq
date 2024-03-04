@@ -78,11 +78,11 @@ def plot_fwhm(fwhms, slc, figsize=(10, 5), vmin=0, vmax=3, save_dir=None):
     if save_dir is not None:
         plt.savefig(path.join(save_dir, 'fwhm-images.png'), dpi=300)
 
-def plot_res_map(ax, snr_map, mask, vmin=0, vmax=3, show_cbar=True):
+def plot_res_map(ax, snr_map, mask, vmin=1, vmax=3, show_cbar=True):
     im = ax.imshow(snr_map, cmap=CMAP['resolution'], vmin=vmin, vmax=vmax)
     if mask is not None:
         overlay_mask(ax, ~mask)
     if show_cbar:
-        cbar = plt.colorbar(im, cax=colorbar_axis(ax), ticks=[vmin, (vmax-vmin)/2, vmax])
+        cbar = plt.colorbar(im, cax=colorbar_axis(ax), ticks=[vmin, vmin + (vmax-vmin)/2, vmax])
         cbar.set_label('FWHM\n(mm, readout)', size=SMALL_SIZE)
         cbar.ax.tick_params(labelsize=SMALLER_SIZE)
