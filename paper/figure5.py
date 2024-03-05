@@ -4,7 +4,6 @@ from os import path
 import sigpy as sp
 
 from plot import remove_ticks, color_panels, label_panels, plotVolumes
-from plot_lattice import plot_cell
 from lattice import make_lattice
 from plot_params import *
 from slice_params import *
@@ -12,6 +11,19 @@ from slice_params import *
 root = '/Users/artoews/root/code/projects/metal-phantom/feb2/'
 inset_shape = (10, 10, 10)
 kwargs = {'vmin': 0, 'vmax': 1.2, 'cmap': CMAP['image']}
+
+def plot_cell(ax, vol, vmax=1):
+    filled = np.ones_like(vol)
+    filled[1:-1, 1:-1, 1:-1] = 0
+    facecolors = np.empty(vol.shape + (3,), dtype=np.float)
+    facecolors[vol==0] = np.zeros(3)
+    facecolors[vol==1] = np.ones(3) / vmax
+    ax.voxels(filled, facecolors=facecolors, edgecolors=facecolors)
+    ax.set(xlabel='x', ylabel='y', zlabel='z')
+    ax.set_aspect('equal')
+    ax.set_axis_off()
+    ax.patch.set_alpha(0)
+    return ax
 
 def make_lattice_to_shape(cell, shape):
     lattice = make_lattice(cell, resolution=1, shape=(1, 1, 1))

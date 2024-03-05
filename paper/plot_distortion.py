@@ -79,11 +79,17 @@ def plot_field_results(fig, results, true_field, deformation_fields, rbw, pbw, f
         imshow2(axes[i, 0], simulated_deformation[..., field_dir] * result_mask, slc_xy, slc_xz, mask=~result_mask, y_label='Read', x1_label='Phase', x2_label='Slice', **kwargs)
         imshow2(axes[i, 1], measured_deformation * result_mask, slc_xy, slc_xz, mask=~result_mask, **kwargs)
         im, _ = imshow2(axes[i, 2], (simulated_deformation[..., field_dir] - measured_deformation) * result_mask, slc_xy, slc_xz, mask=~result_mask, **kwargs)
-        colorbar(fig, axes[i, :], im)
+        colorbar_old(fig, axes[i, :], im)
     return axes
 
-def colorbar(fig, axes, im, lim=2):
+def colorbar_old(fig, axes, im, lim=2):
     fig.colorbar(im, ax=axes, ticks=[-lim, -lim/2, 0, lim/2, lim], label='Displacement (pixels, read)', location='right', shrink=0.9)
+
+def colorbar(ax, im, lim=2, offset=0):
+    cbar = plt.colorbar(im, cax=colorbar_axis(ax, offset=offset), ticks=[-lim, -lim/2, 0, lim/2, lim], extend='both')
+    cbar.set_label('Displacement\n(pixels, readout)', size=SMALL_SIZE)
+    cbar.ax.tick_params(labelsize=SMALLER_SIZE)
+    return cbar
 
 def plot_summary_results(fig, results, reference, field, rbw, pbw):
     axes = fig.subplots()

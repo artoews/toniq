@@ -54,7 +54,7 @@ def plot_output_panel(fig, input1, input2, map, mask, map_plotter, title):
 p = argparse.ArgumentParser(description='Make figure 2')
 p.add_argument('root', type=str, help='root to demo data subfolder')
 p.add_argument('save_dir', type=str, help='path where figure is saved')
-p.add_argument('-s', '--slice', type=int, default=19, help='z index of slice')
+p.add_argument('-z', '--z_slice', type=int, default=19, help='z index of slice')
 p.add_argument('-p', '--plot', action='store_true', help='show plots')
 
 if __name__ == '__main__':
@@ -101,7 +101,8 @@ if __name__ == '__main__':
     plot_output_panel(subsubfigs[0, 0], ia_plastic, ia_metal, ia_map, None, plot_ia_map, 'Intensity Artifact')
     plot_output_panel(subsubfigs[0, 1], snr_image1, snr_image2, snr_map, snr_mask, plot_snr_map, 'SNR')
     plot_output_panel(subsubfigs[1, 0], gd_plastic, gd_metal, gd_map, gd_mask, plot_gd_map, 'Geometric Distortion')
-    ax, _, _ = plot_output_panel(subsubfigs[1, 1], res_reference, res_target, res_map, res_mask, plot_res_map, 'Spatial Resolution')
+    # ax, _, _ = plot_output_panel(subsubfigs[1, 1], res_reference, res_target, res_map, res_mask, plot_res_map, 'Spatial Resolution')
+    ax, _, _ = plot_output_panel(subsubfigs[1, 1], res_reference, res_target, res_map, None, plot_res_map, 'Spatial Resolution')
 
     for spine in ax.spines.values():
         spine.set_edgecolor('blue')

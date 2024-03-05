@@ -21,7 +21,7 @@ def plot_artifact_results(images, maps_artifact, save_dir=None, lim=0.6):
         imshow2(axes[i, 0], images[2*i], slc_xy, slc_xz, y_label='Read', x1_label='Phase', x2_label='Slice')
         imshow2(axes[i, 1], images[2*i+1], slc_xy, slc_xz)
         im, _ = imshow2(axes[i, 2], maps_artifact[i], slc_xy, slc_xz, cmap=CMAP['artifact'], vmin=-lim, vmax=lim)
-        colorbar(fig, axes[i, 2], im)
+        colorbar_old(fig, axes[i, 2], im)
     if save_dir is not None:
         plt.savefig(path.join(save_dir, 'ia_results.png'), dpi=300)
 
@@ -41,17 +41,20 @@ def plot_signal_ref(images, sig_refs, save_dir=None):
     if save_dir is not None:
         plt.savefig(path.join(save_dir, 'signal_reference.png'), dpi=300)
 
-def colorbar(fig, axes, im, lim=0.6):
+def colorbar_old(fig, axes, im, lim=0.6):
     cbar = fig.colorbar(im, ax=axes, ticks=[-lim, -lim/2, 0, lim/2, lim], label='Relative Error (%)', extend='both', shrink=0.9)
     cbar.ax.set_yticklabels(['-{:.0f}'.format(lim*100), '-{:.0f}'.format(lim*50), '0', '{:.0f}'.format(lim*50), '{:.0f}'.format(lim*100)])
     return cbar
+
+def colorbar(ax, im, lim=0.6, offset=0):
+    cbar = plt.colorbar(im, cax=colorbar_axis(ax, offset=offset), ticks=[-lim, -lim/2, 0, lim/2, lim], extend='both')
+    cbar.ax.set_yticklabels(['-{:.0f}'.format(lim*100), '-{:.0f}'.format(lim*50), '0', '{:.0f}'.format(lim*50), '{:.0f}'.format(lim*100)])
+    cbar.set_label('Relative Error\n(%)', size=SMALL_SIZE)
+    cbar.ax.tick_params(labelsize=SMALLER_SIZE)
 
 def plot_ia_map(ax, ia_map, mask, lim=0.6, show_cbar=True):
     im = ax.imshow(ia_map, cmap=CMAP['artifact'], vmin=-lim, vmax=lim)
     if mask is not None:
         overlay_mask(ax, ~mask)
     if show_cbar:
-        cbar = plt.colorbar(im, cax=colorbar_axis(ax), ticks=[-lim, -lim/2, 0, lim/2, lim], extend='both')
-        cbar.ax.set_yticklabels(['-{:.0f}'.format(lim*100), '-{:.0f}'.format(lim*50), '0', '{:.0f}'.format(lim*50), '{:.0f}'.format(lim*100)])
-        cbar.set_label('Relative Error\n(%)', size=SMALL_SIZE)
-        cbar.ax.tick_params(labelsize=SMALLER_SIZE)
+        colorbar(ax, im, lim=lim)
