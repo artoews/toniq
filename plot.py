@@ -128,12 +128,12 @@ def letter_annotation(ax, xoffset, yoffset, letter):
     except:
         ax.text2D(xoffset, yoffset, letter, transform=ax.transAxes, size=18, weight='bold') # works when ax is Axes3D
 
-def imshow2(ax, im, slc1, slc2, vmin=0, vmax=1, cmap='gray', mask=None, y_label=None, x1_label=None, x2_label=None):
+def imshow2(ax, im, slc1, slc2, vmin=0, vmax=1, cmap='gray', mask=None, y_label=None, x1_label=None, x2_label=None, pad=0):
     divider = make_axes_locatable(ax)
     im1 = im[slc1]
     im2 = im[slc2]
     ratio = im2.shape[1] / im1.shape[1] * 100
-    ax2 = divider.append_axes("right", size=str(ratio) + "%", pad=0.1)
+    ax2 = divider.append_axes("right", size=str(ratio) + "%", pad=pad)
     fig1 = ax.get_figure()
     fig1.add_axes(ax2)
     im1= ax.imshow(im[slc1], vmin=vmin, vmax=vmax, cmap=cmap)
@@ -174,13 +174,13 @@ def remove_ticks(ax):
         ax.set_xticks([])
         ax.set_yticks([])
 
-def colorbar_axis(ax):
+def colorbar_axis(ax, offset=0):
     return inset_axes(
         ax,
         width="5%",
         height="100%",
         loc="lower left",
-        bbox_to_anchor=(1.05, 0., 1, 1),
+        bbox_to_anchor=(1.05 + offset, 0., 1, 1),
         bbox_transform=ax.transAxes,
         borderpad=0,
     )
