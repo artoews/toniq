@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 
-SMALLER_SIZE = 4
-SMALL_SIZE = 6
+SMALLER_SIZE = 6
+SMALL_SIZE = 7
 MEDIUM_SIZE = 8
 LARGE_SIZE = 10
 plt.rc('font', size=MEDIUM_SIZE, family='serif')         # controls default text sizes
@@ -25,6 +25,6 @@ CMAP = {
     'resolution': 'gray'
 }
 
-DPI = 300
+DPI = 600
 
 FIG_WIDTH = (3.42, 5.12, 6.9)  # MRM figure widths (in inches) for single-column, 1.5 column, double column
