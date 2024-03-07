@@ -42,7 +42,7 @@ def plot_fwhm_maps(maps):
 def plot_distribution(ax, targets, maps, major_grid=True, minor_grid=True):
     maps = [maps[i][maps[i]>0] for i in range(len(maps))]
     ax.violinplot(maps, showmedians=True)
-    ax.set_xlabel('Trial')
+    ax.set_xlabel('Retrospective Trials')
     # ax.set_xticks(range(1, len(maps)+1))
     ax.set_xticks([])
     ax.set_ylabel('FWHM (pixels)')
@@ -68,7 +68,7 @@ def plot_row(axes, images, slc=None, shape=None, cmap=CMAP['image'], vmin=0, vma
         ims += [im]
     return ims
 
-p = argparse.ArgumentParser(description='Run all four mapping analyses on a single sequence')
+p = argparse.ArgumentParser(description='Make Figure 9')
 p.add_argument('save_dir', type=str, help='path where outputs are saved')
 p.add_argument('config', type=str, default=None, help='yaml config file specifying data paths and mapping parameters')
 p.add_argument('-n', '--noise', type=float, default=0.01, help='standard deviation of noise added to normalized image; default=0.01')
@@ -171,6 +171,7 @@ if __name__ == '__main__':
 
     fig = plt.figure(figsize=(FIG_WIDTH[2], FIG_WIDTH[2] * 0.8))
     subfigs = fig.subfigures(2, 1, hspace=0.03, height_ratios=[1.8, 1])
+    subfigs[0].suptitle('Retrospective Trials')
 
     axes = subfigs[0].subplots(nrows=4, ncols=len(args.sigma), gridspec_kw={'wspace': 0, 'hspace': 0, 'bottom': 0.05, 'right': 0.94})
     inset = (slice(args.x, args.x + args.window_size),
