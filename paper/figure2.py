@@ -25,8 +25,8 @@ def plot_inputs_panel(fig, up, um, sp, sm):
     # for ax in (axes[0, 1], axes[1, 0]):
     #     plt.text(0.77, 0.05, '2x', transform=ax.transAxes, color='white', fontsize=LARGE_SIZE) # , bbox=dict(facecolor='black', alpha=0.5))
     axes[0, 0].annotate("readout",
-        xy=(0.78, 0.30), xycoords='axes fraction',
-        xytext=(0.78, 0.04), textcoords='axes fraction',
+        xy=(0.76, 0.30), xycoords='axes fraction',
+        xytext=(0.76, 0.04), textcoords='axes fraction',
         horizontalalignment="center", size=SMALL_SIZE,
         arrowprops=dict(facecolor='black', width=0.5, headwidth=4, headlength=3)
         )
@@ -63,7 +63,7 @@ if __name__ == '__main__':
     if not path.exists(args.save_dir):
         makedirs(args.save_dir)
 
-    slc = (slice(None), slice(None), args.slice)
+    slc = (slice(None), slice(None), args.z_slice)
 
     implant_mask = np.load(path.join(args.root, 'implant-mask.npy'))
     ia_map = np.load(path.join(args.root, 'ia-map.npy'))
