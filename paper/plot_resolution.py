@@ -67,7 +67,7 @@ def box_plots(fwhms, shapes, save_dir=None, figsize=(5, 5)):
         plt.savefig(path.join(save_dir, 'fwhm-stats.png'), dpi=300)
 
 
-def plot_fwhm(fwhms, slc, figsize=(10, 5), vmin=0, vmax=3, save_dir=None):
+def plot_fwhm(fwhms, slc, figsize=(10, 5), vmin=1, vmax=4, save_dir=None):
     fig, axes = plt.subplots(figsize=figsize, nrows=2, ncols=len(fwhms)+1, layout='constrained', width_ratios=[1] * len(fwhms) + [0.1])
     for ax in axes[:, :-1].ravel():
         ax.axis('off')
@@ -78,13 +78,14 @@ def plot_fwhm(fwhms, slc, figsize=(10, 5), vmin=0, vmax=3, save_dir=None):
     if save_dir is not None:
         plt.savefig(path.join(save_dir, 'fwhm-images.png'), dpi=300)
 
-def plot_res_map(ax, snr_map, mask, vmin=1, vmax=3, show_cbar=True):
-    im = ax.imshow(snr_map, cmap=CMAP['resolution'], vmin=vmin, vmax=vmax)
+def plot_res_map(ax, res_map, mask, vmin=1, vmax=4, show_cbar=True):
+    im = ax.imshow(res_map, cmap=CMAP['resolution'], vmin=vmin, vmax=vmax)
     if mask is not None:
         overlay_mask(ax, ~mask)
     if show_cbar:
-        cbar = colorbar(ax, im, 'FWHM\n(mm, readout)', ticks=[vmin, vmin + (vmax-vmin)/2, vmax])
-        cbar = plt.colorbar(im, cax=colorbar_axis(ax), ticks=[vmin, vmin + (vmax-vmin)/2, vmax])
+        cbar = colorbar(ax, im, 'FWHM (mm)', ticks=[vmin, vmin + (vmax-vmin)/2, vmax])
+        # cbar = plt.colorbar(im, cax=colorbar_axis(ax), ticks=[vmin, vmin + (vmax-vmin)/2, vmax])
+        return cbar
 
 def colorbar(ax, im, label, offset=0, ticks=[1, 2, 3]):
     cbar = plt.colorbar(im, cax=colorbar_axis(ax, offset=offset), ticks=ticks)
