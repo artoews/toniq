@@ -73,16 +73,16 @@ def demo(image1, image2, signal, noise_std, snr):
 
     return fig
 
-def plot_snr_map(ax, snr_map, mask, show_cbar=True):
+def plot_snr_map(ax, snr_map, mask, show_cbar=True, ticks=[0, 100, 200]):
     # lim = np.round(np.max(snr_map)+4.99, -1)
-    lim = 100
-    im = ax.imshow(snr_map, cmap=CMAP['snr'], vmin=0, vmax=lim)
+    im = ax.imshow(snr_map, cmap=CMAP['snr'], vmin=ticks[0], vmax=ticks[-1])
     if mask is not None:
         overlay_mask(ax, ~mask)
     if show_cbar:
-        cbar = plt.colorbar(im, cax=colorbar_axis(ax), ticks=[0, lim/2, lim])
+        cbar = plt.colorbar(im, cax=colorbar_axis(ax), ticks=ticks)
         cbar.set_label('SNR', size=SMALL_SIZE)
         cbar.ax.tick_params(labelsize=SMALLER_SIZE)
+        return cbar
 
 if __name__ == '__main__':
 
