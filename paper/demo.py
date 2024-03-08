@@ -26,7 +26,6 @@ p.add_argument('--ia', action='store_true', help='do intensity artifact map')
 p.add_argument('--gd', action='store_true', help='do geometric distortion map')
 p.add_argument('--snr', action='store_true', help='do SNR map')
 p.add_argument('--res', action='store_true', help='do resolution map')
-# TODO add an option to specify a subset of the four analyses to run? but default to running all 4
 
 def parse_slice(config):
     return tuple(slice(start, stop) for start, stop in config['params']['slice'])
@@ -143,11 +142,6 @@ if __name__ == '__main__':
         res_x_map = fwhm[..., 0] / resolution_mm[0]
         res_y_map = fwhm[..., 1] / resolution_mm[1]
         fig6, tracker6 = plotVolumes((res_x_map, res_y_map), vmin=1, vmax=3, cmap=CMAP['resolution'], cbar=True)
-        res_x_map = np.round(fwhm[..., 0] / resolution_mm[0] * 2) / 2
-        res_y_map = np.round(fwhm[..., 1] / resolution_mm[1] * 2) / 2
-        fig7, tracker7 = plotVolumes((res_x_map, res_y_map), vmin=1, vmax=3, cmap=CMAP['resolution'], cbar=True)
-
-    # TODO write an accompanying plotting script to take a demo root folder and make the last figure of the paper
 
     # just for debugging as I write the script
     plt.show()
