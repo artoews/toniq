@@ -182,7 +182,7 @@ if __name__ == '__main__':
     plot_row(axes[2, :], psf_maps, slc=(5, 5, 18), normalize=True)
     ims = plot_row(axes[3, :], fwhm_maps / resolution_mm[0], slc=(slice(None), slice(None), 18, 0), vmin=0.75, vmax=3.25)
     for ax, label in zip(axes[:, 0], ('Retrospective\nPSF', 'Target\nPatch', 'Local PSF\nEstimate', 'Up/Down\nResolution\nMap')):
-        ax.set_ylabel(label, rotation='horizontal', va='center', ha='center', labelpad=30) # va='center')
+        ax.set_ylabel(label, rotation='horizontal', va='center', ha='center', labelpad=30)
     for ax, title in zip(axes[0, 1:], ['{:.2f}'.format(i) for i in np.arange(1.25, 3.1, 0.25)]):
         ax.set_title(title)
     axes[0, 0].set_title('FWHM =\n1.00')
