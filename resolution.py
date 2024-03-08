@@ -15,6 +15,10 @@ def map_resolution(reference, target, patch_shape, resolution_mm, mask, stride, 
     fwhm = get_FWHM_from_image(psf, num_workers)
     for i in range(fwhm.shape[-1]):
         fwhm[..., i] = fwhm[..., i] * resolution_mm[i]
+    # psf = sp.resize(psf, (psf.shape[0] + patch_shape[0], psf.shape[1] + patch_shape[1],) + psf.shape[2:])
+    # fwhm = sp.resize(fwhm, (fwhm.shape[0] + patch_shape[0], fwhm.shape[1] + patch_shape[1],) + fwhm.shape[2:])
+    psf = sp.resize(psf, target.shape[:2] + psf.shape[2:])
+    fwhm = sp.resize(fwhm, target.shape[:2] + fwhm.shape[2:])
     return psf, fwhm
 
 def estimate_psf(image_in, image_out, mask, patch_shape, stride, num_batches):
