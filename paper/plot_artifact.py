@@ -47,14 +47,18 @@ def colorbar_old(fig, axes, im, lim=0.6):
     return cbar
 
 def colorbar(ax, im, lim=0.6, offset=0):
-    cbar = plt.colorbar(im, cax=colorbar_axis(ax, offset=offset), ticks=[-lim, -lim/2, 0, lim/2, lim], extend='both')
-    cbar.ax.set_yticklabels(['-{:.0f}'.format(lim*100), '-{:.0f}'.format(lim*50), '0', '{:.0f}'.format(lim*50), '{:.0f}'.format(lim*100)])
-    cbar.set_label('Relative Error\n(%)', size=SMALL_SIZE)
+    # cbar = plt.colorbar(im, cax=colorbar_axis(ax, offset=offset), ticks=[-lim, -lim/2, 0, lim/2, lim], extend='both')
+    # cbar.ax.set_yticklabels(['-{:.0f}'.format(lim*100), '-{:.0f}'.format(lim*50), '0', '{:.0f}'.format(lim*50), '{:.0f}'.format(lim*100)])
+    cbar = plt.colorbar(im, cax=colorbar_axis(ax, offset=offset), ticks=[-lim, 0, lim], extend='both')
+    cbar.ax.set_yticklabels(['-{:.0f}'.format(lim*100), '0', '{:.0f}'.format(lim*100)])
+    cbar.set_label('Relative Error (%)', size=SMALL_SIZE)
     cbar.ax.tick_params(labelsize=SMALLER_SIZE)
+    return cbar
 
 def plot_ia_map(ax, ia_map, mask, lim=0.6, show_cbar=True):
     im = ax.imshow(ia_map, cmap=CMAP['artifact'], vmin=-lim, vmax=lim)
     if mask is not None:
         overlay_mask(ax, ~mask)
     if show_cbar:
-        colorbar(ax, im, lim=lim)
+        cbar =colorbar(ax, im, lim=lim)
+        return cbar
