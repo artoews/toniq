@@ -12,5 +12,5 @@ params:
   IA-thresh-relative: 0.3
   GD-thresh-pixels: 1
   psf-window-size: [14, 14, 10]
-  psf-stride: 3
+  psf-stride: 1
   num-workers: 8
