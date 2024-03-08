@@ -4,14 +4,13 @@ import matplotlib.pyplot as plt
 
 from os import path, makedirs
 
-from plot import imshow2
+from plot import imshow2, remove_ticks
 from plot_artifact import colorbar
 from plot_params import *
 
 def plot_panel(ax, image, cmap=CMAP['image'], vmin=0, vmax=1.5):
     ax.imshow(image, cmap=cmap, vmin=vmin, vmax=vmax)
-    ax.set_xticks([])
-    ax.set_yticks([])
+    remove_ticks(ax)
 
 def plot_row(axes, plastic, metal, ia_map, slc1, slc2, lim=0.6, pad=0):
     imshow2(axes[0], plastic, slc1, slc2, pad=pad)
