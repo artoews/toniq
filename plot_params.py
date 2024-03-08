@@ -21,7 +21,7 @@ CMAP = {
     'field': 'RdBu_r',
     'artifact': 'RdBu_r',
     'distortion': 'RdBu_r',
-    'snr': 'viridis',
+    'snr': 'gray',
     'resolution': 'gray'
 }
 
