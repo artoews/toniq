@@ -14,6 +14,7 @@ plt.rc('figure', titlesize=MEDIUM_SIZE)   # fontsize of the figure title
 
 plt.rc('lines', linewidth=1.0)
 plt.rc('axes', linewidth=0.7)
+plt.rcParams['hatch.linewidth'] = 0.2
 
 # colormaps
 CMAP = {
