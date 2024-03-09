@@ -102,7 +102,7 @@ if __name__ == '__main__':
     plot_output_panel(subsubfigs[0, 1], snr_image1, snr_image2, snr_map, snr_mask, plot_snr_map, 'SNR')
     plot_output_panel(subsubfigs[1, 0], gd_plastic, gd_metal, gd_map, gd_mask, plot_gd_map, 'Geometric Distortion')
     # ax, _, _ = plot_output_panel(subsubfigs[1, 1], res_reference, res_target, res_map, res_mask, plot_res_map, 'Spatial Resolution')
-    ax, _, _ = plot_output_panel(subsubfigs[1, 1], res_reference, res_target, res_map, None, plot_res_map, 'Spatial Resolution')
+    ax, _, _ = plot_output_panel(subsubfigs[1, 1], res_reference, res_target, res_map, res_map != 0, plot_res_map, 'Spatial Resolution')
 
     for spine in ax.spines.values():
         spine.set_edgecolor('blue')
