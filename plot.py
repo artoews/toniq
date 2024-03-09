@@ -116,10 +116,12 @@ def plotVolumes(volumes, nrows=None, ncols=None, vmin=0, vmax=1, cmap='gray', ti
     fig.canvas.mpl_connect('key_press_event', tracker.on_press)
     return fig, tracker
 
-def overlay_mask(ax, mask, color=[0, 0, 0], alpha=255):
+def overlay_mask(ax, mask, color=[255, 255, 255], alpha=255, hatch=True):
     color_mask = np.zeros(mask.shape + (4,), dtype=np.uint8)
     color_mask[mask, :] = np.array(color + [alpha], dtype=np.uint8)
     ax.imshow(color_mask)
+    if hatch:
+        plt.contourf(mask, 1, hatches=['', '/////////'], alpha=0)
     return
 
 def letter_annotation(ax, xoffset, yoffset, letter):
