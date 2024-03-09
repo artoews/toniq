@@ -41,8 +41,10 @@ def elastix_registration(fixed_image, moving_image, fixed_mask, moving_mask, par
     # good change these to image_view_from_array to pass by reference? I don't *think* they are modified
     moving_image = itk.image_from_array(moving_image)
     fixed_image = itk.image_from_array(fixed_image)
-    fixed_mask = itk.image_from_array(fixed_mask.astype(np.uint8))
-    moving_mask = itk.image_from_array(moving_mask.astype(np.uint8))
+    if fixed_mask is not None:
+        fixed_mask = itk.image_from_array(fixed_mask.astype(np.uint8))
+    if moving_mask is not None:
+        moving_mask = itk.image_from_array(moving_mask.astype(np.uint8))
     if initial_transform is None:
         result_image, result_transform_parameters = itk.elastix_registration_method(
             fixed_image,
