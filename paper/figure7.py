@@ -8,6 +8,23 @@ from plot import imshow2, label_panels, color_panels
 from plot_distortion import colorbar
 from plot_params import *
 
+def label_encode_dirs(ax, connectionstyle="angle,angleA=180,angleB=-90,rad=0"):
+    # TODO put these into default parameters
+    x1, y1 = 9, 25
+    x2, y2 = 25, 9
+
+    ax.annotate("",
+                xy=(x1, y1), xycoords='data',
+                xytext=(x2, y2), textcoords='data',
+                arrowprops=dict(arrowstyle="<->", color='white',
+                                shrinkA=0, shrinkB=0,
+                                patchA=None, patchB=None,
+                                connectionstyle=connectionstyle,
+                                ),
+                )
+    ax.text(x1, y1, "PE", verticalalignment='top', horizontalalignment='center', size=SMALLER_SIZE, weight='extra bold', color='white')
+    ax.text(x2, y2, "RO", verticalalignment='center', horizontalalignment='left', size=SMALLER_SIZE, weight='extra bold', color='white')
+
 p = argparse.ArgumentParser(description='Make figure 7')
 p.add_argument('root', type=str, help='root to demo data subfolder')
 p.add_argument('save_dir', type=str, help='path where figure is saved')
@@ -52,6 +69,7 @@ if __name__ == '__main__':
     axes[1, 0].remove()
     imshow2(axes[1, 1], args.error_scale * np.abs(metal-plastic), slc1, slc2, mask=~init_mask)
     imshow2(axes[1, 2], args.error_scale * np.abs(result-plastic), slc1, slc2, mask=~result_mask)
+    label_encode_dirs(axes[0, 0])
 
     axes = subfigs[1].subplots(2, 1, gridspec_kw={'left': 0.03, 'right': 0.8, 'bottom': 0.03})
     axes[0].set_title('Field X')
