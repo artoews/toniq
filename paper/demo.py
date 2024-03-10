@@ -120,8 +120,8 @@ if __name__ == '__main__':
         ia_mask = get_artifact_mask(ia_map, config['params']['IA-thresh-relative'])
         implant_mask = np.load(path.join(save_dir, 'implant-mask.npy'))
         image_ref = images['structured-plastic-reference'].data
-        # image_blurred = images['structured-metal'].data
-        image_blurred = images['structured-plastic'].data
+        image_blurred = images['structured-metal'].data
+        # image_blurred = images['structured-plastic'].data
         image_ref = np.abs(sp.ifft(sp.resize(sp.fft(image_ref), image_blurred.shape)))
         # image_blurred = np.abs(sp.ifft(sp.resize(sp.fft(image_blurred), image_ref.shape)))
         # slc = tuple(slice(s.start*2, s.stop*2) for s in slc[:2]) + slc[2:]
@@ -131,8 +131,8 @@ if __name__ == '__main__':
         num_workers = config['params']['num-workers']
         gd_masks = [get_artifact_mask(gd_map[..., i], config['params']['GD-thresh-pixels']) for i in range(3)]
         # mask = get_signal_mask(implant_mask, artifact_masks=[ia_mask] + gd_masks)
-        # mask = get_signal_mask(implant_mask, artifact_masks=[ia_mask]) # ignores GD mask; good for MSL protocols
-        mask = get_signal_mask(implant_mask) # good for evaluation on plastic
+        mask = get_signal_mask(implant_mask, artifact_masks=[ia_mask]) # ignores GD mask; good for MSL protocols
+        # mask = get_signal_mask(implant_mask) # good for evaluation on plastic
         mask = transform.resize(mask, image_ref.shape)
         psf, fwhm = map_resolution(image_ref, image_blurred, patch_shape, resolution_mm, mask, config['params']['psf-stride'], num_workers=num_workers)
         np.save(path.join(save_dir, 'res-image-ref.npy'), image_ref)
