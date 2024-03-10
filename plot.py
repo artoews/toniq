@@ -121,7 +121,7 @@ def overlay_mask(ax, mask, color=[255, 255, 255], alpha=255, hatch=True):
     color_mask[mask, :] = np.array(color + [alpha], dtype=np.uint8)
     ax.imshow(color_mask)
     if hatch:
-        plt.contourf(mask, 1, hatches=['', '/////////'], alpha=0)
+        ax.contourf(mask, 1, hatches=['', '/////////'], alpha=0)
     return
 
 def letter_annotation(ax, xoffset, yoffset, letter):
