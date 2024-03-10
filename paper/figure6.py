@@ -13,9 +13,9 @@ def plot_panel(ax, image, cmap=CMAP['image'], vmin=0, vmax=1.5):
     remove_ticks(ax)
 
 def plot_row(axes, plastic, metal, ia_map, slc1, slc2, lim=0.6, pad=0):
-    imshow2(axes[0], plastic, slc1, slc2, pad=pad)
+    imshow2(axes[0], plastic, slc1, slc2, pad=pad, label_dirs=True)
     imshow2(axes[1], metal, slc1, slc2, pad=pad)
-    im, _ = imshow2(axes[2], ia_map, slc1, slc2, vmin=-lim, vmax=lim, cmap=CMAP['artifact'], pad=pad)
+    im, _, _, _ = imshow2(axes[2], ia_map, slc1, slc2, vmin=-lim, vmax=lim, cmap=CMAP['artifact'], pad=pad)
     colorbar(axes[2], im, lim=lim, offset=0.35)
 
 p = argparse.ArgumentParser(description='Make figure 6')
