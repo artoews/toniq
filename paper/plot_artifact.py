@@ -20,7 +20,7 @@ def plot_artifact_results(images, maps_artifact, save_dir=None, lim=0.6):
     for i in range(num_trials):
         imshow2(axes[i, 0], images[2*i], slc_xy, slc_xz, y_label='Read', x1_label='Phase', x2_label='Slice')
         imshow2(axes[i, 1], images[2*i+1], slc_xy, slc_xz)
-        im, _ = imshow2(axes[i, 2], maps_artifact[i], slc_xy, slc_xz, cmap=CMAP['artifact'], vmin=-lim, vmax=lim)
+        im, _, _, _ = imshow2(axes[i, 2], maps_artifact[i], slc_xy, slc_xz, cmap=CMAP['artifact'], vmin=-lim, vmax=lim)
         colorbar_old(fig, axes[i, 2], im)
     if save_dir is not None:
         plt.savefig(path.join(save_dir, 'ia_results.png'), dpi=300)

@@ -39,13 +39,13 @@ def plot_image_results(fig, masks, images, results, show_masks=True):
             imshow2(axes[2*i, 1], moving_image_masked, slc_xy, slc_xz, mask=~moving_mask, cmap=CMAP['image'])
             imshow2(axes[2*i+1, 1], init_error * error_multiplier * init_mask, slc_xy, slc_xz, mask=~init_mask, cmap=CMAP['image'])
             imshow2(axes[2*i, 2], results[i], slc_xy, slc_xz, mask=~result_mask, cmap=CMAP['image'])
-            im, _ = imshow2(axes[2*i+1, 2], result_error * error_multiplier * result_mask, slc_xy, slc_xz, mask=~result_mask, cmap=CMAP['image'])
+            im, _, _, _ = imshow2(axes[2*i+1, 2], result_error * error_multiplier * result_mask, slc_xy, slc_xz, mask=~result_mask, cmap=CMAP['image'])
         else:
             imshow2(axes[2*i, 0], images[2*i], slc_xy, slc_xz, cmap=CMAP['image'], y_label='Read', x1_label='Phase', x2_label='Slice')
             imshow2(axes[2*i, 1], images[2*i+1], slc_xy, slc_xz, cmap=CMAP['image'])
             imshow2(axes[2*i+1, 1], np.abs(images[2*i+1]-images[2*i]), slc_xy, slc_xz, cmap=CMAP['image'])
             imshow2(axes[2*i, 2], results[i], slc_xy, slc_xz, cmap=CMAP['image'])
-            im, _ = imshow2(axes[2*i+1, 2], np.abs(results[i] - images[2*i]), slc_xy, slc_xz, cmap=CMAP['image'], vmin=0, vmax=1)
+            im, _, _, _ = imshow2(axes[2*i+1, 2], np.abs(results[i] - images[2*i]), slc_xy, slc_xz, cmap=CMAP['image'], vmin=0, vmax=1)
         fig.colorbar(im, ax=axes[2*i:2*i+2, :], ticks=[0, 1], label='Pixel Intensity (a.u.)', location='right')
 
     return axes
