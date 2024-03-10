@@ -7,7 +7,7 @@ import scipy.stats as stats
 
 from os import path, makedirs
 
-from plot import remove_ticks, label_panels, color_panels
+from plot import remove_ticks, label_panels, color_panels, label_encode_dirs
 from plot_artifact import plot_ia_map
 from plot_snr import plot_snr_map
 from plot_resolution import plot_res_map
@@ -25,6 +25,7 @@ def plot_row_images(axes, image1, image2, slc):
     axes[2].remove()
     axes[3].remove()
     axes[4].remove()
+    label_encode_dirs(axes[0])
     # cbar = plt.colorbar(im, cax=colorbar_axis(axes[1], offset=0), ticks=[0, 1])
     # cbar.set_label('Intensity', size=SMALL_SIZE)
     # cbar.ax.tick_params(labelsize=SMALLER_SIZE)
@@ -45,11 +46,11 @@ def plot_row_snr(axes, map1, map2, mask1, mask2, slc):
     axes[2].remove()
     axes[4].remove()
 
-def plot_row_res(axes, map1, map2, slc):
-    plot_res_map(axes[0], map1[slc], None, show_cbar=False)
-    plot_res_map(axes[1], map2[slc], None)
+def plot_row_res(axes, map1, map2, mask1, mask2, slc):
+    plot_res_map(axes[0], map1[slc], mask1[slc], show_cbar=False)
+    plot_res_map(axes[1], map2[slc], mask2[slc])
     # plot_res_map(axes[3], map2[slc] - map1[slc], None, vmin=0, vmax=1)
-    cbar = plot_res_map(axes[3], safe_divide(map2[slc], map1[slc]), None, vmin=1, vmax=2)
+    cbar = plot_res_map(axes[3], safe_divide(map2[slc], map1[slc]), np.logical_and(mask1[slc], mask2[slc]), vmin=1, vmax=2)
     cbar.set_label('Ratio of FWHM', size=SMALL_SIZE)
     axes[2].remove()
     axes[4].remove()
@@ -130,7 +131,7 @@ if __name__ == '__main__':
     plot_row_images(axes[0, :], image1, image2, slc)
     plot_row_ia(axes[1, :], ia1, ia2, slc)
     plot_row_snr(axes[2, :], snr1, snr2, snr1_mask, snr2_mask, slc)
-    plot_row_res(axes[3, :], res1, res2, slc)
+    plot_row_res(axes[3, :], res1, res2, res1!=0, res2!=0, slc)
     axes[0, 0].set_title('1 kHz/pixel')
     axes[0, 1].set_title('0.5 kHz/pixel')
     # axes[1, 3].set_title('Comparison')

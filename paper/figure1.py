@@ -7,6 +7,7 @@ from os import path, makedirs
 
 from config import read_config, parse_slice
 from plot_params import *
+from plot import label_encode_dirs
 from util import equalize, load_series_from_path
 
 def plot_panel(ax, image, cmap=CMAP['image'], vmin=0, vmax=1.5):
@@ -72,6 +73,10 @@ if __name__ == '__main__':
             axes[0, j].set_title(slice_names[j])
             # label_panel(fig, axes[i, j], labels[i][j])
         axes[i, 0].set_ylabel(series_names[i])
+    
+    label_encode_dirs(axes[0, 0])
+    label_encode_dirs(axes[0, 1])
+    label_encode_dirs(axes[0, 2], x_label='z')
 
     plt.subplots_adjust(wspace=0.025, hspace=0.01)
     plt.savefig(path.join(args.save_dir, 'figure1.png'), dpi=DPI, bbox_inches='tight')

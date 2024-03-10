@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 from os import path, makedirs
 
-from plot import imshow2, label_panels, color_panels
+from plot import imshow2, label_panels, color_panels, label_encode_dirs
 from plot_distortion import colorbar
 from plot_params import *
 
@@ -46,12 +46,14 @@ if __name__ == '__main__':
     axes[0, 1].set_title('Metal')
     axes[0, 2].set_title('Metal, Registered')
     axes[1, 1].set_ylabel('Abs. Error ({}x)'.format(args.error_scale))
-    imshow2(axes[0, 0], plastic, slc1, slc2, mask=~plastic_mask, label_dirs=True)
+    _, _, ax1, ax2 = imshow2(axes[0, 0], plastic, slc1, slc2, mask=~plastic_mask)
     imshow2(axes[0, 1], metal, slc1, slc2, mask=~metal_mask)
     imshow2(axes[0, 2], result, slc1, slc2, mask=~result_mask)
     axes[1, 0].remove()
     imshow2(axes[1, 1], args.error_scale * np.abs(metal-plastic), slc1, slc2, mask=~init_mask)
     imshow2(axes[1, 2], args.error_scale * np.abs(result-plastic), slc1, slc2, mask=~result_mask)
+    label_encode_dirs(ax1, buffer_text=True)
+    label_encode_dirs(ax2, x_label='z', buffer_text=True)
 
     axes = subfigs[1].subplots(2, 1, gridspec_kw={'left': 0.03, 'right': 0.8, 'bottom': 0.03})
     axes[0].set_title('Field X')

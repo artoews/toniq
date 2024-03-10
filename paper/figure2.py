@@ -10,7 +10,7 @@ from plot_distortion import plot_gd_map
 from plot_snr import plot_snr_map
 from plot_resolution import plot_res_map
 from plot_params import *
-from plot import remove_ticks, color_panels, label_panels
+from plot import remove_ticks, color_panels, label_panels, label_encode_dirs
 
 def plot_inputs_panel(fig, up, um, sp, sm):
     kwargs = {'vmin': 0, 'vmax': 1, 'cmap': CMAP['image']}
@@ -24,12 +24,13 @@ def plot_inputs_panel(fig, up, um, sp, sm):
     axes[1, 0].set_ylabel('Structured')
     # for ax in (axes[0, 1], axes[1, 0]):
     #     plt.text(0.77, 0.05, '2x', transform=ax.transAxes, color='white', fontsize=LARGE_SIZE) # , bbox=dict(facecolor='black', alpha=0.5))
-    axes[0, 0].annotate("readout",
-        xy=(0.76, 0.30), xycoords='axes fraction',
-        xytext=(0.76, 0.04), textcoords='axes fraction',
-        horizontalalignment="center", size=SMALL_SIZE,
-        arrowprops=dict(facecolor='black', width=0.5, headwidth=4, headlength=3)
-        )
+    # axes[0, 0].annotate("readout",
+    #     xy=(0.76, 0.30), xycoords='axes fraction',
+    #     xytext=(0.76, 0.04), textcoords='axes fraction',
+    #     horizontalalignment="center", size=SMALL_SIZE,
+    #     arrowprops=dict(facecolor='black', width=0.5, headwidth=4, headlength=3)
+    #     )
+    label_encode_dirs(axes[0, 0])
     remove_ticks(axes)
 
 def plot_output_panel(fig, input1, input2, map, mask, map_plotter, title):

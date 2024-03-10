@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 from os import path, makedirs
 
-from plot import imshow2, remove_ticks
+from plot import imshow2, remove_ticks, label_encode_dirs
 from plot_artifact import colorbar
 from plot_params import *
 
@@ -13,7 +13,9 @@ def plot_panel(ax, image, cmap=CMAP['image'], vmin=0, vmax=1.5):
     remove_ticks(ax)
 
 def plot_row(axes, plastic, metal, ia_map, slc1, slc2, lim=0.6, pad=0):
-    imshow2(axes[0], plastic, slc1, slc2, pad=pad, label_dirs=True)
+    _, _, ax1, ax2 = imshow2(axes[0], plastic, slc1, slc2, pad=pad)
+    label_encode_dirs(ax1)
+    label_encode_dirs(ax2, x_label='z')
     imshow2(axes[1], metal, slc1, slc2, pad=pad)
     im, _, _, _ = imshow2(axes[2], ia_map, slc1, slc2, vmin=-lim, vmax=lim, cmap=CMAP['artifact'], pad=pad)
     colorbar(axes[2], im, lim=lim, offset=0.35)
