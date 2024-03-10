@@ -171,15 +171,18 @@ def get_distortion_map(fixed_image, moving_image, fixed_mask, moving_mask, itk_p
         itk_parameters = setup_nonrigid()
     if rigid_prep:
         rigid_itk_parameters = setup_rigid()
-        moving_image, rigid_transform = elastix_registration(fixed_image, moving_image, fixed_mask, moving_mask, rigid_itk_parameters, verbose=False)
-        moving_mask = transform(moving_mask, rigid_transform)
+        rigid_result, rigid_transform = elastix_registration(fixed_image, moving_image, fixed_mask, moving_mask, rigid_itk_parameters, verbose=False)
+        rigid_result_mask = transform(moving_mask, rigid_transform)
+        rigid_result_masked = masked_copy(rigid_result, rigid_result_mask)
+        moving_image = rigid_result
+        moving_mask = rigid_result_mask
     moving_image_masked = moving_image.copy()
     moving_image_masked[~moving_mask] = 0
     result, nonrigid_transform = elastix_registration(fixed_image, moving_image, fixed_mask, moving_mask, itk_parameters, verbose=False)
     deformation_field = get_deformation_field(moving_image, nonrigid_transform)
     result_mask = transform(moving_mask, nonrigid_transform)
     result_masked = masked_copy(result, result_mask)
-    return result, result_masked, deformation_field
+    return result, result_masked, rigid_result, rigid_result_masked, deformation_field
 
 def get_registration_masks(implant_mask, artifact_map, threshold):
     artifact_mask = get_artifact_mask(artifact_map, threshold)
