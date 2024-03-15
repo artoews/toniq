@@ -65,6 +65,10 @@ if __name__ == '__main__':
     cbar = colorbar(axes[1], im, offset=0.35)
     cbar.set_label('Displacement (pixels)', size=SMALL_SIZE)
 
+    print('Max X distortion: ', np.max(np.abs(gd_map[..., 0])))
+    print('Max Y distortion: ', np.max(np.abs(gd_map[..., 1])))
+    print('Max Z distortion: ', np.max(np.abs(gd_map[..., 2])))
+
     label_panels(subfigs)
     color_panels(subfigs)
 

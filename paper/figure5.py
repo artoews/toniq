@@ -8,7 +8,7 @@ from lattice import make_lattice
 from plot_params import *
 from slice_params import *
 
-root = '/Users/artoews/root/code/projects/metal-phantom/feb2/'
+root = '/Users/artoews/root/code/projects/metal-phantom/figures/'
 inset_shape = (10, 10, 10)
 kwargs = {'vmin': 0, 'vmax': 1.2, 'cmap': CMAP['image']}
 
@@ -41,7 +41,7 @@ def plot_slices(fig, lattice):
         axes[0, i].imshow(image, **kwargs)
         axes[1, i].imshow(kspace, **kwargs)
     axes[0, 0].set_ylabel('Image')
-    axes[1, 0].set_ylabel('K-space')
+    axes[1, 0].set_ylabel('2D DFT')
     remove_ticks(axes)
     return axes
 
@@ -52,16 +52,16 @@ def plot_lattice(subfig, lattice):
 fig = plt.figure(figsize=(FIG_WIDTH[2], FIG_WIDTH[2]*0.55))
 subfigs = fig.subfigures(2, 2, wspace=0.03, hspace=0.05, width_ratios=[1, 2.5])
 
-cubic_lattice = make_lattice('cubic', resolution=1, shape=(1, 1, 1))
 gyroid_lattice = make_lattice('gyroid', resolution=1, shape=(1, 1, 1))
+cubic_lattice = make_lattice('cubic', resolution=1, shape=(1, 1, 1))
 # fig, tracker = plotVolumes((cubic_lattice, gyroid_lattice))
-plot_lattice(subfigs[0, 0], cubic_lattice)
-plot_lattice(subfigs[1, 0], gyroid_lattice)
+plot_lattice(subfigs[0, 0], gyroid_lattice)
+plot_lattice(subfigs[1, 0], cubic_lattice)
 
-cubic_lattice = make_lattice_to_shape('cubic', inset_shape)
 gyroid_lattice = make_lattice_to_shape('gyroid', inset_shape)
-plot_slices(subfigs[0, 1], cubic_lattice)
-plot_slices(subfigs[1, 1], gyroid_lattice)
+cubic_lattice = make_lattice_to_shape('cubic', inset_shape)
+plot_slices(subfigs[0, 1], gyroid_lattice)
+plot_slices(subfigs[1, 1], cubic_lattice)
 
 color_panels(subfigs.flat)
 label_panels(subfigs.flat)

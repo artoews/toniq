@@ -24,8 +24,8 @@ def label_panel(fig, ax, label):
 
 p = argparse.ArgumentParser(description='Make figure 1')
 p.add_argument('save_dir', type=str, help='path where figure is saved')
-p.add_argument('-c1', '--config1', type=str, default='config/feb2-fse125.yml', help='yaml config file for FSE sequence')
-p.add_argument('-c2', '--config2', type=str, default='config/feb2-msl125.yml', help='yaml config file for MAVRIC-SL sequence')
+p.add_argument('-c1', '--config1', type=str, default='config/mar4-fse125.yml', help='yaml config file for FSE sequence')
+p.add_argument('-c2', '--config2', type=str, default='config/mar4-msl125.yml', help='yaml config file for MAVRIC-SL sequence')
 p.add_argument('-s1', '--slice1', type=int, default=4, help='z index of first slice')
 p.add_argument('-s2', '--slice2', type=int, default=34, help='z index of second slice')
 p.add_argument('-s3', '--slice3', type=int, default=126, help='y index of third slice')
@@ -51,7 +51,7 @@ if __name__ == '__main__':
         config1['dicom-series']['uniform-metal'],
         config2['dicom-series']['uniform-metal'],
     )
-    series_names = ('Plastic', 'Metal, 2D FSE', 'Metal, MAVRIC-SL')
+    series_names = ('2D FSE\nPlastic', '2D FSE\nMetal', 'MAVRIC-SL\nMetal')
     slice_names = ('Slice 1', 'Slice 2', 'Reformat')
 
     images = [load_series_from_path(path).data for path in paths]
