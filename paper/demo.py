@@ -6,11 +6,11 @@ import yaml
 from pathlib import Path
 
 from os import path, makedirs
-from skimage import transform
+from skimage.transform import resize
 
 from artifact import get_artifact_map
 from plot_artifact import plot_artifact_results
-from distortion import get_registration_masks, get_distortion_map
+from distortion import get_registration_masks, get_distortion_map, transform
 from plot_distortion import plot_image_results
 from plot import plotVolumes
 from plot_params import *
@@ -80,7 +80,8 @@ if __name__ == '__main__':
         implant_mask = np.load(path.join(save_dir, 'implant-mask.npy'))
         plastic_image, metal_image = prepare_inputs((images['structured-plastic'].data, images['structured-metal'].data), slc)
         plastic_mask, metal_mask = get_registration_masks(implant_mask, ia_map, config['params']['IA-thresh-relative'])
-        result, result_masked, rigid_result, rigid_result_masked, gd_map = get_distortion_map(plastic_image, metal_image, plastic_mask, metal_mask)
+        result, result_masked, rigid_result, rigid_result_masked, gd_map, rigid_transform, nonrigid_transform = get_distortion_map(plastic_image, metal_image, plastic_mask, metal_mask)
+        ia_map_registered = transform(transform(ia_map, rigid_transform), nonrigid_transform)
         np.save(path.join(save_dir, 'gd-plastic.npy'), plastic_image)
         np.save(path.join(save_dir, 'gd-plastic-mask.npy'), plastic_mask)
         np.save(path.join(save_dir, 'gd-metal.npy'), metal_image)
@@ -90,6 +91,7 @@ if __name__ == '__main__':
         np.save(path.join(save_dir, 'gd-metal-rigid-registered.npy'), rigid_result)
         np.save(path.join(save_dir, 'gd-metal-rigid-registered-masked.npy'), rigid_result_masked)
         np.save(path.join(save_dir, 'gd-map.npy'), gd_map)
+        np.save(path.join(save_dir, 'ia-map-registered.npy'), ia_map_registered)
         plot_image_results(plt.figure(), (plastic_mask, metal_mask), (plastic_image, metal_image), (result_masked,))
         plastic_image_masked = masked_copy(plastic_image, plastic_mask)
         metal_image_masked = masked_copy(metal_image, metal_mask)
@@ -134,7 +136,7 @@ if __name__ == '__main__':
         mask = get_signal_mask(implant_mask, artifact_masks=[ia_mask] + gd_masks)
         # mask = get_signal_mask(implant_mask, artifact_masks=[ia_mask]) # ignores GD mask; good for MSL protocols
         # mask = get_signal_mask(implant_mask) # good for evaluation on plastic
-        mask = transform.resize(mask, image_ref.shape)
+        mask = resize(mask, image_ref.shape)
         psf, fwhm = map_resolution(image_ref, image_blurred, psf_shape, patch_shape, resolution_mm, mask, config['params']['psf-stride'], num_workers=num_workers)
         np.save(path.join(save_dir, 'res-image-ref.npy'), image_ref)
         np.save(path.join(save_dir, 'res-image-blurred.npy'), image_blurred)

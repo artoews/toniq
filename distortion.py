@@ -182,7 +182,8 @@ def get_distortion_map(fixed_image, moving_image, fixed_mask, moving_mask, itk_p
     deformation_field = get_deformation_field(moving_image, nonrigid_transform)
     result_mask = transform(moving_mask, nonrigid_transform)
     result_masked = masked_copy(result, result_mask)
-    return result, result_masked, rigid_result, rigid_result_masked, deformation_field
+    return result, result_masked, rigid_result, rigid_result_masked, deformation_field, rigid_transform, nonrigid_transform
+
 
 def get_registration_masks(implant_mask, artifact_map, threshold):
     artifact_mask = get_artifact_mask(artifact_map, threshold)
