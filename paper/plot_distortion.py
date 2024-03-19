@@ -2,15 +2,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from os import path
 import seaborn as sns
-import scipy.ndimage as ndi
-from skimage import morphology
 
 from distortion import net_pixel_bandwidth, simulated_deformation_fse
-from plot import overlay_mask, letter_annotation, imshow2, colorbar_axis
-from util import masked_copy, list_to_formatted_string
+from plot import overlay_mask, imshow2, colorbar_axis
+from util import masked_copy
 
 from plot_params import *
-from slice_params import *
 
 def plot_image_results(fig, masks, images, results, show_masks=True):
     slc_xy = (slice(None), slice(None), images[0].shape[2] // 2)
@@ -54,7 +51,6 @@ def plot_field_results(fig, results, true_field, deformation_fields, rbw, pbw, f
     slc_xy = (slice(None), slice(None), results[0].shape[2] // 2)
     slc_xz = (slice(None), results[0].shape[1] // 2, slice(None))
     axes = fig.subplots(nrows=len(results), ncols=3)
-    fig.suptitle('Readout BWs {} kHz'.format(list_to_formatted_string(rbw)))
     num_trials = len(results)
     if num_trials == 1:
         axes = axes[None, :] 
@@ -123,30 +119,3 @@ def plot_gd_map(ax, gd_map, mask, lim=2, show_cbar=True):
         cbar = plt.colorbar(im, cax=colorbar_axis(ax), ticks=[-lim, -lim/2, 0, lim/2, lim], extend='both')
         cbar.set_label('Displacement\n(pixels, readout)', size=SMALL_SIZE)
         cbar.ax.tick_params(labelsize=SMALLER_SIZE)
-
-if __name__ == '__main__':
-
-    # Load & Pre-processing
-    root_dir = '/Users/artoews/root/code/projects/metal-phantom/tmp/'
-    slc = LATTICE_SLC[:2] + ((LATTICE_SLC[2].start + LATTICE_SLC[2].stop) // 2,)
-    data = np.load(path.join(root_dir, 'distortion', 'outputs.npz'))
-    for var in data:
-        globals()[var] = data[var]
-    true_field_kHz = np.load(path.join(root_dir, 'field', 'field_diff_Hz.npy'))[slc] / 1000
-
-    ## Setup
-    fig = plt.figure(figsize=(11, 8), layout='constrained')
-    fig_A, fig_BC = fig.subfigures(2, 1, hspace=0.1, height_ratios=[1, 1])
-    fig_B, fig_C = fig_BC.subfigures(1, 2, wspace=0.1, width_ratios = (2, 1))
-
-    ## Plot
-    axes_A = plot_image_results(fig_A, masks_register, images, results, rbw)
-    letter_annotation(axes_A[0][0], -0.2, 1.1, 'A')
-    axes_B = plot_field_results(fig_B, results, true_field_kHz, deformation_fields, rbw, pbw)
-    letter_annotation(axes_B[0][0], -0.2, 1.1, 'B')
-    axes_C = plot_summary_results(fig_C, results, true_field_kHz, deformation_fields, rbw, pbw)
-    letter_annotation(axes_C, -0.2, 1.1, 'C')
-
-    ## Save
-    plt.savefig(path.join(root_dir, 'distortion', 'distortion-summary.png'), dpi=300)
-    plt.show()
