@@ -130,8 +130,8 @@ if __name__ == '__main__':
         patch_shape = tuple(config['params']['psf-window-size'])
         num_workers = config['params']['num-workers']
         gd_masks = [get_artifact_mask(gd_map[..., i], config['params']['GD-thresh-pixels']) for i in range(3)]
-        # mask = get_signal_mask(implant_mask, artifact_masks=[ia_mask] + gd_masks)
-        mask = get_signal_mask(implant_mask, artifact_masks=[ia_mask]) # ignores GD mask; good for MSL protocols
+        mask = get_signal_mask(implant_mask, artifact_masks=[ia_mask] + gd_masks)
+        # mask = get_signal_mask(implant_mask, artifact_masks=[ia_mask]) # ignores GD mask; good for MSL protocols
         # mask = get_signal_mask(implant_mask) # good for evaluation on plastic
         mask = transform.resize(mask, image_ref.shape)
         psf, fwhm = map_resolution(image_ref, image_blurred, patch_shape, resolution_mm, mask, config['params']['psf-stride'], num_workers=num_workers)
