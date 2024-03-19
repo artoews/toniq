@@ -3,16 +3,16 @@ import sigpy as sp
 import functools
 
 from filter import generic_filter
+from linop import get_matrix
 
 def map_resolution(reference, target, psf_shape, patch_shape, resolution_mm, mask, stride, num_workers=1):
     psf = estimate_psf(reference, target, mask, psf_shape, patch_shape, stride, num_workers)
     fwhm = get_FWHM_from_image(psf, psf_shape, num_workers)
     for i in range(fwhm.shape[-1]):
         fwhm[..., i] = fwhm[..., i] * resolution_mm[i]
-    # psf = sp.resize(psf, (psf.shape[0] + patch_shape[0], psf.shape[1] + patch_shape[1],) + psf.shape[2:])
-    # fwhm = sp.resize(fwhm, (fwhm.shape[0] + patch_shape[0], fwhm.shape[1] + patch_shape[1],) + fwhm.shape[2:])
-    psf = sp.resize(psf, target.shape[:2] + psf.shape[2:])
-    fwhm = sp.resize(fwhm, target.shape[:2] + fwhm.shape[2:])
+    if stride == 1:
+        psf = sp.resize(psf, target.shape[:2] + psf.shape[2:])
+        fwhm = sp.resize(fwhm, target.shape[:2] + fwhm.shape[2:])
     return psf, fwhm
 
 def estimate_psf(image_in, image_out, mask, psf_shape, patch_shape, stride, num_batches):
@@ -22,14 +22,17 @@ def estimate_psf(image_in, image_out, mask, psf_shape, patch_shape, stride, num_
     func = functools.partial(deconvolve_by_model, psf_shape)
     return generic_filter(images_stack, func, patch_shape, psf_shape, stride, batch_axis, num_batches=num_batches)
 
-def deconvolve_by_model(psf_shape, patch_pair, lamda=0, tol=1e-10, max_iter=1e10, verbose=False):
-    kspace_pair = sp.fft(patch_pair, axes=(0, 1))
-    kspace_in, kspace_out = kspace_pair[..., 0], kspace_pair[..., 1]
-    A = forward_model(kspace_in, psf_shape)
+def deconvolve_by_model(psf_shape, patch_pair, verbose=False):
+    # kspace_pair = sp.fft(patch_pair, axes=(0, 1))
+    # kspace_in, kspace_out = kspace_pair[..., 0], kspace_pair[..., 1]
+    # A = forward_model(kspace_in, psf_shape)
+    A = forward_model_conv(patch_pair[..., 0], psf_shape)
     y = sp.resize(patch_pair[..., 1], A.oshape)
-    # A = forward_model_conv(patch_pair[..., 0], psf_shape)
-    # y = sp.resize(patch_pair[..., 1], A.oshape)
-    app = sp.app.LinearLeastSquares(A, y, x=np.zeros(A.ishape, dtype=np.complex128), tol=tol, max_iter=max_iter, show_pbar=verbose, lamda=lamda)
+    # A_mat = get_matrix(A)
+    # A_mat = np.random.rand(np.prod(A.oshape), np.prod(A.ishape))
+    # A_inv = np.linalg.pinv(A_mat) # direct solve takes about 4 times longer than iterative solve using a random matrix as a proxy for A. If you call get_matrix and actually construct A by brute force it takes 10x instead of 4x.
+    # soln = np.reshape(A_inv.dot(y.ravel()), psf_shape)
+    app = sp.app.LinearLeastSquares(A, y, x=np.zeros(A.ishape, dtype=np.float64), tol=1e-10, max_iter=1e10, show_pbar=verbose, lamda=0)
     soln = app.run()
     psf = np.abs(soln)
     return psf
