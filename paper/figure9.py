@@ -8,6 +8,7 @@ import yaml
 from os import path, makedirs
 from matplotlib.ticker import MultipleLocator
 
+from intensity import map_snr
 from plot import plotVolumes
 from scipy.signal import unit_impulse
 
@@ -126,15 +127,26 @@ if __name__ == '__main__':
         # quit()
     
         # add noise
+        target_images_2 = []
         if args.noise != 0:
             np.random.seed(0)
             for i in range(len(target_images)):
+                noise2 = np.random.normal(size=target_images[i].shape, scale=args.noise)
+                target_images_2 += [target_images[i] + noise2]
                 noise = np.random.normal(size=target_images[i].shape, scale=args.noise)
                 target_images[i] += noise
+        
 
         # get mask
         implant_mask = get_implant_mask(reference_image)
         mask = get_signal_mask(implant_mask)
+
+        # check SNR
+        snr_maps = []
+        for i in range(len(target_images)):
+            snr, _, _ = map_snr(target_images[i], target_images_2[i], mask)
+            snr_maps += [snr]
+            print('Trial {} has SNR stats (min {}, mean {}, median {}, max {}): '.format(i, np.min(snr), np.mean(snr), np.median(snr), np.max(snr)))
 
         # map resolution
         psf_maps = []
