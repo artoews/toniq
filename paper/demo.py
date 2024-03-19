@@ -96,6 +96,7 @@ if __name__ == '__main__':
         plastic_image_masked = masked_copy(plastic_image, plastic_mask)
         metal_image_masked = masked_copy(metal_image, metal_mask)
         # fig2, tracker2 = plotVolumes((plastic_image, metal_image, result, plastic_mask, metal_mask, result_masked), nrows=2, ncols=3)
+        # fig2, tracker2 = plotVolumes((plastic_image_masked, metal_image_masked, result_masked, np.abs(metal_image_masked - plastic_image_masked), np.abs(result_masked - plastic_image_masked)))
         fig2, tracker2 = plotVolumes((plastic_image_masked, metal_image_masked, result_masked))
         fig3, tracker3 = plotVolumes((-gd_map[..., 0], gd_map[..., 1], gd_map[..., 2]), cmap=CMAP['distortion'], vmin=-2, vmax=2, cbar=True)
 
