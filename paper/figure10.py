@@ -7,9 +7,8 @@ import scipy.stats as stats
 
 from os import path, makedirs
 
-import ia
+import ia, snr
 from plot import remove_ticks, label_panels, color_panels, label_encode_dirs
-from plot_snr import plot_snr_map
 from plot_resolution import plot_res_map
 from plot_params import *
 from util import safe_divide
@@ -39,9 +38,9 @@ def plot_row_ia(axes, map1, map2, slc):
     axes[4].remove()
 
 def plot_row_snr(axes, map1, map2, mask1, mask2, slc):
-    plot_snr_map(axes[0], map1[slc], mask1[slc], show_cbar=False)
-    plot_snr_map(axes[1], map2[slc], mask2[slc])
-    cbar = plot_snr_map(axes[3], safe_divide(map2[slc], map1[slc]), np.logical_and(mask1[slc], mask2[slc]), ticks=[0, 1.41, 2.82])
+    snr.plot_map(axes[0], map1[slc], mask1[slc], show_cbar=False)
+    snr.plot_map(axes[1], map2[slc], mask2[slc])
+    cbar = snr.plot_map(axes[3], safe_divide(map2[slc], map1[slc]), np.logical_and(mask1[slc], mask2[slc]), ticks=[0, 1.41, 2.82])
     cbar.set_label('Ratio of SNR', size=SMALL_SIZE)
     axes[2].remove()
     axes[4].remove()

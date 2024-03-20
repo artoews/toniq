@@ -8,13 +8,12 @@ from pathlib import Path
 from os import path, makedirs
 from skimage.transform import resize
 
-import ia
+import ia, snr
 from distortion import get_registration_masks, get_distortion_map, transform
 from plot_distortion import plot_image_results
 from plot import plotVolumes
 from plot_params import *
 from resolution import map_resolution
-from intensity import map_snr
 from masks import get_implant_mask, get_signal_mask, get_artifact_mask
 from util import equalize, load_series_from_path, masked_copy
 
@@ -108,7 +107,7 @@ if __name__ == '__main__':
         ia_mask = get_artifact_mask(ia_map, config['params']['IA-thresh-relative'])
         snr_mask = get_signal_mask(implant_mask, artifact_masks=[ia_mask])
         # snr_mask = get_signal_mask(implant_mask) # good for evaluation on plastic
-        snr, signal, noise_std = map_snr(image_1, image_2, snr_mask)
+        snr, signal, noise_std = snr.get_map(image_1, image_2, snr_mask)
         np.save(path.join(save_dir, 'snr-image-1.npy'), image_1)
         np.save(path.join(save_dir, 'snr-image-2.npy'), image_2)
         np.save(path.join(save_dir, 'snr-mask.npy'), snr_mask)
