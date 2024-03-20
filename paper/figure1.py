@@ -7,16 +7,13 @@ from os import path, makedirs
 
 from config import read_config, parse_slice
 from plot_params import *
-from plot import label_encode_dirs
+from plot import label_encode_dirs, label_slice_pos
 from util import equalize, load_series_from_path
 
 def plot_panel(ax, image, cmap=CMAP['image'], vmin=0, vmax=1.5):
     ax.imshow(image, cmap=cmap, vmin=vmin, vmax=vmax)
     ax.set_xticks([])
     ax.set_yticks([])
-
-def plot_line(ax, position):
-    ax.plot([position, position], [0, slc[0].stop - slc[0].start], color='red', linewidth=1, linestyle=':')
 
 def label_panel(fig, ax, label):
     trans = mtransforms.ScaledTranslation(4e-2, -5e-2, fig.dpi_scale_trans)
@@ -68,8 +65,9 @@ if __name__ == '__main__':
     for i in range(len(paths)):
         for j in range(len(slices)):
             plot_panel(axes[i, j], images[i][slices[j]])
-            if j < len(slices) - 1:
-                plot_line(axes[i, -1], slices[j][-1])
+            if j < len(slices) - 1 and i == 0:
+                label_slice_pos(axes[i, -1], -1, slices[j], slc)
+                label_slice_pos(axes[i, j], 1, slices[-1], slc)
             axes[0, j].set_title(slice_names[j])
             # label_panel(fig, axes[i, j], labels[i][j])
         axes[i, 0].set_ylabel(series_names[i])
