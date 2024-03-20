@@ -164,6 +164,7 @@ cython_debug/
 
 # misc project stuff
 abstract/
+deliverables/
 tmp/
 sandbox/
 *.stl
