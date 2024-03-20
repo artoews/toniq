@@ -163,13 +163,10 @@ cython_debug/
 .DS_Store
 
 # misc project stuff
-abstract/
 deliverables/
-tmp/
-sandbox/
+out/
+figures/
 *.stl
-orchestra/Data
-orchestra/DICOMs
 *.cfg
 *.mat
 *.dat
