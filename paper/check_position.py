@@ -6,8 +6,8 @@ from os import path, makedirs
 from config import read_config
 from plot_params import *
 
+import gd
 from config import read_config
-from distortion import setup_rigid, elastix_registration
 from plot import plotVolumes
 
 from util import equalize, load_series_from_path
@@ -36,7 +36,7 @@ if __name__ == '__main__':
     image1 = image1[slc]
     image2 = image2[slc]
 
-    result, rigid_transform = elastix_registration(image1, image2, None, None, setup_rigid(), verbose=False)
+    result, rigid_transform = gd.elastix_registration(image1, image2, None, None, gd.setup_rigid(), verbose=False)
     print(rigid_transform) # with order 3D rotation (rad?), 3D translation (pixels?)
 
     fig, tracker = plotVolumes((image1, image2, 2*np.abs(image2 - image1), result, 2*np.abs(result - image1)))

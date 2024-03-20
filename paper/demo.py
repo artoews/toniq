@@ -8,9 +8,7 @@ from pathlib import Path
 from os import path, makedirs
 from skimage.transform import resize
 
-import ia, snr
-from distortion import get_registration_masks, get_distortion_map, transform
-from plot_distortion import plot_image_results
+import ia, snr, gd
 from plot import plotVolumes
 from plot_params import *
 from resolution import map_resolution
@@ -77,9 +75,9 @@ if __name__ == '__main__':
         ia_map = np.load(path.join(save_dir, 'ia-map.npy'))
         implant_mask = np.load(path.join(save_dir, 'implant-mask.npy'))
         plastic_image, metal_image = prepare_inputs((images['structured-plastic'].data, images['structured-metal'].data), slc)
-        plastic_mask, metal_mask = get_registration_masks(implant_mask, ia_map, config['params']['IA-thresh-relative'])
-        result, result_masked, rigid_result, rigid_result_masked, gd_map, rigid_transform, nonrigid_transform = get_distortion_map(plastic_image, metal_image, plastic_mask, metal_mask)
-        ia_map_registered = transform(transform(ia_map, rigid_transform), nonrigid_transform)
+        plastic_mask, metal_mask = gd.get_masks(implant_mask, ia_map, config['params']['IA-thresh-relative'])
+        result, result_masked, rigid_result, rigid_result_masked, gd_map, rigid_transform, nonrigid_transform = gd.get_map(plastic_image, metal_image, plastic_mask, metal_mask)
+        ia_map_registered = gd.transform(gd.transform(ia_map, rigid_transform), nonrigid_transform)
         np.save(path.join(save_dir, 'gd-plastic.npy'), plastic_image)
         np.save(path.join(save_dir, 'gd-plastic-mask.npy'), plastic_mask)
         np.save(path.join(save_dir, 'gd-metal.npy'), metal_image)
@@ -90,7 +88,7 @@ if __name__ == '__main__':
         np.save(path.join(save_dir, 'gd-metal-rigid-registered-masked.npy'), rigid_result_masked)
         np.save(path.join(save_dir, 'gd-map.npy'), gd_map)
         np.save(path.join(save_dir, 'ia-map-registered.npy'), ia_map_registered)
-        plot_image_results(plt.figure(), (plastic_mask, metal_mask), (plastic_image, metal_image), (result_masked,))
+        gd.plot_image_results(plt.figure(), (plastic_mask, metal_mask), (plastic_image, metal_image), (result_masked,))
         plastic_image_masked = masked_copy(plastic_image, plastic_mask)
         metal_image_masked = masked_copy(metal_image, metal_mask)
         # fig2, tracker2 = plotVolumes((plastic_image, metal_image, result, plastic_mask, metal_mask, result_masked), nrows=2, ncols=3)

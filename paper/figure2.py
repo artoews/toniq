@@ -5,8 +5,7 @@ import matplotlib.gridspec as gridspec
 
 from os import path, makedirs
 
-import ia, snr
-from plot_distortion import plot_gd_map
+import ia, snr, gd
 from plot_resolution import plot_res_map
 from plot_params import *
 from plot import remove_ticks, color_panels, label_panels, label_encode_dirs
@@ -100,7 +99,7 @@ if __name__ == '__main__':
     plot_inputs_panel(subfigs[0], ia_plastic, ia_metal, gd_plastic, gd_metal)
     plot_output_panel(subsubfigs[0, 0], ia_plastic, ia_metal, ia_map, None, ia.plot_map, 'Intensity Artifact')
     plot_output_panel(subsubfigs[0, 1], snr_image1, snr_image2, snr_map, snr_mask, snr.plot_map, 'SNR')
-    plot_output_panel(subsubfigs[1, 0], gd_plastic, gd_metal, gd_map, gd_mask, plot_gd_map, 'Geometric Distortion')
+    plot_output_panel(subsubfigs[1, 0], gd_plastic, gd_metal, gd_map, gd_mask, gd.plot_map, 'Geometric Distortion')
     # ax, _, _ = plot_output_panel(subsubfigs[1, 1], res_reference, res_target, res_map, res_mask, plot_res_map, 'Spatial Resolution')
     ax, _, _ = plot_output_panel(subsubfigs[1, 1], res_reference, res_target, res_map, res_map != 0, plot_res_map, 'Spatial Resolution')
 

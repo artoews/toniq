@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 
 from os import path, makedirs
 
+import gd
 from plot import imshow2, label_panels, color_panels, label_encode_dirs, label_slice_pos
-from plot_distortion import colorbar
 from plot_params import *
 
 p = argparse.ArgumentParser(description='Make figure 7')
@@ -76,13 +76,13 @@ if __name__ == '__main__':
     axes[1].set_title('Field Y')
     axes[2].set_title('Field Z')
     im, _, _, _ = imshow2(axes[0], -gd_map[..., 0], slc1, slc2, vmin=-args.limit, vmax=args.limit, mask=~result_mask, cmap=CMAP['distortion'])
-    cbar = colorbar(axes[0], im, offset=0.35)
+    cbar = gd.colorbar(axes[0], im, offset=0.35)
     cbar.set_label('Displacement (pixels)', size=SMALL_SIZE)
     im, _, _, _ = imshow2(axes[1], gd_map[..., 1], slc1, slc2, vmin=-args.limit, vmax=args.limit, mask=~result_mask, cmap=CMAP['distortion'])
-    cbar = colorbar(axes[1], im, offset=0.35)
+    cbar = gd.colorbar(axes[1], im, offset=0.35)
     cbar.set_label('Displacement (pixels)', size=SMALL_SIZE)
     im, _, _, _ = imshow2(axes[2], gd_map[..., 2], slc1, slc2, vmin=-args.limit, vmax=args.limit, mask=~result_mask, cmap=CMAP['distortion'])
-    cbar = colorbar(axes[2], im, offset=0.35)
+    cbar = gd.colorbar(axes[2], im, offset=0.35)
     cbar.set_label('Displacement (pixels)', size=SMALL_SIZE)
 
     print('Max X distortion: ', np.max(np.abs(gd_map[..., 0])))
