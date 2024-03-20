@@ -8,18 +8,15 @@ import yaml
 from os import path, makedirs
 from matplotlib.ticker import MultipleLocator
 
-from intensity import map_snr
+import snr, sr
 from plot import plotVolumes
 from scipy.signal import unit_impulse
 
 from plot import color_panels, label_panels, remove_ticks
 from plot_params import *
 
-
 from config import parse_slice
 from masks import get_implant_mask, get_signal_mask
-from resolution import map_resolution, get_FWHM_from_pixel
-from plot_resolution import colorbar
 from util import normalize, load_series_from_path
 
 patch_shape = (14, 14, 10)
@@ -121,7 +118,7 @@ if __name__ == '__main__':
         # measured correct FWHM
         measured_fwhms = []
         for target_psf in target_psfs:
-            measured_fwhm = get_FWHM_from_pixel(target_psf)
+            measured_fwhm = sr.get_FWHM_from_pixel(target_psf)
             measured_fwhms += [measured_fwhm[0]]
         # print('Measured FWHM', measured_fwhms)
         # quit()
@@ -144,7 +141,7 @@ if __name__ == '__main__':
         # check SNR
         snr_maps = []
         for i in range(len(target_images)):
-            snr, _, _ = map_snr(target_images[i], target_images_2[i], mask)
+            snr, _, _ = snr.get_map(target_images[i], target_images_2[i], mask)
             snr_maps += [snr]
             print('Trial {} has SNR stats (min {}, mean {}, median {}, max {}): '.format(i, np.min(snr), np.mean(snr), np.median(snr), np.max(snr)))
 
@@ -155,7 +152,7 @@ if __name__ == '__main__':
         num_workers = config['params']['num-workers']
         for i in range(len(target_images)):
             print('Mapping resolution for case {} of {} with sigma {}'.format(i+1, len(target_images), args.sigma[i]))
-            psf_map, fwhm_map = map_resolution(reference_image, target_images[i], patch_shape, resolution_mm, mask, stride, num_workers=num_workers)
+            psf_map, fwhm_map = sr.get_map(reference_image, target_images[i], patch_shape, resolution_mm, mask, stride, num_workers=num_workers)
             psf_maps.append(psf_map)
             fwhm_maps.append(fwhm_map) 
         psf_maps = np.stack(psf_maps)
@@ -199,7 +196,7 @@ if __name__ == '__main__':
         ax.set_title(title)
     axes[0, 0].set_title('FWHM =\n1.00')
     remove_ticks(axes)
-    colorbar(axes[3, -1], ims[-1], 'FWHM (pixels)')
+    sr.colorbar(axes[3, -1], ims[-1], 'FWHM (pixels)')
 
     axes = subfigs[1].subplots(nrows=1, ncols=2, gridspec_kw={'bottom': 0.15, 'top': 0.85, 'right': 0.94})
     plot_distribution(axes[0], measured_fwhms, [maps[..., 0] / resolution_mm[0] for maps in fwhm_maps])

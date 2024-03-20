@@ -8,10 +8,9 @@ from pathlib import Path
 from os import path, makedirs
 from skimage.transform import resize
 
-import ia, snr, gd
+import ia, snr, gd, sr
 from plot import plotVolumes
 from plot_params import *
-from resolution import map_resolution
 from masks import get_implant_mask, get_signal_mask, get_artifact_mask
 from util import equalize, load_series_from_path, masked_copy
 
@@ -134,7 +133,7 @@ if __name__ == '__main__':
         # mask = get_signal_mask(implant_mask, artifact_masks=[ia_mask]) # ignores GD mask; good for MSL protocols
         # mask = get_signal_mask(implant_mask) # good for evaluation on plastic
         mask = resize(mask, image_ref.shape)
-        psf, fwhm = map_resolution(image_ref, image_blurred, psf_shape, patch_shape, resolution_mm, mask, config['params']['psf-stride'], num_workers=num_workers)
+        psf, fwhm = sr.get_map(image_ref, image_blurred, psf_shape, patch_shape, resolution_mm, mask, config['params']['psf-stride'], num_workers=num_workers)
         np.save(path.join(save_dir, 'res-image-ref.npy'), image_ref)
         np.save(path.join(save_dir, 'res-image-blurred.npy'), image_blurred)
         np.save(path.join(save_dir, 'res-mask.npy'), mask)

@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import sigpy as sp
 import functools
@@ -5,7 +6,11 @@ import functools
 from filter import generic_filter
 from linop import get_matrix
 
-def map_resolution(reference, target, psf_shape, patch_shape, resolution_mm, mask, stride, num_workers=1):
+from plot import overlay_mask, colorbar_axis
+from plot_params import *
+
+
+def get_map(reference, target, psf_shape, patch_shape, resolution_mm, mask, stride, num_workers=1):
     psf = estimate_psf(reference, target, mask, psf_shape, patch_shape, stride, num_workers)
     fwhm = get_FWHM_from_image(psf, psf_shape, num_workers)
     for i in range(fwhm.shape[-1]):
@@ -111,3 +116,18 @@ def find_root(x1, y1, x2, y2):
     if y1 == y2:
         print('find_root division by zero')
     return x1 - y1 * (x2 - x1) / (y2 - y1)
+
+def plot_map(ax, res_map, mask, vmin=1, vmax=4, show_cbar=True):
+    im = ax.imshow(res_map, cmap=CMAP['resolution'], vmin=vmin, vmax=vmax)
+    if mask is not None:
+        overlay_mask(ax, ~mask)
+    if show_cbar:
+        cbar = colorbar(ax, im, 'FWHM (mm)', ticks=[vmin, vmin + (vmax-vmin)/2, vmax])
+        # cbar = plt.colorbar(im, cax=colorbar_axis(ax), ticks=[vmin, vmin + (vmax-vmin)/2, vmax])
+        return cbar
+
+def colorbar(ax, im, label, offset=0, ticks=[1, 2, 3]):
+    cbar = plt.colorbar(im, cax=colorbar_axis(ax, offset=offset), ticks=ticks)
+    cbar.set_label(label, size=SMALL_SIZE)
+    cbar.ax.tick_params(labelsize=SMALLER_SIZE)
+    return cbar

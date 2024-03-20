@@ -2,7 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from linop import get_matrix
 from plot import plotVolumes
-from resolution import forward_model, forward_model_conv
+
+import sr
 import sigpy as sp
 import scipy.ndimage as ndi
 from skimage import morphology
@@ -68,8 +69,8 @@ def make_lattice(type, shape=(1, 1, 1), resolution=1):
     return lattice
 
 def get_condition(kspace, psf_shape, lamda=0):
-    A_op = forward_model(kspace, psf_shape)
-    # A_op = forward_model_conv(kspace, psf_shape)
+    A_op = sr.forward_model(kspace, psf_shape)
+    # A_op = sr.forward_model_conv(kspace, psf_shape)
     # print(A_op)
     A_mtx = get_matrix(A_op, verify=True)
     # print(A_mtx.shape)

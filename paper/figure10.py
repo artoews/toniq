@@ -7,9 +7,8 @@ import scipy.stats as stats
 
 from os import path, makedirs
 
-import ia, snr
+import ia, snr, sr
 from plot import remove_ticks, label_panels, color_panels, label_encode_dirs
-from plot_resolution import plot_res_map
 from plot_params import *
 from util import safe_divide
 
@@ -46,10 +45,10 @@ def plot_row_snr(axes, map1, map2, mask1, mask2, slc):
     axes[4].remove()
 
 def plot_row_res(axes, map1, map2, mask1, mask2, slc):
-    plot_res_map(axes[0], map1[slc], mask1[slc], show_cbar=False)
-    plot_res_map(axes[1], map2[slc], mask2[slc])
+    sr.plot_map(axes[0], map1[slc], mask1[slc], show_cbar=False)
+    sr.plot_map(axes[1], map2[slc], mask2[slc])
     # plot_res_map(axes[3], map2[slc] - map1[slc], None, vmin=0, vmax=1)
-    cbar = plot_res_map(axes[3], safe_divide(map2[slc], map1[slc]), np.logical_and(mask1[slc], mask2[slc]), vmin=1, vmax=2)
+    cbar = sr.plot_map(axes[3], safe_divide(map2[slc], map1[slc]), np.logical_and(mask1[slc], mask2[slc]), vmin=1, vmax=2)
     cbar.set_label('Ratio of FWHM', size=SMALL_SIZE)
     axes[2].remove()
     axes[4].remove()
