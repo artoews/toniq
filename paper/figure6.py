@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 
 from os import path, makedirs
 
+import ia
 from plot import imshow2, remove_ticks, label_encode_dirs, label_slice_pos
-from plot_artifact import colorbar
 from plot_params import *
 
 def plot_panel(ax, image, cmap=CMAP['image'], vmin=0, vmax=1.5):
@@ -24,7 +24,7 @@ def plot_row(axes, plastic, metal, ia_map, slc1, slc2, lim=0.6, pad=0):
     im, _, ax1, ax2 = imshow2(axes[2], ia_map, slc1, slc2, vmin=-lim, vmax=lim, cmap=CMAP['artifact'], pad=pad)
     # label_slice_pos(ax1, 1, slc2, slc1)
     # label_slice_pos(ax2, -1, slc1, slc2)
-    colorbar(axes[2], im, lim=lim, offset=0.35)
+    ia.colorbar(axes[2], im, lim=lim, offset=0.35)
 
 p = argparse.ArgumentParser(description='Make figure 6')
 p.add_argument('root1', type=str, help='root to demo data subfolder 1')

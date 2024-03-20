@@ -5,7 +5,7 @@ import matplotlib.gridspec as gridspec
 
 from os import path, makedirs
 
-from plot_artifact import plot_ia_map
+import ia
 from plot_distortion import plot_gd_map
 from plot_snr import plot_snr_map
 from plot_resolution import plot_res_map
@@ -99,7 +99,7 @@ if __name__ == '__main__':
     subsubfigs = subfigs[1].subfigures(2, 2, wspace=margin/2, hspace=margin)
 
     plot_inputs_panel(subfigs[0], ia_plastic, ia_metal, gd_plastic, gd_metal)
-    plot_output_panel(subsubfigs[0, 0], ia_plastic, ia_metal, ia_map, None, plot_ia_map, 'Intensity Artifact')
+    plot_output_panel(subsubfigs[0, 0], ia_plastic, ia_metal, ia_map, None, ia.plot_map, 'Intensity Artifact')
     plot_output_panel(subsubfigs[0, 1], snr_image1, snr_image2, snr_map, snr_mask, plot_snr_map, 'SNR')
     plot_output_panel(subsubfigs[1, 0], gd_plastic, gd_metal, gd_map, gd_mask, plot_gd_map, 'Geometric Distortion')
     # ax, _, _ = plot_output_panel(subsubfigs[1, 1], res_reference, res_target, res_map, res_mask, plot_res_map, 'Spatial Resolution')

@@ -7,8 +7,8 @@ import scipy.stats as stats
 
 from os import path, makedirs
 
+import ia
 from plot import remove_ticks, label_panels, color_panels, label_encode_dirs
-from plot_artifact import plot_ia_map
 from plot_snr import plot_snr_map
 from plot_resolution import plot_res_map
 from plot_params import *
@@ -31,9 +31,9 @@ def plot_row_images(axes, image1, image2, slc):
     # cbar.ax.tick_params(labelsize=SMALLER_SIZE)
 
 def plot_row_ia(axes, map1, map2, slc):
-    plot_ia_map(axes[0], map1[slc], None, show_cbar=False)
-    plot_ia_map(axes[1], map2[slc], None)
-    cbar = plot_ia_map(axes[3], np.abs(map2[slc]) - np.abs(map1[slc]), None, lim=0.3)
+    ia.plot_map(axes[0], map1[slc], None, show_cbar=False)
+    ia.plot_map(axes[1], map2[slc], None)
+    cbar = ia.plot_map(axes[3], np.abs(map2[slc]) - np.abs(map1[slc]), None, lim=0.3)
     cbar.set_label('Difference of\nAbs. Relative Error', size=SMALL_SIZE)
     axes[2].remove()
     axes[4].remove()

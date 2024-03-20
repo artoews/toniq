@@ -8,8 +8,7 @@ from pathlib import Path
 from os import path, makedirs
 from skimage.transform import resize
 
-from artifact import get_artifact_map
-from plot_artifact import plot_artifact_results
+import ia
 from distortion import get_registration_masks, get_distortion_map, transform
 from plot_distortion import plot_image_results
 from plot import plotVolumes
@@ -65,12 +64,12 @@ if __name__ == '__main__':
     if args.ia or map_all:
         plastic_image, metal_image = prepare_inputs((images['uniform-plastic'].data, images['uniform-metal'].data), slc)
         implant_mask = get_implant_mask(plastic_image)
-        ia_map = get_artifact_map(plastic_image, metal_image, implant_mask)
+        ia_map = ia.get_map(plastic_image, metal_image, implant_mask)
         np.save(path.join(save_dir, 'ia-plastic.npy'), plastic_image)
         np.save(path.join(save_dir, 'ia-metal.npy'), metal_image)
         np.save(path.join(save_dir, 'ia-map.npy'), ia_map)
         np.save(path.join(save_dir, 'implant-mask.npy'), implant_mask)
-        plot_artifact_results((plastic_image, metal_image), (ia_map,))
+        ia.plot_results((plastic_image, metal_image), (ia_map,))
         fig0, tracker0 = plotVolumes((plastic_image, metal_image))
         fig1, tracker1 = plotVolumes((ia_map,), cmap=CMAP['artifact'], vmin=-0.6, vmax=0.6, cbar=True)
 
