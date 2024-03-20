@@ -61,10 +61,3 @@ def nanmean_filter(image, mask, footprint):
         # suppress warning "RuntimeWarning: Mean of empty slice" when footprint covers entirely nan values
         warnings.filterwarnings("ignore", category=RuntimeWarning)
         return ndi.generic_filter(masked_image, np.nanmean, footprint=footprint)
-
-def nanmedian_filter(image, mask, footprint):
-    masked_image = masked_copy(image, mask, fill_val=np.nan)
-    with warnings.catch_warnings():
-        # suppress warning "RuntimeWarning: Median of empty slice" when footprint covers entirely nan values
-        warnings.filterwarnings("ignore", category=RuntimeWarning)
-        return ndi.generic_filter(masked_image, np.nanmedian, footprint=footprint)
