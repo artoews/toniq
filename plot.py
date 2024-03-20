@@ -169,7 +169,41 @@ def readout_arrow_annotation(ax, xy=(0.5, 0.7), xytext=(0.5, 0.1), color='black'
         arrowprops=dict(width=2, headwidth=8, headlength=8, color=color)
     )
 
-def label_encode_dirs(ax, offset=6, length=14, color='black', x_label='y', y_label='x', loc='top-left', buffer_text=False):
+
+def label_encode_dirs(ax, offset=0.06, length=0.16, color='black', x_label='y', y_label='x', loc='top-left', buffer_text=False):
+    if buffer_text:
+        buffer = [pe.withStroke(linewidth=0.7, foreground="white")]
+    else:
+        buffer = None
+    if loc == 'top-left':
+        connectionstyle="angle,angleA=180,angleB=-90,rad=0"
+        x1, y1 = offset, -offset - length
+        x2, y2 = offset + length, -offset
+        y_verticalalignment = 'top'
+        x_horizontalalignment = 'left'
+        transform = ax.get_figure().dpi_scale_trans + mtransforms.ScaledTranslation(0, 0, ax.transData)
+    elif loc == 'bottom-right':
+        connectionstyle="angle,angleA=180,angleB=-90,rad=0"
+        xlim = np.max(ax.get_xlim())
+        ylim = np.max(ax.get_ylim())
+        x1, y1 = -offset, offset + length
+        x2, y2 = -offset - length, offset
+        y_verticalalignment = 'bottom'
+        x_horizontalalignment = 'right'
+        transform = ax.get_figure().dpi_scale_trans + mtransforms.ScaledTranslation(xlim, ylim, ax.transData)
+    ax.text(x1, y1, y_label, verticalalignment=y_verticalalignment, horizontalalignment='center', size=SMALL_SIZE, weight='extra bold', color=color, path_effects=buffer, transform=transform)
+    ax.text(x2, y2, x_label, verticalalignment='center', horizontalalignment=x_horizontalalignment, size=SMALL_SIZE, weight='extra bold', color=color, path_effects=buffer, transform=transform)
+    ax.annotate("",
+                xy=(x1, y1), xycoords=transform,
+                xytext=(x2, y2), textcoords=transform,
+                arrowprops=dict(arrowstyle="<->", color=color,
+                                shrinkA=0, shrinkB=0,
+                                patchA=None, patchB=None,
+                                connectionstyle=connectionstyle,
+                                ),
+                )
+
+def label_encode_dirs_old_scale_variant(ax, offset=6, length=14, color='black', x_label='y', y_label='x', loc='top-left', buffer_text=False):
     if buffer_text:
         buffer = [pe.withStroke(linewidth=0.7, foreground="white")]
     else:
