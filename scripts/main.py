@@ -93,6 +93,7 @@ if __name__ == '__main__':
         metal_image_masked = masked_copy(metal_image, metal_mask)
         input_mask = (plastic_image_masked != 0) * (metal_image_masked != 0)
         output_mask = (result_masked != 0) * (metal_image_masked != 0)
+        np.save(path.join(save_dir, 'gd-map-mask.npy'), output_mask)
         input_error = np.abs(plastic_image_masked - metal_image_masked) * input_mask
         output_error = np.abs(result_masked - metal_image_masked) * output_mask
         fig2, tracker2 = plotVolumes((metal_image_masked, plastic_image_masked, result_masked, input_error, output_error),

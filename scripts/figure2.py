@@ -66,8 +66,7 @@ if __name__ == '__main__':
     implant_mask = np.load(path.join(args.out, 'implant-mask.npy'))
     ia_map = np.load(path.join(args.out, 'ia-map.npy'))
     gd_map = np.load(path.join(args.out, 'gd-map.npy'))
-    gd_mask = np.load(path.join(args.out, 'gd-metal-registered-masked.npy')) != 0
-    # gd_mask = np.load(path.join(args.out, 'gd-plastic-mask.npy'))
+    gd_mask = np.load(path.join(args.out, 'gd-map-mask.npy'))
     snr_map = np.load(path.join(args.out, 'snr-map.npy'))
     snr_mask = np.load(path.join(args.out, 'snr-mask.npy'))
     res_map = np.load(path.join(args.out, 'fwhm-map.npy'))
