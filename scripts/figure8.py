@@ -49,8 +49,8 @@ if __name__ == '__main__':
 
     condition_cubic = [get_condition(cubic_k, shape, lamda=0) for shape in psf_shapes]
     condition_gyroid = [get_condition(gyroid_k, shape, lamda=0) for shape in psf_shapes]
-    print('cubic condition', condition_cubic)
-    print('gyroid condition', condition_gyroid)
+    # print('cubic condition', condition_cubic)
+    # print('gyroid condition', condition_gyroid)
     
     fig, axes = plt.subplots(figsize=(FIG_WIDTH[0], FIG_WIDTH[0]), layout='constrained')
     plot_condition(axes, psf_sizes, condition_cubic, condition_gyroid)

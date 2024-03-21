@@ -87,8 +87,8 @@ def make_plot_white(ax):
 
 p = argparse.ArgumentParser(description='Make figure 10')
 p.add_argument('save_dir', type=str, help='path where figure is saved')
-p.add_argument('--root1', type=str, default='out/mar20/mar4-msl125', help='root to demo data subfolder 1')
-p.add_argument('--root2', type=str, default='out/mar20/mar4-msl63', help='root to demo data subfolder 2')
+p.add_argument('--out1', type=str, default='out/mar20/mar4-msl125', help='path to main.py output folder')
+p.add_argument('--out2', type=str, default='out/mar20/mar4-msl63', help='path to main.py output folder')
 p.add_argument('-z', '--z_slice', type=int, default=18, help='relative position of z slice (after crop); default=18')
 p.add_argument('-p', '--plot', action='store_true', help='show plots')
 
@@ -107,18 +107,18 @@ if __name__ == '__main__':
               slice(roi[1].start-offset, roi[1].stop-offset),
               roi[2])
 
-    image1 = np.load(path.join(args.root1, 'gd-metal.npy'))
-    image2 = np.load(path.join(args.root2, 'gd-metal.npy'))
-    ia1 = np.load(path.join(args.root1, 'ia-map.npy'))
-    ia2 = np.load(path.join(args.root2, 'ia-map.npy'))
-    snr1 = np.load(path.join(args.root1, 'snr-map.npy'))
-    snr2 = np.load(path.join(args.root2, 'snr-map.npy'))
-    snr1_mask = np.load(path.join(args.root1, 'snr-mask.npy'))
-    snr2_mask = np.load(path.join(args.root2, 'snr-mask.npy'))
-    res1 = np.load(path.join(args.root1, 'fwhm-map.npy'))[..., 0]
-    res2 = np.load(path.join(args.root2, 'fwhm-map.npy'))[..., 0]
-    # res1_mask = np.load(path.join(args.root1, 'res-mask.npy'))
-    # res2_mask = np.load(path.join(args.root2, 'res-mask.npy'))
+    image1 = np.load(path.join(args.out1, 'gd-metal.npy'))
+    image2 = np.load(path.join(args.out2, 'gd-metal.npy'))
+    ia1 = np.load(path.join(args.out1, 'ia-map.npy'))
+    ia2 = np.load(path.join(args.out2, 'ia-map.npy'))
+    snr1 = np.load(path.join(args.out1, 'snr-map.npy'))
+    snr2 = np.load(path.join(args.out2, 'snr-map.npy'))
+    snr1_mask = np.load(path.join(args.out1, 'snr-mask.npy'))
+    snr2_mask = np.load(path.join(args.out2, 'snr-mask.npy'))
+    res1 = np.load(path.join(args.out1, 'fwhm-map.npy'))[..., 0]
+    res2 = np.load(path.join(args.out2, 'fwhm-map.npy'))[..., 0]
+    # res1_mask = np.load(path.join(args.out1, 'res-mask.npy'))
+    # res2_mask = np.load(path.join(args.out2, 'res-mask.npy'))
 
 
     fig = plt.figure(figsize=(FIG_WIDTH[2], FIG_WIDTH[2]*0.75))

@@ -28,8 +28,8 @@ def plot_row(axes, plastic, metal, ia_map, slc1, slc2, lim=0.6, pad=0):
 
 p = argparse.ArgumentParser(description='Make figure 6')
 p.add_argument('save_dir', type=str, help='path where figure is saved')
-p.add_argument('--root1', type=str, default='out/mar20/mar4-fse125', help='root to demo data subfolder 1')
-p.add_argument('--root2', type=str, default='out/mar20/mar4-msl125', help='root to demo data subfolder 2')
+p.add_argument('--out1', type=str, default='out/mar20/mar4-fse125', help='path to main.py output folder 1')
+p.add_argument('--out2', type=str, default='out/mar20/mar4-msl125', help='path to main.py output folder 2')
 p.add_argument('-y', '--y_slice', type=int, default=60, help='relative position of z slice (after crop); default=60')
 p.add_argument('-z', '--z_slice', type=int, default=18, help='relative position of z slice (after crop); default=18')
 p.add_argument('-p', '--plot', action='store_true', help='show plots')
@@ -53,7 +53,7 @@ if __name__ == '__main__':
     axes[0, 0].set_ylabel('FSE')
     axes[1, 0].set_ylabel('MAVRIC-SL')
 
-    for ax, root in zip(axes, (args.root1, args.root2)):
+    for ax, root in zip(axes, (args.out1, args.out2)):
         plastic = np.load(path.join(root, 'ia-plastic.npy'))
         metal = np.load(path.join(root, 'ia-metal.npy'))
         ia_map = np.load(path.join(root, 'ia-map.npy'))

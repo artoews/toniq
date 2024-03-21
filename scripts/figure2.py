@@ -51,7 +51,7 @@ def plot_output_panel(fig, input1, input2, map, mask, map_plotter, title):
 
 p = argparse.ArgumentParser(description='Make figure 2')
 p.add_argument('save_dir', type=str, help='path where figure is saved')
-p.add_argument('-r', '--root', type=str, default='out/mar20/mar4-fse125', help='root to demo data subfolder')
+p.add_argument('--out', type=str, default='out/mar20/mar4-fse125', help='path to main.py output folder')
 p.add_argument('-z', '--z_slice', type=int, default=19, help='z index of slice')
 p.add_argument('-p', '--plot', action='store_true', help='show plots')
 
@@ -63,24 +63,24 @@ if __name__ == '__main__':
 
     slc = (slice(None), slice(None), args.z_slice)
 
-    implant_mask = np.load(path.join(args.root, 'implant-mask.npy'))
-    ia_map = np.load(path.join(args.root, 'ia-map.npy'))
-    gd_map = np.load(path.join(args.root, 'gd-map.npy'))
-    gd_mask = np.load(path.join(args.root, 'gd-metal-registered-masked.npy')) != 0
-    # gd_mask = np.load(path.join(args.root, 'gd-plastic-mask.npy'))
-    snr_map = np.load(path.join(args.root, 'snr-map.npy'))
-    snr_mask = np.load(path.join(args.root, 'snr-mask.npy'))
-    res_map = np.load(path.join(args.root, 'fwhm-map.npy'))
-    res_mask = np.load(path.join(args.root, 'res-mask.npy'))
+    implant_mask = np.load(path.join(args.out, 'implant-mask.npy'))
+    ia_map = np.load(path.join(args.out, 'ia-map.npy'))
+    gd_map = np.load(path.join(args.out, 'gd-map.npy'))
+    gd_mask = np.load(path.join(args.out, 'gd-metal-registered-masked.npy')) != 0
+    # gd_mask = np.load(path.join(args.out, 'gd-plastic-mask.npy'))
+    snr_map = np.load(path.join(args.out, 'snr-map.npy'))
+    snr_mask = np.load(path.join(args.out, 'snr-mask.npy'))
+    res_map = np.load(path.join(args.out, 'fwhm-map.npy'))
+    res_mask = np.load(path.join(args.out, 'res-mask.npy'))
 
-    ia_plastic = np.load(path.join(args.root, 'ia-plastic.npy'))[slc]
-    ia_metal = np.load(path.join(args.root, 'ia-metal.npy'))[slc]
-    gd_plastic = np.load(path.join(args.root, 'gd-plastic.npy'))[slc]
-    gd_metal = np.load(path.join(args.root, 'gd-metal.npy'))[slc]
-    snr_image1 = np.load(path.join(args.root, 'snr-image-1.npy'))[slc]
-    snr_image2 = np.load(path.join(args.root, 'snr-image-2.npy'))[slc]
-    res_reference = np.load(path.join(args.root, 'res-image-ref.npy'))[slc]
-    res_target = np.load(path.join(args.root, 'res-image-blurred.npy'))[slc]
+    ia_plastic = np.load(path.join(args.out, 'ia-plastic.npy'))[slc]
+    ia_metal = np.load(path.join(args.out, 'ia-metal.npy'))[slc]
+    gd_plastic = np.load(path.join(args.out, 'gd-plastic.npy'))[slc]
+    gd_metal = np.load(path.join(args.out, 'gd-metal.npy'))[slc]
+    snr_image1 = np.load(path.join(args.out, 'snr-image-1.npy'))[slc]
+    snr_image2 = np.load(path.join(args.out, 'snr-image-2.npy'))[slc]
+    res_reference = np.load(path.join(args.out, 'res-image-ref.npy'))[slc]
+    res_target = np.load(path.join(args.out, 'res-image-blurred.npy'))[slc]
 
     ia_map = ia_map[slc]
     gd_map = -gd_map[..., 0][slc]

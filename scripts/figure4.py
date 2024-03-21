@@ -51,9 +51,10 @@ p.add_argument('-c', '--config', type=str, default='config/mar4-fse125.yml', hel
 p.add_argument('-x', type=int, default=100, help='x coordinate of inset location')
 p.add_argument('-y', type=int, default=92, help='x coordinate of inset location')
 p.add_argument('-w', '--window_size', type=int, default=10, help='window size in pixels')
-p.add_argument('-p', '--psf_size', type=int, default=5, help='psf size (std) in pixels')
-p.add_argument('--psf_radius', type=int, default=20, help='psf extent in pixels')
+p.add_argument('-p', '--plot', action='store_true', help='show plots')
 p.add_argument('-s', '--sigma', type=float, nargs='+', default=[1, 0.5], help='sigmas for gaussian PSF')
+p.add_argument('--psf_size', type=int, default=5, help='psf size (std) in pixels')
+p.add_argument('--psf_radius', type=int, default=20, help='psf extent in pixels')
 
 if __name__ == '__main__':
 
@@ -93,4 +94,5 @@ if __name__ == '__main__':
 
     plt.savefig(path.join(args.save_dir, 'figure4.png'), dpi=DPI)
 
-    plt.show()
+    if args.plot:
+        plt.show()
