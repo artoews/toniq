@@ -22,6 +22,8 @@ def plot_field_component(ax, gd_map, slc1, slc2, limit, mask, cmap):
     im, _, ax1, ax2 = imshow2(ax, gd_map, slc1, slc2, vmin=-limit, vmax=limit, mask=mask, cmap=cmap)
     cbar = gd.colorbar(ax, im, offset=0.35)
     cbar.set_label('Displacement (pixels)', size=SMALL_SIZE)
+    label_slice_pos(ax1, 1, slc2, slc1)
+    label_slice_pos(ax2, -1, slc1, slc2)
     return ax1, ax2
 
 def plot_field_components(axes, gd_map, slc1, slc2, limit, mask, cmap=CMAP['distortion']):
@@ -74,11 +76,11 @@ if __name__ == '__main__':
     label_slice_pos(ax1, 1, slc2, slc1)
     label_slice_pos(ax2, -1, slc1, slc2)
     _, _, ax1, ax2 = imshow2(axes[0, 1], plastic, slc1, slc2, mask=~plastic_mask)
-    # label_slice_pos(ax1, 1, slc2, slc1)
-    # label_slice_pos(ax2, -1, slc1, slc2)
+    label_slice_pos(ax1, 1, slc2, slc1)
+    label_slice_pos(ax2, -1, slc1, slc2)
     _, _, ax1, ax2 = imshow2(axes[0, 2], result, slc1, slc2, mask=~result_mask)
-    # label_slice_pos(ax1, 1, slc2, slc1)
-    # label_slice_pos(ax2, -1, slc1, slc2)
+    label_slice_pos(ax1, 1, slc2, slc1)
+    label_slice_pos(ax2, -1, slc1, slc2)
     axes[1, 0].remove()
     imshow2(axes[1, 1], args.error_scale * np.abs(plastic - metal), slc1, slc2, mask=~init_mask)
     imshow2(axes[2, 1], args.error_scale * np.abs(plastic - metal / (1 + ia_map)), slc1, slc2, mask=~init_mask)
