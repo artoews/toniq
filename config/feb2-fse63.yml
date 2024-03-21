@@ -1,0 +1,17 @@
+dicom-series:
+  uniform-plastic: '/Users/artoews/root/data/mri/240202/14446_dicom/Series26'
+  uniform-plastic-2: '/Users/artoews/root/data/mri/240202/14446_dicom/Series27'
+  uniform-metal: '/Users/artoews/root/data/mri/240202/14446_dicom/Series32'
+  uniform-metal-2: '/Users/artoews/root/data/mri/240202/14446_dicom/Series33'
+  structured-plastic: '/Users/artoews/root/data/mri/240202/14446_dicom/Series15'
+  structured-metal: '/Users/artoews/root/data/mri/240202/14446_dicom/Series19'
+  structured-plastic-reference: '/Users/artoews/root/data/mri/240202/14446_dicom/Series4'
+
+params:
+  slice: [[38, 158], [66, 186], [12, 48]]
+  IA-thresh-relative: 0.3
+  GD-thresh-pixels: 1
+  psf-window-size: [14, 14, 10]
+  psf-shape: [5, 5, 1]
+  psf-stride: 1
+  num-workers: 8
