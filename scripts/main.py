@@ -65,9 +65,10 @@ if __name__ == '__main__':
         np.save(path.join(save_dir, 'ia-metal.npy'), metal_image)
         np.save(path.join(save_dir, 'ia-map.npy'), ia_map)
         np.save(path.join(save_dir, 'implant-mask.npy'), implant_mask)
-        ia.plot_results((plastic_image, metal_image), (ia_map,))
-        fig0, tracker0 = plotVolumes((plastic_image, metal_image))
-        fig1, tracker1 = plotVolumes((ia_map,), cmap=CMAP['artifact'], vmin=-0.6, vmax=0.6, cbar=True)
+        fig0, tracker0 = plotVolumes((plastic_image, metal_image), titles=('Plastic', 'Metal'))
+        fig0.suptitle('Intensity Artifact Mapping Inputs')
+        fig1, tracker1 = plotVolumes((ia_map,), titles=('IA Map',), cmap=CMAP['artifact'], vmin=-0.6, vmax=0.6, cbar=True)
+        fig1.suptitle('Intensity Artifact Map')
 
     # GD mapping
     if args.gd or map_all:
@@ -87,13 +88,17 @@ if __name__ == '__main__':
         np.save(path.join(save_dir, 'gd-metal-rigid-registered-masked.npy'), rigid_result_masked)
         np.save(path.join(save_dir, 'gd-map.npy'), gd_map)
         np.save(path.join(save_dir, 'ia-map-registered.npy'), ia_map_registered)
-        gd.plot_image_results(plt.figure(), (plastic_mask, metal_mask), (plastic_image, metal_image), (result_masked,))
         plastic_image_masked = masked_copy(plastic_image, plastic_mask)
         metal_image_masked = masked_copy(metal_image, metal_mask)
-        # fig2, tracker2 = plotVolumes((plastic_image, metal_image, result, plastic_mask, metal_mask, result_masked), nrows=2, ncols=3)
-        # fig2, tracker2 = plotVolumes((plastic_image_masked, metal_image_masked, result_masked, np.abs(metal_image_masked - plastic_image_masked), np.abs(result_masked - plastic_image_masked)))
-        fig2, tracker2 = plotVolumes((plastic_image_masked, metal_image_masked, result_masked))
-        fig3, tracker3 = plotVolumes((-gd_map[..., 0], gd_map[..., 1], gd_map[..., 2]), cmap=CMAP['distortion'], vmin=-2, vmax=2, cbar=True)
+        input_error = np.abs(metal_image_masked - plastic_image_masked) * (metal_image_masked != 0) * (plastic_image_masked != 0)
+        output_error = np.abs(result_masked - plastic_image_masked) * (result_masked != 0) * (plastic_image_masked != 0)
+        fig2, tracker2 = plotVolumes((plastic_image_masked, metal_image_masked, result_masked, input_error, output_error),
+                                     titles=('Plastic Input', 'Metal Input', 'Metal Output', 'Input Error', 'Output Error'))
+        fig2.suptitle('Geometric Distortion, Mapping Images')
+        fig3, tracker3 = plotVolumes((-gd_map[..., 0], gd_map[..., 1], gd_map[..., 2]),
+                                     titles=('X (pixels)', 'Y (pixels)', 'Z (pixels)'),
+                                     cmap=CMAP['distortion'], vmin=-2, vmax=2, cbar=True)
+        fig3.suptitle('Geometric Distortion Maps')
 
     # SNR mapping
     if args.snr or map_all:
@@ -104,12 +109,13 @@ if __name__ == '__main__':
         ia_mask = get_artifact_mask(ia_map, config['params']['IA-thresh-relative'])
         snr_mask = get_signal_mask(implant_mask, artifact_masks=[ia_mask])
         # snr_mask = get_signal_mask(implant_mask) # good for evaluation on plastic
-        snr, signal, noise_std = snr.get_map(image_1, image_2, snr_mask)
+        snr_map, signal, noise_std = snr.get_map(image_1, image_2, snr_mask)
         np.save(path.join(save_dir, 'snr-image-1.npy'), image_1)
         np.save(path.join(save_dir, 'snr-image-2.npy'), image_2)
         np.save(path.join(save_dir, 'snr-mask.npy'), snr_mask)
-        np.save(path.join(save_dir, 'snr-map.npy'), snr)
-        fig4, tracker4 = plotVolumes((image_1, image_2, snr/200))
+        np.save(path.join(save_dir, 'snr-map.npy'), snr_map)
+        fig4, tracker4 = plotVolumes((image_1, image_2, snr_map/200), titles=('Image 1', 'Image 2', 'SNR Map (1/200)'))
+        fig4.suptitle('SNR Mapping Inputs and Output')
 
     # Resolution mapping
     if args.res or map_all:
@@ -139,10 +145,12 @@ if __name__ == '__main__':
         np.save(path.join(save_dir, 'res-mask.npy'), mask)
         np.save(path.join(save_dir, 'psf-map.npy'), psf)
         np.save(path.join(save_dir, 'fwhm-map.npy'), fwhm)
-        fig5, tracker5 = plotVolumes((image_ref, image_blurred, mask))
+        fig5, tracker5 = plotVolumes((image_ref, image_blurred, mask), titles=('Reference', 'Target', 'Mask'))
+        fig5.suptitle('Spatial Resolution Mapping Inputs')
         res_x_map = fwhm[..., 0] / resolution_mm[0]
         res_y_map = fwhm[..., 1] / resolution_mm[1]
-        fig6, tracker6 = plotVolumes((res_x_map, res_y_map), vmin=1, vmax=3, cmap=CMAP['resolution'], cbar=True)
+        fig6, tracker6 = plotVolumes((res_x_map, res_y_map), titles=('FWHM X (pixels)', 'FWHM Y (pixels)'), vmin=1, vmax=3, cmap=CMAP['resolution'], cbar=True)
+        fig6.suptitle('Spatial Resolution Maps')
 
     # just for debugging as I write the script
     plt.show()
