@@ -50,8 +50,8 @@ def plot_output_panel(fig, input1, input2, map, mask, map_plotter, title):
     return ax1, ax2, ax3
 
 p = argparse.ArgumentParser(description='Make figure 2')
-p.add_argument('root', type=str, help='root to demo data subfolder')
 p.add_argument('save_dir', type=str, help='path where figure is saved')
+p.add_argument('-r', '--root', type=str, default='out/mar20/mar4-fse125', help='root to demo data subfolder')
 p.add_argument('-z', '--z_slice', type=int, default=19, help='z index of slice')
 p.add_argument('-p', '--plot', action='store_true', help='show plots')
 

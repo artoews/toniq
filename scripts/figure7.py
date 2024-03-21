@@ -9,8 +9,8 @@ from plot import imshow2, label_panels, color_panels, label_encode_dirs, label_s
 from plot_params import *
 
 p = argparse.ArgumentParser(description='Make figure 7')
-p.add_argument('root', type=str, help='root to demo data subfolder')
 p.add_argument('save_dir', type=str, help='path where figure is saved')
+p.add_argument('--root', type=str, default='out/mar20/mar4-fse125', help='root to demo data subfolder')
 p.add_argument('-y', '--y_slice', type=int, default=100, help='relative position of z slice (after crop); default=60')
 p.add_argument('-z', '--z_slice', type=int, default=18, help='relative position of z slice (after crop); default=18')
 p.add_argument('-e', '--error_scale', type=int, default=2, help='error map multiplier')
@@ -54,6 +54,8 @@ if __name__ == '__main__':
         axes[1, 1].set_ylabel('Abs. Error ({}x)'.format(args.error_scale))
         axes[2, 1].set_ylabel('Abs. Error ({}x),\nIA removed'.format(args.error_scale))
     _, _, ax1, ax2 = imshow2(axes[0, 0], plastic, slc1, slc2, mask=~plastic_mask)
+    label_encode_dirs(ax1, buffer_text=True)
+    label_encode_dirs(ax2, x_label='z', buffer_text=True)
     label_slice_pos(ax1, 1, slc2, slc1)
     label_slice_pos(ax2, -1, slc1, slc2)
     _, _, ax1, ax2 = imshow2(axes[0, 1], metal, slc1, slc2, mask=~metal_mask)
@@ -68,8 +70,6 @@ if __name__ == '__main__':
     axes[2, 0].remove()
     imshow2(axes[1, 2], args.error_scale * np.abs(result - plastic), slc1, slc2, mask=~result_mask)
     imshow2(axes[2, 2], args.error_scale * np.abs(result - plastic * (1 + ia_map_registered)), slc1, slc2, mask=~result_mask)
-    label_encode_dirs(ax1, buffer_text=True)
-    label_encode_dirs(ax2, x_label='z', buffer_text=True)
 
     axes = subfigs[1].subplots(3, 1, gridspec_kw={'left': 0.03, 'right': 0.8, 'bottom': 0.03})
     axes[0].set_title('Field X')

@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sigpy as sp
 import functools
+from scipy.signal import unit_impulse
+import scipy.ndimage as ndi
 
 from filter import generic_filter
 from linop import get_matrix
@@ -28,16 +30,16 @@ def estimate_psf(image_in, image_out, mask, psf_shape, patch_shape, stride, num_
     return generic_filter(images_stack, func, patch_shape, psf_shape, stride, batch_axis, num_batches=num_batches)
 
 def deconvolve_by_model(psf_shape, patch_pair, verbose=False):
-    # kspace_pair = sp.fft(patch_pair, axes=(0, 1))
-    # kspace_in, kspace_out = kspace_pair[..., 0], kspace_pair[..., 1]
-    # A = forward_model(kspace_in, psf_shape)
-    A = forward_model_conv(patch_pair[..., 0], psf_shape)
+    kspace_pair = sp.fft(patch_pair, axes=(0, 1))
+    kspace_in, kspace_out = kspace_pair[..., 0], kspace_pair[..., 1]
+    A = forward_model(kspace_in, psf_shape)
+    # A = forward_model_conv(patch_pair[..., 0], psf_shape)
     y = sp.resize(patch_pair[..., 1], A.oshape)
     # A_mat = get_matrix(A)
     # A_mat = np.random.rand(np.prod(A.oshape), np.prod(A.ishape))
     # A_inv = np.linalg.pinv(A_mat) # direct solve takes about 4 times longer than iterative solve using a random matrix as a proxy for A. If you call get_matrix and actually construct A by brute force it takes 10x instead of 4x.
     # soln = np.reshape(A_inv.dot(y.ravel()), psf_shape)
-    app = sp.app.LinearLeastSquares(A, y, x=np.zeros(A.ishape, dtype=np.float64), tol=1e-10, max_iter=1e10, show_pbar=verbose, lamda=0)
+    app = sp.app.LinearLeastSquares(A, y, x=np.zeros(A.ishape, dtype=np.complex128), tol=1e-10, max_iter=1e10, show_pbar=verbose, lamda=0)
     soln = app.run()
     psf = np.abs(soln)
     return psf
@@ -131,3 +133,10 @@ def colorbar(ax, im, label, offset=0, ticks=[1, 2, 3]):
     cbar.set_label(label, size=SMALL_SIZE)
     cbar.ax.tick_params(labelsize=SMALLER_SIZE)
     return cbar
+
+def gaussian_blur(image, sigma, psf_radius, axes=(0,)):
+    return ndi.gaussian_filter(image, sigma, order=0, radius=psf_radius, output=None, mode='constant', axes=axes)
+
+def gaussian_psf(shape, sigma, psf_radius, axes=(0,)):
+    image = unit_impulse(shape, idx='mid')
+    return gaussian_blur(image, sigma, psf_radius, axes=axes)

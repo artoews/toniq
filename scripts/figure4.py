@@ -6,11 +6,9 @@ import sigpy as sp
 import yaml
 
 from os import path, makedirs
-from pathlib import Path
 
+import sr
 from config import parse_slice
-from retro_res import gaussian_blur, gaussian_psf
-from slice_params import *
 from plot_params import *
 from plot import remove_ticks, color_panels, label_panels
 from util import load_series_from_path, normalize
@@ -49,11 +47,12 @@ def plot_model(fig, target, reference, psf):
 
 p = argparse.ArgumentParser(description='Make figure 4')
 p.add_argument('save_dir', type=str, help='path where figure is saved')
-p.add_argument('config', type=str, default=None, help='yaml config file specifying data paths and mapping parameters')
+p.add_argument('-c', '--config', type=str, default='config/mar4-fse125.yml', help='yaml config file specifying data paths and mapping parameters')
 p.add_argument('-x', type=int, default=100, help='x coordinate of inset location')
 p.add_argument('-y', type=int, default=92, help='x coordinate of inset location')
 p.add_argument('-w', '--window_size', type=int, default=10, help='window size in pixels')
-p.add_argument('-p', '--psf_size', type=int, default=5, help='psf size in pixels')
+p.add_argument('-p', '--psf_size', type=int, default=5, help='psf size (std) in pixels')
+p.add_argument('--psf_radius', type=int, default=20, help='psf extent in pixels')
 p.add_argument('-s', '--sigma', type=float, nargs='+', default=[1, 0.5], help='sigmas for gaussian PSF')
 
 if __name__ == '__main__':
@@ -78,8 +77,8 @@ if __name__ == '__main__':
     reference = image.data
     reference = np.abs(sp.ifft(sp.resize(sp.fft(reference), (256, 256, 64))))
     reference = normalize(reference[slc], pct=100)
-    target = gaussian_blur(reference, args.sigma, axes=(0, 1))
-    psf = gaussian_psf(reference.shape, args.sigma, axes=(0, 1))
+    target = sr.gaussian_blur(reference, args.sigma, args.psf_radius, axes=(0, 1))
+    psf = sr.gaussian_psf(reference.shape, args.sigma, args.psf_radius, axes=(0, 1))
     psf = sp.resize(psf, (args.window_size, args.window_size))
     psf = psf / np.max(psf)
 

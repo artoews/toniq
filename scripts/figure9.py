@@ -1,7 +1,6 @@
 import argparse
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy.ndimage as ndi
 import sigpy as sp
 import yaml
 
@@ -10,7 +9,6 @@ from matplotlib.ticker import MultipleLocator
 
 import snr, sr
 from plot import plotVolumes
-from scipy.signal import unit_impulse
 
 from plot import color_panels, label_panels, remove_ticks
 from plot_params import *
@@ -18,16 +16,6 @@ from plot_params import *
 from config import parse_slice
 from masks import get_implant_mask, get_signal_mask
 from util import normalize, load_series_from_path
-
-patch_shape = (14, 14, 10)
-psf_radius = 20
-
-def gaussian_blur(image, sigma, axes=(0,)):
-    return ndi.gaussian_filter(image, sigma, order=0, radius=psf_radius, output=None, mode='constant', axes=axes)
-
-def gaussian_psf(shape, sigma, axes=(0,)):
-    image = unit_impulse(shape, idx='mid')
-    return gaussian_blur(image, sigma, axes)
 
 def plot_fwhm_maps(maps):
     volumes = []
@@ -68,14 +56,15 @@ def plot_row(axes, images, slc=None, shape=None, cmap=CMAP['image'], vmin=0, vma
 
 p = argparse.ArgumentParser(description='Make Figure 9')
 p.add_argument('save_dir', type=str, help='path where outputs are saved')
-p.add_argument('config', type=str, default=None, help='yaml config file specifying data paths and mapping parameters')
+p.add_argument('-c', '--config', type=str, default='config/mar4-fse125.yml', help='yaml config file specifying data paths and mapping parameters')
 p.add_argument('-n', '--noise', type=float, default=0.01, help='standard deviation of noise added to normalized image; default=0.01')
 p.add_argument('-l', '--load', action='store_true', help='load inputs from save_dir')
 p.add_argument('-p', '--plot', action='store_true', help='show plots')
-p.add_argument('-x', type=int, default=100, help='x coordinate of inset location')
-p.add_argument('-y', type=int, default=92, help='x coordinate of inset location')
+p.add_argument('-x', type=int, default=100, help='x coordinate of inset location; default=100')
+p.add_argument('-y', type=int, default=92, help='x coordinate of inset location; default=92')
 p.add_argument('-w', '--window_size', type=int, default=14, help='window size in pixels; default=14')
 p.add_argument('--psf_size', type=int, default=5, help='psf size in pixels; default=5')
+p.add_argument('--psf_radius', type=int, default=20, help='psf extent in pixels; default=20')
 p.add_argument('-s', '--sigma', type=float, nargs='+', default=[0.3, 0.558, 0.675, 0.769, 0.85, 0.926, 1.02, 1.128, 1.247], help='sigmas for gaussian PSF; default = sigmas yielding FWHM=1:3:0.25 pixels')
 
 
@@ -107,13 +96,13 @@ if __name__ == '__main__':
         target_images = []
         target_psfs = []
         for sigma in args.sigma:
-            target_images += [gaussian_blur(reference_image, sigma)]
-            target_psfs += [gaussian_psf(reference_image.shape, sigma)]
+            target_images += [sr.gaussian_blur(reference_image, sigma, args.psf_radius)]
+            target_psfs += [sr.gaussian_psf(reference_image.shape, sigma, args.psf_radius)]
 
         # reduce image to target slice of interest
         reference_image = reference_image[slc]
         target_images = [image[slc] for image in target_images]
-        target_psfs = [sp.resize(psf, (psf_radius, psf_radius, 1)) for psf in target_psfs]
+        target_psfs = [sp.resize(psf, (args.psf_radius, args.psf_radius, 1)) for psf in target_psfs]
 
         # measured correct FWHM
         measured_fwhms = []
@@ -141,18 +130,20 @@ if __name__ == '__main__':
         # check SNR
         snr_maps = []
         for i in range(len(target_images)):
-            snr, _, _ = snr.get_map(target_images[i], target_images_2[i], mask)
-            snr_maps += [snr]
-            print('Trial {} has SNR stats (min {}, mean {}, median {}, max {}): '.format(i, np.min(snr), np.mean(snr), np.median(snr), np.max(snr)))
+            snr_i, _, _ = snr.get_map(target_images[i], target_images_2[i], mask)
+            snr_maps += [snr_i]
+            print('Trial {} has SNR stats: (min {:.2f}, mean {:.2f}, median {:.2f}, max {:.2f})'.format(i, np.min(snr_i), np.mean(snr_i), np.median(snr_i), np.max(snr_i)))
 
         # map resolution
         psf_maps = []
         fwhm_maps = []
         stride = config['params']['psf-stride']
         num_workers = config['params']['num-workers']
+        patch_shape = tuple(config['params']['psf-window-size'])
+        psf_shape = (args.psf_size, args.psf_size, 1)
         for i in range(len(target_images)):
             print('Mapping resolution for case {} of {} with sigma {}'.format(i+1, len(target_images), args.sigma[i]))
-            psf_map, fwhm_map = sr.get_map(reference_image, target_images[i], patch_shape, resolution_mm, mask, stride, num_workers=num_workers)
+            psf_map, fwhm_map = sr.get_map(reference_image, target_images[i], psf_shape, patch_shape, resolution_mm, mask, stride, num_workers=num_workers)
             psf_maps.append(psf_map)
             fwhm_maps.append(fwhm_map) 
         psf_maps = np.stack(psf_maps)
@@ -186,7 +177,7 @@ if __name__ == '__main__':
     inset = (slice(args.x, args.x + args.window_size),
              slice(args.y, args.y + args.window_size),
              (slc[2].stop - slc[2].start)//2+10)
-    plot_row(axes[0, :], target_psfs, shape=(args.psf_size, args.psf_size), normalize=True)
+    plot_row(axes[0, :], target_psfs, shape=psf_shape[:2], normalize=True)
     plot_row(axes[1, :], target_images, slc=inset)
     plot_row(axes[2, :], psf_maps, slc=(5, 5, 18), normalize=True)
     ims = plot_row(axes[3, :], fwhm_maps / resolution_mm[0], slc=(slice(None), slice(None), 18, 0), vmin=0.75, vmax=3.25)

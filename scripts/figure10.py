@@ -86,9 +86,9 @@ def make_plot_white(ax):
             child.set_color('white')
 
 p = argparse.ArgumentParser(description='Make figure 10')
-p.add_argument('root1', type=str, help='root to demo data subfolder 1')
-p.add_argument('root2', type=str, help='root to demo data subfolder 2')
 p.add_argument('save_dir', type=str, help='path where figure is saved')
+p.add_argument('--root1', type=str, default='out/mar20/mar4-msl125', help='root to demo data subfolder 1')
+p.add_argument('--root2', type=str, default='out/mar20/mar4-msl63', help='root to demo data subfolder 2')
 p.add_argument('-z', '--z_slice', type=int, default=18, help='relative position of z slice (after crop); default=18')
 p.add_argument('-p', '--plot', action='store_true', help='show plots')
 
