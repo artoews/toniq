@@ -39,7 +39,7 @@ def simulated_deformation_fse(field_kHz, gx_Gcm, gz_Gcm, voxel_size_x_mm, voxel_
 
 def elastix_registration(fixed_image, moving_image, fixed_mask, moving_mask, parameter_object, initial_transform=None, verbose=False):
     t0 = time()
-    # good change these to image_view_from_array to pass by reference? I don't *think* they are modified
+    # could change these to image_view_from_array to pass by reference? I don't *think* they are modified
     moving_image = itk.image_from_array(moving_image)
     fixed_image = itk.image_from_array(fixed_image)
     if fixed_mask is not None:
@@ -149,15 +149,7 @@ def get_deformation_field(moving_image, transform):
     # from https://github.com/InsightSoftwareConsortium/ITKElastix/blob/main/examples/ITK_Example11_Transformix_DeformationField.ipynb
     moving_image = itk.image_from_array(moving_image)
     field = itk.transformix_deformation_field(moving_image, transform)
-    return np.asarray(field).astype(np.float)[..., ::-1]  # in 2D, these dimensions seem to be swapped. not sure about 3D
-
-def get_deformation_field_2d(moving_image, transform_list):
-    fields = []
-    for i in range(moving_image.shape[1]):
-        # print('deforming y slice', i)
-        field = get_deformation_field(moving_image[:, i, :], transform_list[i])
-        fields.append(field)
-    return np.stack(fields, axis=1)
+    return np.asarray(field).astype(np.float)[..., ::-1]
 
 def get_jacobian(moving_image, transform):
     # from https://github.com/InsightSoftwareConsortium/ITKElastix/blob/main/examples/ITK_Example10_Transformix_Jacobian.ipynb
@@ -167,22 +159,26 @@ def get_jacobian(moving_image, transform):
     det_spatial_jacobian = np.asarray(jacobians[1]).astype(np.float)
     return spatial_jacobian, det_spatial_jacobian
 
-def get_map(fixed_image, moving_image, fixed_mask, moving_mask, itk_parameters=None, rigid_prep=True):
+def get_map(plastic_image, metal_image, plastic_mask, metal_mask, itk_parameters=None, inverse=True, rigid_prep=False):
     if itk_parameters is None:
         itk_parameters = setup_nonrigid()
     if rigid_prep:
         rigid_itk_parameters = setup_rigid()
-        rigid_result, rigid_transform = elastix_registration(fixed_image, moving_image, fixed_mask, moving_mask, rigid_itk_parameters, verbose=False)
-        rigid_result_mask = transform(moving_mask, rigid_transform)
+        rigid_result, rigid_transform = elastix_registration(metal_image, plastic_image, metal_mask, plastic_mask, rigid_itk_parameters, verbose=False)
+        rigid_result_mask = transform(metal_mask, rigid_transform)
         rigid_result_masked = masked_copy(rigid_result, rigid_result_mask)
-        moving_image = rigid_result
-        moving_mask = rigid_result_mask
+        plastic_image = rigid_result
+        plastic_mask = rigid_result_mask
     else:
         rigid_result = None
         rigid_result_masked = None
         rigid_transform = None
-    moving_image_masked = moving_image.copy()
-    moving_image_masked[~moving_mask] = 0
+    if inverse:
+        fixed_image, fixed_mask = metal_image, metal_mask
+        moving_image, moving_mask = plastic_image, plastic_mask
+    else:
+        fixed_image, fixed_mask = plastic_image, plastic_mask
+        moving_image, moving_mask = metal_image, metal_mask
     result, nonrigid_transform = elastix_registration(fixed_image, moving_image, fixed_mask, moving_mask, itk_parameters, verbose=False)
     deformation_field = get_deformation_field(moving_image, nonrigid_transform)
     result_mask = transform(moving_mask, nonrigid_transform)
@@ -208,28 +204,3 @@ def plot_map(ax, gd_map, mask, lim=2, show_cbar=True):
     if show_cbar:
         cbar = colorbar(ax, im, lim=lim)
         return cbar
-
-# def plot_summary_results(fig, results, reference, field, rbw, pbw):
-#     axes = fig.subplots()
-#     f_max = 1.5
-#     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
-#     styles = ['dotted', 'solid', 'dashed']
-#     loosely_dashed = (0, (5, 10))
-#     for i in range(len(results)):
-#         net_pbw = pbw[i] / 1000 # assumes i=0 is plastic
-#         # net_pbw = net_pixel_bandwidth(pbw[i], pbw[0]) / 1000 # kHz
-#         result_mask = (results[i] != 0)
-#         field_bins = np.round(reference * 10) / 10
-#         sns.lineplot(x=(field_bins * result_mask).ravel(),
-#                      y=(field[i] * result_mask).ravel(),
-#                      ax=axes, legend='brief', label='RBW={0:.3g}kHz'.format(rbw[i]), color=colors[i], linestyle=styles[i])
-#         # ax.scatter((field_bins * result_mask).ravel(), (measured_deformation * result_mask).ravel(), c=colors[i], s=0.1, marker='.')
-#         axes.axline((-f_max, -f_max / net_pbw), (f_max, f_max / net_pbw), color=colors[i], linestyle=loosely_dashed)
-#         axes.set_xlim([-f_max, f_max])
-#         axes.set_ylim([-4, 4])
-#     axes.set_xlabel('Off-Resonance (kHz)')
-#     axes.set_ylabel('Displacement (pixels)')
-#     plt.legend()
-#     plt.grid()
-#     return axes
-
