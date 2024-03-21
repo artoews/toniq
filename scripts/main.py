@@ -21,6 +21,7 @@ p.add_argument('--ia', action='store_true', help='do intensity artifact map')
 p.add_argument('--gd', action='store_true', help='do geometric distortion map')
 p.add_argument('--snr', action='store_true', help='do SNR map')
 p.add_argument('--res', action='store_true', help='do resolution map')
+p.add_argument('-p', '--plot', action='store_true', help='show plots')
 
 def parse_slice(config):
     return tuple(slice(start, stop) for start, stop in config['params']['slice'])
@@ -154,5 +155,5 @@ if __name__ == '__main__':
         fig6, tracker6 = plotVolumes((res_x_map, res_y_map), titles=('FWHM X (pixels)', 'FWHM Y (pixels)'), vmin=1, vmax=3, cmap=CMAP['resolution'], cbar=True)
         fig6.suptitle('Spatial Resolution Maps')
 
-    # just for debugging as I write the script
+if args.plot:
     plt.show()
