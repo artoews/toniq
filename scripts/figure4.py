@@ -30,7 +30,7 @@ def plot_inputs(fig, target, reference, inset):
 
 def plot_model(fig, target, reference, psf):
     axes = fig.subplots(2, 3, gridspec_kw={'left': 0.05, 'right': 0.95, 'bottom': 0.05, 'top': 0.92})
-    titles = ('Target', 'Reference', 'Local PSF')
+    titles = ('Target Patch', 'Reference Patch', 'Local PSF')
     images = (target, reference, psf)
     for i in range(3):
         axes[0, i].imshow(images[i], **kwargs)
@@ -38,7 +38,6 @@ def plot_model(fig, target, reference, psf):
         kspace = np.abs(sp.fft(images[i]))
         kspace = np.log(kspace + 1) * 2
         axes[1, i].imshow(kspace, **kwargs)
-    axes[0, 0].set_ylabel('Patch')
     axes[1, 0].set_ylabel('2D DFT')
     symbols = ('=', r'$\circledast$', '=', r'$\odot$')
     for ax, symbol in zip(axes[:, :2].flat, symbols):

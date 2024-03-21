@@ -15,7 +15,7 @@ from plot_params import *
 
 from config import parse_slice
 from masks import get_implant_mask, get_signal_mask
-from util import normalize, load_series_from_path
+from util import normalize, load_series_from_path, safe_divide
 
 def plot_fwhm_maps(maps):
     volumes = []
@@ -49,7 +49,7 @@ def plot_row(axes, images, slc=None, shape=None, cmap=CMAP['image'], vmin=0, vma
         if shape is not None:
             image = sp.resize(np.squeeze(image), shape)
         if normalize:
-            image = image / np.max(np.abs(image))
+            image = safe_divide(image, np.max(np.abs(image)))
         im = ax.imshow(image, cmap=cmap, vmin=vmin, vmax=vmax)
         ims += [im]
     return ims
@@ -79,6 +79,8 @@ if __name__ == '__main__':
     with open(args.config, 'r') as file:
         config = yaml.safe_load(file)
     slc = parse_slice(config)
+
+    psf_shape = (args.psf_size, args.psf_size, 1)
 
     if not args.load:
 
@@ -140,7 +142,6 @@ if __name__ == '__main__':
         stride = config['params']['psf-stride']
         num_workers = config['params']['num-workers']
         patch_shape = tuple(config['params']['psf-window-size'])
-        psf_shape = (args.psf_size, args.psf_size, 1)
         for i in range(len(target_images)):
             print('Mapping resolution for case {} of {} with sigma {}'.format(i+1, len(target_images), args.sigma[i]))
             psf_map, fwhm_map = sr.get_map(reference_image, target_images[i], psf_shape, patch_shape, resolution_mm, mask, stride, num_workers=num_workers)

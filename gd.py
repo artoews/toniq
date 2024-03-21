@@ -177,6 +177,10 @@ def get_map(fixed_image, moving_image, fixed_mask, moving_mask, itk_parameters=N
         rigid_result_masked = masked_copy(rigid_result, rigid_result_mask)
         moving_image = rigid_result
         moving_mask = rigid_result_mask
+    else:
+        rigid_result = None
+        rigid_result_masked = None
+        rigid_transform = None
     moving_image_masked = moving_image.copy()
     moving_image_masked[~moving_mask] = 0
     result, nonrigid_transform = elastix_registration(fixed_image, moving_image, fixed_mask, moving_mask, itk_parameters, verbose=False)
@@ -228,3 +232,4 @@ def plot_map(ax, gd_map, mask, lim=2, show_cbar=True):
 #     plt.legend()
 #     plt.grid()
 #     return axes
+

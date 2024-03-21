@@ -50,7 +50,7 @@ if __name__ == '__main__':
     axes[0, 0].set_title('Plastic')
     axes[0, 1].set_title('Metal')
     axes[0, 2].set_title('Intensity Artifact')
-    axes[0, 0].set_ylabel('FSE')
+    axes[0, 0].set_ylabel('2D FSE')
     axes[1, 0].set_ylabel('MAVRIC-SL')
 
     for ax, root in zip(axes, (args.out1, args.out2)):
