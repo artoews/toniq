@@ -72,39 +72,35 @@ if __name__ == '__main__':
 
     # GD mapping
     if args.gd or map_all:
+        ia_plastic = np.load(path.join(save_dir, 'ia-plastic.npy'))
+        ia_metal = np.load(path.join(save_dir, 'ia-metal.npy'))
         ia_map = np.load(path.join(save_dir, 'ia-map.npy'))
         implant_mask = np.load(path.join(save_dir, 'implant-mask.npy'))
         plastic_image, metal_image = prepare_inputs((images['structured-plastic'].data, images['structured-metal'].data), slc)
         plastic_mask, metal_mask = gd.get_masks(implant_mask, ia_map, config['params']['IA-thresh-relative'])
-        result, result_masked, rigid_result, rigid_result_masked, gd_map, rigid_transform, nonrigid_transform = gd.get_map(plastic_image, metal_image, plastic_mask, metal_mask, rigid_prep=False)
-        # ia_map_registered = gd.transform(gd.transform(ia_map, rigid_transform), nonrigid_transform)
-        ia_map_registered = gd.transform(ia_map, nonrigid_transform)
+        result, result_masked, rigid_result, rigid_result_masked, gd_map, rigid_transform, nonrigid_transform = gd.get_map(plastic_image, metal_image, plastic_mask, metal_mask)
         np.save(path.join(save_dir, 'gd-plastic.npy'), plastic_image)
         np.save(path.join(save_dir, 'gd-plastic-mask.npy'), plastic_mask)
         np.save(path.join(save_dir, 'gd-metal.npy'), metal_image)
         np.save(path.join(save_dir, 'gd-metal-mask.npy'), metal_mask)
-        np.save(path.join(save_dir, 'gd-metal-registered.npy'), result)
-        np.save(path.join(save_dir, 'gd-metal-registered-masked.npy'), result_masked)
-        # np.save(path.join(save_dir, 'gd-metal-rigid-registered.npy'), rigid_result)
-        # np.save(path.join(save_dir, 'gd-metal-rigid-registered-masked.npy'), rigid_result_masked)
+        np.save(path.join(save_dir, 'gd-plastic-registered.npy'), result)
+        np.save(path.join(save_dir, 'gd-plastic-registered-masked.npy'), result_masked)
+        # np.save(path.join(save_dir, 'gd-plastic-rigid-registered.npy'), rigid_result)
+        # np.save(path.join(save_dir, 'gd-plastic-rigid-registered-masked.npy'), rigid_result_masked)
         np.save(path.join(save_dir, 'gd-map.npy'), gd_map)
-        np.save(path.join(save_dir, 'ia-map-registered.npy'), ia_map_registered)
         plastic_image_masked = masked_copy(plastic_image, plastic_mask)
         metal_image_masked = masked_copy(metal_image, metal_mask)
-        input_error = np.abs(metal_image_masked - plastic_image_masked) * (metal_image_masked != 0) * (plastic_image_masked != 0)
-        output_error = np.abs(result_masked - plastic_image_masked) * (result_masked != 0) * (plastic_image_masked != 0)
-        output_mask = (result_masked != 0) * (plastic_image_masked != 0)
-        fig2, tracker2 = plotVolumes((plastic_image_masked, metal_image_masked, result_masked, input_error, output_error),
-                                     titles=('Plastic Input', 'Metal Input', 'Metal Output', 'Input Error', 'Output Error'))
+        input_mask = (plastic_image_masked != 0) * (metal_image_masked != 0)
+        output_mask = (result_masked != 0) * (metal_image_masked != 0)
+        input_error = np.abs(plastic_image_masked - metal_image_masked) * input_mask
+        output_error = np.abs(result_masked - metal_image_masked) * output_mask
+        fig2, tracker2 = plotVolumes((metal_image_masked, plastic_image_masked, result_masked, input_error, output_error),
+                                     titles=('Metal Input', 'Plastic Input', 'Plastic Output', 'Input Error', 'Output Error'))
         fig2.suptitle('Geometric Distortion, Mapping Images')
-        fig3, tracker3 = plotVolumes((-gd_map[..., 0], gd_map[..., 1], gd_map[..., 2]),
-                                     titles=('X (pixels)', 'Y (pixels)', 'Z (pixels)'),
-                                     cmap=CMAP['distortion'], vmin=-2, vmax=2, cbar=True)
-        fig3.suptitle('Geometric Distortion Maps')
-        fig3b, tracker3b = plotVolumes((-gd_map[..., 0] * output_mask, gd_map[..., 1] * output_mask, gd_map[..., 2] * output_mask, (safe_divide(-gd_map[..., 0], gd_map[...,  2])-1) * output_mask),
+        fig3, tracker3 = plotVolumes((-gd_map[..., 0] * output_mask, gd_map[..., 1] * output_mask, gd_map[..., 2] * output_mask, (safe_divide(-gd_map[..., 0], gd_map[...,  2])-1) * output_mask),
                                      titles=('X (pixels)', 'Y (pixels)', 'Z (pixels)', '(X / Z) - 1'),
                                      cmap=CMAP['distortion'], vmin=-2, vmax=2, cbar=True)
-        fig3b.suptitle('Geometric Distortion Maps (Masked)')
+        fig3.suptitle('Geometric Distortion Maps (Masked)')
 
     # SNR mapping
     if args.snr or map_all:
