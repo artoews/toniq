@@ -9,15 +9,15 @@ from lattice import make_lattice, get_kspace_center, get_condition
 from plot_params import *
 
 def plot_condition(ax, psf_sizes, cubic, gyroid):
-    ax.plot(psf_sizes, cubic, label=r'Cubic Lattice', linestyle='dashed')
-    ax.plot(psf_sizes, gyroid, label=r'Gyroid Lattice', linestyle='solid')
+    ax.scatter(psf_sizes, cubic, label=r'Cubic Lattice', marker='s')
+    ax.scatter(psf_sizes, gyroid, label=r'Gyroid Lattice', marker='.')
     ax.set_xlabel('PSF Size (pixels)')
     ax.set_ylabel('Condition Number')
     ax.legend()
     # plt.yscale('log')
     # ax.set_xlim([min(psf_sizes), max(psf_sizes)])
     ax.set_ylim([0, 100])
-    plt.grid()
+    # plt.grid()
     return ax
 
 p = argparse.ArgumentParser(description='Make figure 8')
