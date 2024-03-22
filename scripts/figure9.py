@@ -10,7 +10,7 @@ from matplotlib.ticker import MultipleLocator
 import snr, sr
 from plot import plotVolumes
 
-from plot import color_panels, label_panels, remove_ticks
+from plot import color_panels, label_panels, remove_ticks, label_encode_dirs
 from plot_params import *
 
 from config import parse_slice
@@ -49,7 +49,7 @@ def plot_row(axes, images, slc=None, shape=None, cmap=CMAP['image'], vmin=0, vma
         if shape is not None:
             image = sp.resize(np.squeeze(image), shape)
         if normalize:
-            image = safe_divide(image, np.max(np.abs(image)))
+            image = safe_divide(np.abs(image), np.max(np.abs(image)))
         im = ax.imshow(image, cmap=cmap, vmin=vmin, vmax=vmax)
         ims += [im]
     return ims
@@ -177,15 +177,16 @@ if __name__ == '__main__':
     axes = subfigs[0].subplots(nrows=4, ncols=len(args.sigma), gridspec_kw={'wspace': 0, 'hspace': 0, 'bottom': 0.05, 'right': 0.94})
     inset = (slice(args.x, args.x + args.window_size),
              slice(args.y, args.y + args.window_size),
-             (slc[2].stop - slc[2].start)//2+10)
+             (slc[2].stop - slc[2].start)//2+5)
     plot_row(axes[0, :], target_psfs, shape=psf_shape[:2], normalize=True)
     plot_row(axes[1, :], target_images, slc=inset)
-    plot_row(axes[2, :], psf_maps, slc=(5, 5, 18), normalize=True)
+    plot_row(axes[2, :], psf_maps, slc=(inset[0].start, inset[1].start, inset[2]), normalize=True)
     ims = plot_row(axes[3, :], fwhm_maps / resolution_mm[0], slc=(slice(None), slice(None), 18, 0), vmin=0.75, vmax=3.25)
     for ax, label in zip(axes[:, 0], ('Retrospective\nPSF', 'Target\nPatch', 'Local PSF\nEstimate', 'Up/Down\nResolution\nMap')):
         ax.set_ylabel(label, rotation='horizontal', va='center', ha='center', labelpad=30)
     for ax, title in zip(axes[0, 1:], ['{:.2f}'.format(i) for i in np.arange(1.25, 3.1, 0.25)]):
         ax.set_title(title)
+    label_encode_dirs(axes[0, 0], color='white', offset=0.01)
     axes[0, 0].set_title('FWHM =\n1.00')
     remove_ticks(axes)
     sr.colorbar(axes[3, -1], ims[-1], 'FWHM (pixels)')
@@ -193,8 +194,8 @@ if __name__ == '__main__':
     axes = subfigs[1].subplots(nrows=1, ncols=2, gridspec_kw={'bottom': 0.15, 'top': 0.85, 'right': 0.94})
     plot_distribution(axes[0], measured_fwhms, [maps[..., 0] / resolution_mm[0] for maps in fwhm_maps])
     plot_distribution(axes[1], (1.00,), [maps[..., 1] / resolution_mm[1] for maps in fwhm_maps])
-    axes[0].set_title('Up/Down Resolution')
-    axes[1].set_title('Left/Right Resolution')
+    axes[0].set_title('x Resolution')
+    axes[1].set_title('y Resolution')
 
     color_panels(subfigs.flat)
     label_panels(subfigs.flat)

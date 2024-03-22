@@ -18,8 +18,8 @@ def get_map(reference, target, psf_shape, patch_shape, resolution_mm, mask, stri
     for i in range(fwhm.shape[-1]):
         fwhm[..., i] = fwhm[..., i] * resolution_mm[i]
     if stride == 1:
-        psf = sp.resize(psf, target.shape[:2] + psf.shape[2:])
-        fwhm = sp.resize(fwhm, target.shape[:2] + fwhm.shape[2:])
+        psf = sp.resize(psf, target.shape[:3] + psf.shape[3:])
+        fwhm = sp.resize(fwhm, target.shape[:3] + fwhm.shape[3:])
     return psf, fwhm
 
 def estimate_psf(image_in, image_out, mask, psf_shape, patch_shape, stride, num_batches):
