@@ -6,7 +6,6 @@ import yaml
 from pathlib import Path
 
 from os import path, makedirs
-from skimage.transform import resize
 
 import ia, snr, gd, sr
 from plot import plotVolumes
@@ -21,6 +20,7 @@ p.add_argument('--ia', action='store_true', help='do intensity artifact map')
 p.add_argument('--gd', action='store_true', help='do geometric distortion map')
 p.add_argument('--snr', action='store_true', help='do SNR map')
 p.add_argument('--res', action='store_true', help='do resolution map')
+p.add_argument('--plastic', action='store_true', help='use only plastic inputs where possible (snr, res)')
 p.add_argument('-p', '--plot', action='store_true', help='show plots')
 
 def parse_slice(config):
@@ -108,11 +108,13 @@ if __name__ == '__main__':
     if args.snr or map_all:
         ia_map = np.load(path.join(save_dir, 'ia-map.npy'))
         implant_mask = np.load(path.join(save_dir, 'implant-mask.npy'))
-        image_1, image_2 = prepare_inputs((images['uniform-metal'].data, images['uniform-metal-2'].data), slc)
-        # image_1, image_2 = prepare_inputs((images['uniform-plastic'].data, images['uniform-plastic-2'].data), slc)
         ia_mask = get_artifact_mask(ia_map, config['params']['IA-thresh-relative'])
-        snr_mask = get_signal_mask(implant_mask, artifact_masks=[ia_mask])
-        # snr_mask = get_signal_mask(implant_mask) # good for evaluation on plastic
+        if args.plastic:
+            image_1, image_2 = prepare_inputs((images['uniform-plastic'].data, images['uniform-plastic-2'].data), slc)
+            snr_mask = get_signal_mask(implant_mask)
+        else:
+            image_1, image_2 = prepare_inputs((images['uniform-metal'].data, images['uniform-metal-2'].data), slc)
+            snr_mask = get_signal_mask(implant_mask, artifact_masks=[ia_mask])
         snr_map, signal, noise_std = snr.get_map(image_1, image_2, snr_mask)
         np.save(path.join(save_dir, 'snr-image-1.npy'), image_1)
         np.save(path.join(save_dir, 'snr-image-2.npy'), image_2)
@@ -128,21 +130,20 @@ if __name__ == '__main__':
         ia_mask = get_artifact_mask(ia_map, config['params']['IA-thresh-relative'])
         implant_mask = np.load(path.join(save_dir, 'implant-mask.npy'))
         image_ref = images['structured-plastic-reference'].data
-        image_blurred = images['structured-metal'].data
-        # image_blurred = images['structured-plastic'].data
+        if args.plastic:
+            image_blurred = images['structured-plastic'].data
+            mask = get_signal_mask(implant_mask)
+        else:
+            image_blurred = images['structured-metal'].data
+            gd_masks = [get_artifact_mask(gd_map[..., i], config['params']['GD-thresh-pixels']) for i in range(3)]
+            mask = get_signal_mask(implant_mask, artifact_masks=[ia_mask] + gd_masks)
+            # mask = get_signal_mask(implant_mask, artifact_masks=[ia_mask]) # ignores GD mask; good for MSL protocols
         image_ref = np.abs(sp.ifft(sp.resize(sp.fft(image_ref), image_blurred.shape)))
-        # image_blurred = np.abs(sp.ifft(sp.resize(sp.fft(image_blurred), image_ref.shape)))
-        # slc = tuple(slice(s.start*2, s.stop*2) for s in slc[:2]) + slc[2:]
         image_ref, image_blurred = prepare_inputs((image_ref, image_blurred), slc)
         resolution_mm = images['structured-plastic'].meta.resolution_mm
         patch_shape = tuple(config['params']['psf-window-size'])
         psf_shape = tuple(config['params']['psf-shape'])
         num_workers = config['params']['num-workers']
-        gd_masks = [get_artifact_mask(gd_map[..., i], config['params']['GD-thresh-pixels']) for i in range(3)]
-        mask = get_signal_mask(implant_mask, artifact_masks=[ia_mask] + gd_masks)
-        # mask = get_signal_mask(implant_mask, artifact_masks=[ia_mask]) # ignores GD mask; good for MSL protocols
-        # mask = get_signal_mask(implant_mask) # good for evaluation on plastic
-        mask = resize(mask, image_ref.shape)
         psf, fwhm = sr.get_map(image_ref, image_blurred, psf_shape, patch_shape, resolution_mm, mask, config['params']['psf-stride'], num_workers=num_workers)
         np.save(path.join(save_dir, 'res-image-ref.npy'), image_ref)
         np.save(path.join(save_dir, 'res-image-blurred.npy'), image_blurred)
@@ -156,5 +157,5 @@ if __name__ == '__main__':
         fig6, tracker6 = plotVolumes((res_x_map, res_y_map), titles=('FWHM X (pixels)', 'FWHM Y (pixels)'), vmin=1, vmax=3, cmap=CMAP['resolution'], cbar=True)
         fig6.suptitle('Spatial Resolution Maps')
 
-if args.plot:
-    plt.show()
+    if args.plot:
+        plt.show()
