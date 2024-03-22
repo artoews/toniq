@@ -27,9 +27,9 @@ def plot_field_component(ax, gd_map, slc1, slc2, limit, mask, cmap):
     return ax1, ax2
 
 def plot_field_components(axes, gd_map, slc1, slc2, limit, mask, cmap=CMAP['distortion']):
-    axes[0].set_title('Field X')
-    axes[1].set_title('Field Y')
-    axes[2].set_title('Field Z')
+    axes[0].set_title('x Field')
+    axes[1].set_title('y Field')
+    axes[2].set_title('z Field')
     ax1, ax2 = plot_field_component(axes[0], -gd_map[..., 0], slc1, slc2, limit, mask, cmap)
     label_encode_dirs(ax1)
     label_encode_dirs(ax2, x_label='z')

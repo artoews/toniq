@@ -193,7 +193,7 @@ def get_masks(implant_mask, artifact_map, threshold):
 
 def colorbar(ax, im, lim=2, offset=0):
     cbar = plt.colorbar(im, cax=colorbar_axis(ax, offset=offset), ticks=[-lim, -lim/2, 0, lim/2, lim], extend='both')
-    cbar.set_label('Displacement\n(pixels, readout)', size=SMALL_SIZE)
+    cbar.set_label('Displacement\n(pixels)', size=SMALL_SIZE)
     cbar.ax.tick_params(labelsize=SMALLER_SIZE)
     return cbar
 

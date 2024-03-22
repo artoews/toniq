@@ -39,7 +39,7 @@ def plot_output_panel(fig, input1, input2, map, mask, map_plotter, title):
     ax1.imshow(input1, **kwargs)
     ax2.imshow(input2, **kwargs)
     ax3.set_title(title)
-    map_plotter(ax3, map, mask)
+    cbar = map_plotter(ax3, map, mask)
     ax3.annotate("",
          xy=(-0.04, 0.5), xycoords='axes fraction',
          xytext=(-0.17, 0.5), textcoords='axes fraction',
@@ -47,7 +47,7 @@ def plot_output_panel(fig, input1, input2, map, mask, map_plotter, title):
          )
     for ax in (ax1, ax2, ax3):
         remove_ticks(ax)
-    return ax1, ax2, ax3
+    return ax1, ax2, ax3, cbar
 
 p = argparse.ArgumentParser(description='Make figure 2')
 p.add_argument('save_dir', type=str, help='path where figure is saved')
@@ -97,9 +97,11 @@ if __name__ == '__main__':
     plot_inputs_panel(subfigs[0], ia_plastic, ia_metal, gd_plastic, gd_metal)
     plot_output_panel(subsubfigs[0, 0], ia_plastic, ia_metal, ia_map, None, ia.plot_map, 'Intensity Artifact')
     plot_output_panel(subsubfigs[0, 1], snr_image1, snr_image2, snr_map, snr_mask, snr.plot_map, 'SNR')
-    plot_output_panel(subsubfigs[1, 0], gd_plastic, gd_metal, gd_map, gd_mask, gd.plot_map, 'Geometric Distortion')
+    _, _, _, cbar = plot_output_panel(subsubfigs[1, 0], gd_plastic, gd_metal, gd_map, gd_mask, gd.plot_map, 'Geometric Distortion')
+    cbar.set_label('Displacement\n(pixels, x)', size=SMALL_SIZE)
     # ax, _, _ = plot_output_panel(subsubfigs[1, 1], res_reference, res_target, res_map, res_mask, plot_res_map, 'Spatial Resolution')
-    ax, _, _ = plot_output_panel(subsubfigs[1, 1], res_reference, res_target, res_map, res_map != 0, sr.plot_map, 'Spatial Resolution')
+    ax, _, _, cbar = plot_output_panel(subsubfigs[1, 1], res_reference, res_target, res_map, res_map != 0, sr.plot_map, 'Spatial Resolution')
+    cbar.set_label('FWHM\n(mm, x)', size=SMALL_SIZE)
 
     for spine in ax.spines.values():
         spine.set_edgecolor('blue')
