@@ -177,7 +177,7 @@ if __name__ == '__main__':
     axes = subfigs[0].subplots(nrows=4, ncols=len(args.sigma), gridspec_kw={'wspace': 0, 'hspace': 0, 'bottom': 0.05, 'right': 0.94})
     inset = (slice(args.x, args.x + args.window_size),
              slice(args.y, args.y + args.window_size),
-             (slc[2].stop - slc[2].start)//2+5)
+             (slc[2].stop - slc[2].start)//2+2)
     plot_row(axes[0, :], target_psfs, shape=psf_shape[:2], normalize=True)
     plot_row(axes[1, :], target_images, slc=inset)
     plot_row(axes[2, :], psf_maps, slc=(inset[0].start, inset[1].start, inset[2]), normalize=True)
