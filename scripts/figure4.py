@@ -8,10 +8,10 @@ import yaml
 from os import path, makedirs
 
 import sr
-from config import parse_slice
+from config import parse_slice, load_volume
 from plot_params import *
 from plot import remove_ticks, color_panels, label_panels
-from util import load_series_from_path, normalize
+from util import normalize
 
 kwargs = {'vmin': 0, 'vmax': 1, 'cmap': CMAP['image']}
 
@@ -46,7 +46,7 @@ def plot_model(fig, target, reference, psf):
 
 p = argparse.ArgumentParser(description='Make figure 4')
 p.add_argument('save_dir', type=str, help='path where figure is saved')
-p.add_argument('-c', '--config', type=str, default='config/mar4-fse125.yml', help='yaml config file specifying data paths and mapping parameters')
+p.add_argument('-c', '--config', type=str, default='config/mar4-fse125.yml', help='data config file')
 p.add_argument('-x', type=int, default=100, help='x coordinate of inset location')
 p.add_argument('-y', type=int, default=92, help='x coordinate of inset location')
 p.add_argument('-w', '--window_size', type=int, default=10, help='window size in pixels')
@@ -71,8 +71,7 @@ if __name__ == '__main__':
     inset = (slice(args.x, args.x + args.window_size),
              slice(args.y, args.y + args.window_size))
 
-    series_path = config['dicom-series']['structured-plastic-reference']
-    image = load_series_from_path(series_path)
+    image = load_volume(config, 'structured-plastic-reference')
     resolution_mm = image.meta.resolution_mm
     reference = image.data
     reference = np.abs(sp.ifft(sp.resize(sp.fft(reference), (256, 256, 64))))

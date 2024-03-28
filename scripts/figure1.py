@@ -5,10 +5,10 @@ import matplotlib.transforms as mtransforms
 
 from os import path, makedirs
 
-from config import read_config, parse_slice
+from config import read_config, parse_slice, load_volume
 from plot_params import *
 from plot import label_encode_dirs, label_slice_pos
-from util import equalize, load_series_from_path
+from util import equalize
 
 def plot_panel(ax, image, cmap=CMAP['image'], vmin=0, vmax=1.5):
     ax.imshow(image, cmap=cmap, vmin=vmin, vmax=vmax)
@@ -21,8 +21,8 @@ def label_panel(fig, ax, label):
 
 p = argparse.ArgumentParser(description='Make figure 1')
 p.add_argument('save_dir', type=str, help='path where figure is saved')
-p.add_argument('-c1', '--config1', type=str, default='config/mar4-fse125.yml', help='yaml config file for FSE sequence')
-p.add_argument('-c2', '--config2', type=str, default='config/mar4-msl125.yml', help='yaml config file for MAVRIC-SL sequence')
+p.add_argument('-c1', '--config1', type=str, default='config/mar4-fse125.yml', help='data config file for FSE sequence')
+p.add_argument('-c2', '--config2', type=str, default='config/mar4-msl125.yml', help='data config file for MAVRIC-SL sequence')
 p.add_argument('-s1', '--slice1', type=int, default=4, help='z index of first slice')
 p.add_argument('-s2', '--slice2', type=int, default=34, help='z index of second slice')
 p.add_argument('-s3', '--slice3', type=int, default=126, help='y index of third slice')
@@ -38,31 +38,30 @@ if __name__ == '__main__':
     config2 = read_config(args.config2)
     slc = parse_slice(config2)[:2] + (slice(None),)
 
+    slice_names = ('Slice 1', 'Slice 2', 'Reformat')
     slices = (
         slc[:2] + (args.slice1,),
         slc[:2] + (args.slice2,),
         slc[:1] + (args.slice3,) + slc[2:]
     )
-    paths = (
-        config1['dicom-series']['uniform-plastic'],
-        config1['dicom-series']['uniform-metal'],
-        config2['dicom-series']['uniform-metal'],
-    )
-    series_names = ('2D FSE\nPlastic', '2D FSE\nMetal', 'MAVRIC-SL\nMetal')
-    slice_names = ('Slice 1', 'Slice 2', 'Reformat')
 
-    images = [load_series_from_path(path).data for path in paths]
+    series_names = ('2D FSE\nPlastic', '2D FSE\nMetal', 'MAVRIC-SL\nMetal')
+    images = [
+        load_volume(config1, 'uniform-plastic').data,
+        load_volume(config1, 'uniform-metal').data,
+        load_volume(config2, 'uniform-metal').data
+    ]
     images = equalize(np.stack(images))
 
     ratio = images[0][slices[2]].shape[1] / images[0][slices[0]].shape[1]
     fig, axes = plt.subplots(
-        nrows=len(paths), ncols=len(slices),
+        nrows=3, ncols=len(slices),
         figsize=(FIG_WIDTH[0], FIG_WIDTH[0]*1.195),
         width_ratios=(1, 1, ratio),
         gridspec_kw={'wspace': 0, 'hspace': 0}
         )
     
-    for i in range(len(paths)):
+    for i in range(3):
         for j in range(len(slices)):
             plot_panel(axes[i, j], images[i][slices[j]])
             if j < len(slices) - 1:

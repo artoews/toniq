@@ -3,14 +3,14 @@ import numpy as np
 
 from os import path, makedirs
 
-from config import read_config
+from config import read_config, load_volume
 from plot_params import *
 
 import gd
 from config import read_config
 from plot import plotVolumes
 
-from util import equalize, load_series_from_path
+from util import equalize
 
 p = argparse.ArgumentParser(description='Check for positional drift of phantom')
 p.add_argument('save_dir', type=str, help='path where figure is saved')
@@ -26,8 +26,8 @@ if __name__ == '__main__':
 
     config = read_config(args.config)
 
-    image1 = load_series_from_path(config['dicom-series']['first-scan']).data
-    image2 = load_series_from_path(config['dicom-series']['last-scan']).data
+    image1 = load_volume(config, 'first-scan').data
+    image2 = load_volume(config, 'last-scan').data
     image1, image2 = equalize([image1, image2])
 
     slc = (slice(None), slice(None), slice(None))

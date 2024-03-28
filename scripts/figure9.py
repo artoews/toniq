@@ -13,9 +13,9 @@ from plot import plotVolumes
 from plot import color_panels, label_panels, remove_ticks, label_encode_dirs
 from plot_params import *
 
-from config import parse_slice
+from config import parse_slice, load_volume
 from masks import get_implant_mask, get_signal_mask
-from util import normalize, load_series_from_path, safe_divide
+from util import normalize, safe_divide
 
 def plot_fwhm_maps(maps):
     volumes = []
@@ -56,16 +56,18 @@ def plot_row(axes, images, slc=None, shape=None, cmap=CMAP['image'], vmin=0, vma
 
 p = argparse.ArgumentParser(description='Make Figure 9')
 p.add_argument('save_dir', type=str, help='path where outputs are saved')
-p.add_argument('-c', '--config', type=str, default='config/mar4-fse125.yml', help='yaml config file specifying data paths and mapping parameters')
+p.add_argument('-c', '--config', type=str, default='config/mar4-fse125.yml', help='data config file')
 p.add_argument('-n', '--noise', type=float, default=0.01, help='standard deviation of noise added to normalized image; default=0.01')
 p.add_argument('-l', '--load', action='store_true', help='load inputs from save_dir')
 p.add_argument('-p', '--plot', action='store_true', help='show plots')
 p.add_argument('-x', type=int, default=100, help='x coordinate of inset location; default=100')
 p.add_argument('-y', type=int, default=92, help='x coordinate of inset location; default=92')
-p.add_argument('-w', '--window_size', type=int, default=14, help='window size in pixels; default=14')
-p.add_argument('--psf_size', type=int, default=5, help='psf size in pixels; default=5')
-p.add_argument('--psf_radius', type=int, default=20, help='psf extent in pixels; default=20')
-p.add_argument('-s', '--sigma', type=float, nargs='+', default=[0.3, 0.558, 0.675, 0.769, 0.85, 0.926, 1.02, 1.128, 1.247], help='sigmas for gaussian PSF; default = sigmas yielding FWHM=1:3:0.25 pixels')
+p.add_argument('--psf_window_size', type=int, nargs=3, default=[14, 14, 10], help='size of window used for SR mapping; default=[14, 14, 10]')
+p.add_argument('--psf_shape', type=int, nargs=3, default=[5, 5, 1], help='size of PSF used for SR mapping; default=[5, 5, 1]')
+p.add_argument('--psf_stride', type=int, default=1, help='stride used for SR mapping; default=1')
+p.add_argument('--num_workers', type=int, default=8, help='number of workers used for SR mapping; default=8')
+p.add_argument('--blur_radius', type=int, default=20, help='Radius of blurring PSF; default=20')
+p.add_argument('-s', '--sigma', type=float, nargs='+', default=[0.3, 0.558, 0.675, 0.769, 0.85, 0.926, 1.02, 1.128, 1.247], help='st. dev. for blurring PSFs (gaussian); default = sigmas yielding FWHM=1:3:0.25 pixels')
 
 
 if __name__ == '__main__':
@@ -80,13 +82,10 @@ if __name__ == '__main__':
         config = yaml.safe_load(file)
     slc = parse_slice(config)
 
-    psf_shape = (args.psf_size, args.psf_size, 1)
-
     if not args.load:
 
         # load reference image
-        series_path = config['dicom-series']['structured-plastic-reference']
-        image = load_series_from_path(series_path)
+        image = load_volume(config, 'structured-plastic-reference').data
         # resolution_mm = image.meta.resolution_mm
         resolution_mm = [1.2, 1.2, 1.2]
         reference_image = image.data
@@ -139,12 +138,9 @@ if __name__ == '__main__':
         # map resolution
         psf_maps = []
         fwhm_maps = []
-        stride = config['params']['psf-stride']
-        num_workers = config['params']['num-workers']
-        patch_shape = tuple(config['params']['psf-window-size'])
         for i in range(len(target_images)):
             print('Mapping resolution for case {} of {} with sigma {}'.format(i+1, len(target_images), args.sigma[i]))
-            psf_map, fwhm_map = sr.get_map(reference_image, target_images[i], psf_shape, patch_shape, resolution_mm, mask, stride, num_workers=num_workers)
+            psf_map, fwhm_map = sr.get_map(reference_image, target_images[i], tuple(args.psf_shape), tuple(args.psf_window_size), resolution_mm, mask, args.psf_stride, num_workers=args.num_workers)
             psf_maps.append(psf_map)
             fwhm_maps.append(fwhm_map) 
         psf_maps = np.stack(psf_maps)
@@ -175,10 +171,10 @@ if __name__ == '__main__':
     subfigs[0].suptitle('Retrospective Trials')
 
     axes = subfigs[0].subplots(nrows=4, ncols=len(args.sigma), gridspec_kw={'wspace': 0, 'hspace': 0, 'bottom': 0.05, 'right': 0.94})
-    inset = (slice(args.x, args.x + args.window_size),
-             slice(args.y, args.y + args.window_size),
+    inset = (slice(args.x, args.x + args.psf_window_size[0]),
+             slice(args.y, args.y + args.psf_window_size[1]),
              (slc[2].stop - slc[2].start)//2+2)
-    plot_row(axes[0, :], target_psfs, shape=psf_shape[:2], normalize=True)
+    plot_row(axes[0, :], target_psfs, shape=args.psf_shape[:2], normalize=True)
     plot_row(axes[1, :], target_images, slc=inset)
     plot_row(axes[2, :], psf_maps, slc=(inset[0].start, inset[1].start, inset[2]), normalize=True)
     ims = plot_row(axes[3, :], fwhm_maps / resolution_mm[0], slc=(slice(None), slice(None), 18, 0), vmin=0.75, vmax=3.25)

@@ -8,23 +8,28 @@ from pathlib import Path
 from os import path, makedirs
 
 import ia, snr, gd, sr
+from config import parse_slice, load_all_volumes
 from plot import plotVolumes
 from plot_params import *
 from masks import get_implant_mask, get_signal_mask, get_artifact_mask
-from util import equalize, load_series_from_path, masked_copy, safe_divide
+from util import equalize, masked_copy, safe_divide
 
 p = argparse.ArgumentParser(description='Run all four mapping analyses on a single sequence')
 p.add_argument('root', type=str, help='path where outputs are saved')
-p.add_argument('config', type=str, default=None, help='yaml config file specifying data paths and mapping parameters')
+p.add_argument('config', type=str, default=None, help='data config file')
 p.add_argument('--ia', action='store_true', help='do intensity artifact map')
 p.add_argument('--gd', action='store_true', help='do geometric distortion map')
 p.add_argument('--snr', action='store_true', help='do SNR map')
 p.add_argument('--res', action='store_true', help='do resolution map')
 p.add_argument('--plastic', action='store_true', help='use only plastic inputs where possible (snr, res)')
+p.add_argument('--ia_thresh', type=float, default=0.3, help='threshold for IA mask, with relative units; default=0.3')
+p.add_argument('--gd_thresh', type=float, default=1.0, help='threshold for GD mask, with units pixels; default=1')
+p.add_argument('--psf_window_size', type=int, nargs=3, default=[14, 14, 10], help='size of window used for SR mapping; default=[14, 14, 10]')
+p.add_argument('--psf_shape', type=int, nargs=3, default=[5, 5, 1], help='size of PSF used for SR mapping; default=[5, 5, 1]')
+p.add_argument('--psf_stride', type=int, default=1, help='stride used for SR mapping; default=1')
+p.add_argument('--num_workers', type=int, default=8, help='number of workers used for SR mapping; default=8')
 p.add_argument('-p', '--plot', action='store_true', help='show plots')
 
-def parse_slice(config):
-    return tuple(slice(start, stop) for start, stop in config['params']['slice'])
 
 def prepare_inputs(images, slc):
     images = equalize(images)
@@ -53,9 +58,7 @@ if __name__ == '__main__':
     slc = parse_slice(config)
 
     # load image data
-    images = {}
-    for name, series_path in config['dicom-series'].items():
-        images[name] = load_series_from_path(series_path)
+    images = load_all_volumes(config)
     
     # IA mapping
     if args.ia or map_all:
@@ -78,7 +81,7 @@ if __name__ == '__main__':
         ia_map = np.load(path.join(save_dir, 'ia-map.npy'))
         implant_mask = np.load(path.join(save_dir, 'implant-mask.npy'))
         plastic_image, metal_image = prepare_inputs((images['structured-plastic'].data, images['structured-metal'].data), slc)
-        plastic_mask, metal_mask = gd.get_masks(implant_mask, ia_map, config['params']['IA-thresh-relative'])
+        plastic_mask, metal_mask = gd.get_masks(implant_mask, ia_map, args.ia_thresh)
         result, result_masked, rigid_result, rigid_result_masked, gd_map, rigid_transform, nonrigid_transform = gd.get_map(plastic_image, metal_image, plastic_mask, metal_mask)
         np.save(path.join(save_dir, 'gd-plastic.npy'), plastic_image)
         np.save(path.join(save_dir, 'gd-plastic-mask.npy'), plastic_mask)
@@ -108,7 +111,7 @@ if __name__ == '__main__':
     if args.snr or map_all:
         ia_map = np.load(path.join(save_dir, 'ia-map.npy'))
         implant_mask = np.load(path.join(save_dir, 'implant-mask.npy'))
-        ia_mask = get_artifact_mask(ia_map, config['params']['IA-thresh-relative'])
+        ia_mask = get_artifact_mask(ia_map, args.ia_thresh)
         if args.plastic:
             image_1, image_2 = prepare_inputs((images['uniform-plastic'].data, images['uniform-plastic-2'].data), slc)
             snr_mask = get_signal_mask(implant_mask)
@@ -127,7 +130,7 @@ if __name__ == '__main__':
     if args.res or map_all:
         gd_map = np.load(path.join(save_dir, 'gd-map.npy'))
         ia_map = np.load(path.join(save_dir, 'ia-map.npy'))
-        ia_mask = get_artifact_mask(ia_map, config['params']['IA-thresh-relative'])
+        ia_mask = get_artifact_mask(ia_map, args.ia_thresh)
         implant_mask = np.load(path.join(save_dir, 'implant-mask.npy'))
         image_ref = images['structured-plastic-reference'].data
         if args.plastic:
@@ -135,16 +138,13 @@ if __name__ == '__main__':
             mask = get_signal_mask(implant_mask)
         else:
             image_blurred = images['structured-metal'].data
-            gd_masks = [get_artifact_mask(gd_map[..., i], config['params']['GD-thresh-pixels']) for i in range(3)]
+            gd_masks = [get_artifact_mask(gd_map[..., i], args.gd_thresh) for i in range(3)]
             mask = get_signal_mask(implant_mask, artifact_masks=[ia_mask] + gd_masks)
             # mask = get_signal_mask(implant_mask, artifact_masks=[ia_mask]) # ignores GD mask; good for MSL protocols
         image_ref = np.abs(sp.ifft(sp.resize(sp.fft(image_ref), image_blurred.shape)))
         image_ref, image_blurred = prepare_inputs((image_ref, image_blurred), slc)
         resolution_mm = images['structured-plastic'].meta.resolution_mm
-        patch_shape = tuple(config['params']['psf-window-size'])
-        psf_shape = tuple(config['params']['psf-shape'])
-        num_workers = config['params']['num-workers']
-        psf, fwhm = sr.get_map(image_ref, image_blurred, psf_shape, patch_shape, resolution_mm, mask, config['params']['psf-stride'], num_workers=num_workers)
+        psf, fwhm = sr.get_map(image_ref, image_blurred, tuple(args.psf_shape), tuple(args.psf_window_size), resolution_mm, mask, args.psf_stride, num_workers=args.num_workers)
         np.save(path.join(save_dir, 'res-image-ref.npy'), image_ref)
         np.save(path.join(save_dir, 'res-image-blurred.npy'), image_blurred)
         np.save(path.join(save_dir, 'res-mask.npy'), mask)
