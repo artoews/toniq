@@ -22,8 +22,8 @@ CMAP = {
     'field': 'RdBu_r',
     'artifact': 'RdBu_r',
     'distortion': 'RdBu_r',
-    'snr': 'gray',
-    'resolution': 'gray'
+    'snr': 'viridis',
+    'resolution': 'viridis'
 }
 
 DPI = 600
