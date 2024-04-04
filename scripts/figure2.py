@@ -6,12 +6,20 @@ import matplotlib.gridspec as gridspec
 from os import path, makedirs
 
 import ia, snr, gd, sr
+from config import load_volume, read_config, parse_slice
 from plot_params import *
 from plot import remove_ticks, color_panels, label_panels, label_encode_dirs
+from util import equalize
+
+def label_config(ax, name, loc='interior'):
+    if loc == 'interior':
+        ax.annotate(name, (0.99, 0), xycoords='axes fraction', ha='right', va='bottom', color='white', fontsize=SMALLER_SIZE)
+    elif loc == 'side':
+        ax.set_ylabel(name, rotation='horizontal', va='center', ha='right')
 
 def plot_inputs_panel(fig, up, um, sp, sm):
     kwargs = {'vmin': 0, 'vmax': 1, 'cmap': CMAP['image']}
-    axes = fig.subplots(2, 2, gridspec_kw={'wspace': 0, 'hspace': 0})
+    axes = fig.subplots(2, 2, gridspec_kw={'wspace': 0.05, 'hspace': 0.05, 'bottom': 0.03, 'top': 0.93, 'left': 0.1, 'right': 0.95})
     images = (up, um, sp, sm)
     for ax, im in zip(axes.flat, images):
         ax.imshow(im, **kwargs)
@@ -19,6 +27,10 @@ def plot_inputs_panel(fig, up, um, sp, sm):
     axes[0, 1].set_title('Metal')
     axes[0, 0].set_ylabel('Uniform')
     axes[1, 0].set_ylabel('Structured')
+    label_config(axes[0, 0], 'UP')
+    label_config(axes[0, 1], 'UM')
+    label_config(axes[1, 0], 'SP')
+    label_config(axes[1, 1], 'SM')
     # for ax in (axes[0, 1], axes[1, 0]):
     #     plt.text(0.77, 0.05, '2x', transform=ax.transAxes, color='white', fontsize=LARGE_SIZE) # , bbox=dict(facecolor='black', alpha=0.5))
     # axes[0, 0].annotate("readout",
@@ -27,17 +39,19 @@ def plot_inputs_panel(fig, up, um, sp, sm):
     #     horizontalalignment="center", size=SMALL_SIZE,
     #     arrowprops=dict(facecolor='black', width=0.5, headwidth=4, headlength=3)
     #     )
-    label_encode_dirs(axes[0, 0])
+    label_encode_dirs(axes[0, 0], color='white')
     remove_ticks(axes)
 
-def plot_output_panel(fig, input1, input2, map, mask, map_plotter, title):
+def plot_output_panel(fig, input1, input2, map, mask, map_plotter, title, input1_name, input2_name):
     kwargs = {'vmin': 0, 'vmax': 1, 'cmap': CMAP['image']}
-    gs = gridspec.GridSpec(2, 4, figure=fig, wspace=0.5)
+    gs = gridspec.GridSpec(2, 4, figure=fig, wspace=0.5, bottom=0.1, top=0.8, left=0.1, right=0.96)
     ax1 = fig.add_subplot(gs[0, 0])
     ax2 = fig.add_subplot(gs[1, 0])
     ax3 = fig.add_subplot(gs[:, 1:3])
     ax1.imshow(input1, **kwargs)
     ax2.imshow(input2, **kwargs)
+    label_config(ax1, input1_name)
+    label_config(ax2, input2_name)
     ax3.set_title(title)
     cbar = map_plotter(ax3, map, mask)
     ax3.annotate("",
@@ -51,8 +65,9 @@ def plot_output_panel(fig, input1, input2, map, mask, map_plotter, title):
 
 p = argparse.ArgumentParser(description='Make figure 2')
 p.add_argument('save_dir', type=str, help='path where figure is saved')
-p.add_argument('--out', type=str, default='out/mar20/mar4-fse125', help='path to main.py output folder')
-p.add_argument('-z', '--z_slice', type=int, default=19, help='z index of slice')
+p.add_argument('--out', type=str, default='out/apr3/mar4-fse125', help='path to main.py output folder')
+p.add_argument('-c', '--config', type=str, default='config/mar4-fse125.yml', help='data config file for FSE sequence')
+p.add_argument('-z', '--z_slice', type=int, default=16, help='z index of slice; default = 16')
 p.add_argument('-p', '--plot', action='store_true', help='show plots')
 
 if __name__ == '__main__':
@@ -61,7 +76,17 @@ if __name__ == '__main__':
     if not path.exists(args.save_dir):
         makedirs(args.save_dir)
 
+    config = read_config(args.config)
+    full_slc = (slice(None), slice(None), parse_slice(config)[2])
     slc = (slice(None), slice(None), args.z_slice)
+
+    images = [
+        load_volume(config, 'uniform-plastic').data,
+        load_volume(config, 'uniform-metal').data,
+        load_volume(config, 'structured-plastic').data,
+        load_volume(config, 'structured-metal').data
+    ]
+    images = equalize(np.stack(images))
 
     implant_mask = np.load(path.join(args.out, 'implant-mask.npy'))
     ia_map = np.load(path.join(args.out, 'ia-map.npy'))
@@ -94,17 +119,18 @@ if __name__ == '__main__':
     subfigs = fig.subfigures(1, 2, width_ratios=[1, 2], wspace=margin/2, hspace=margin)
     subsubfigs = subfigs[1].subfigures(2, 2, wspace=margin/2, hspace=margin)
 
-    plot_inputs_panel(subfigs[0], ia_plastic, ia_metal, gd_plastic, gd_metal)
-    plot_output_panel(subsubfigs[0, 0], ia_plastic, ia_metal, ia_map, None, ia.plot_map, 'Intensity Artifact')
-    plot_output_panel(subsubfigs[0, 1], snr_image1, snr_image2, snr_map, snr_mask, snr.plot_map, 'SNR')
-    _, _, _, cbar = plot_output_panel(subsubfigs[1, 0], gd_plastic, gd_metal, gd_map, gd_mask, gd.plot_map, 'Geometric Distortion')
+    # plot_inputs_panel(subfigs[0], ia_plastic, ia_metal, gd_plastic, gd_metal)
+    plot_inputs_panel(subfigs[0], images[0][full_slc][slc], images[1][full_slc][slc], images[2][full_slc][slc], images[3][full_slc][slc])
+    plot_output_panel(subsubfigs[0, 0], ia_plastic, ia_metal, ia_map, None, ia.plot_map, 'Intensity Artifact (IA)', 'UP', 'UM')
+    plot_output_panel(subsubfigs[0, 1], snr_image1, snr_image2, snr_map, snr_mask, snr.plot_map, 'SNR', 'UM', 'UM')
+    _, _, _, cbar = plot_output_panel(subsubfigs[1, 0], gd_plastic, gd_metal, gd_map, gd_mask, gd.plot_map, 'Geometric Distortion (GD)', 'SP', 'SM')
     cbar.set_label('Displacement\n(pixels, x)', size=SMALL_SIZE)
     # ax, _, _ = plot_output_panel(subsubfigs[1, 1], res_reference, res_target, res_map, res_mask, plot_res_map, 'Spatial Resolution')
-    ax, _, _, cbar = plot_output_panel(subsubfigs[1, 1], res_reference, res_target, res_map, res_map != 0, sr.plot_map, 'Spatial Resolution')
+    ax, _, _, cbar = plot_output_panel(subsubfigs[1, 1], res_reference, res_target, res_map, res_map != 0, sr.plot_map, 'Spatial Resolution (SR)', 'SP', 'SM')
     cbar.set_label('FWHM\n(mm, x)', size=SMALL_SIZE)
 
-    for spine in ax.spines.values():
-        spine.set_edgecolor('blue')
+    # for spine in ax.spines.values():
+    #     spine.set_edgecolor('blue')
 
     color_panels([subfigs[0],] + list(subsubfigs.ravel()))
     label_panels([subfigs[0],] + list(subsubfigs.ravel()))
