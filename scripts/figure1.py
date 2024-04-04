@@ -65,7 +65,7 @@ if __name__ == '__main__':
         for j in range(len(slices)):
             plot_panel(axes[i, j], images[i][slices[j]])
             if j < len(slices) - 1:
-                label_slice_pos(axes[i, -1], -1, slices[j], slc)
+                label_slice_pos(axes[i, -1], -1, slices[j], slc, label=j+1)
                 label_slice_pos(axes[i, j], 1, slices[-1], slc)
             axes[0, j].set_title(slice_names[j])
             # label_panel(fig, axes[i, j], labels[i][j])
