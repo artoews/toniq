@@ -67,7 +67,7 @@ p = argparse.ArgumentParser(description='Make figure 2')
 p.add_argument('save_dir', type=str, help='path where figure is saved')
 p.add_argument('--out', type=str, default='out/apr3/mar4-fse125', help='path to main.py output folder')
 p.add_argument('-c', '--config', type=str, default='config/mar4-fse125.yml', help='data config file for FSE sequence')
-p.add_argument('-z', '--z_slice', type=int, default=16, help='z index of slice; default = 16')
+p.add_argument('-z', '--z_slice', type=int, default=15, help='z index of slice; default = 15')
 p.add_argument('-p', '--plot', action='store_true', help='show plots')
 
 if __name__ == '__main__':

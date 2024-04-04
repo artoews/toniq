@@ -12,8 +12,8 @@ from plot_params import *
 p = argparse.ArgumentParser(description='Make figure 7')
 p.add_argument('save_dir', type=str, help='path where figure is saved')
 p.add_argument('--out', type=str, default='out/mar20/mar4-fse125', help='path to main.py output folder')
-p.add_argument('-y', '--y_slice', type=int, default=100, help='relative position of z slice (after crop); default=60')
-p.add_argument('-z', '--z_slice', type=int, default=18, help='relative position of z slice (after crop); default=18')
+p.add_argument('-y', '--y_slice', type=int, default=95, help='relative position of z slice (after crop); default=95')
+p.add_argument('-z', '--z_slice', type=int, default=15, help='relative position of z slice (after crop); default=15')
 p.add_argument('-e', '--error_scale', type=int, default=3, help='error map multiplier')
 p.add_argument('-l', '--limit', type=int, default=2, help='distortion limit (pixels); default=2')
 p.add_argument('-p', '--plot', action='store_true', help='show plots; default=2')
@@ -27,9 +27,9 @@ def plot_field_component(ax, gd_map, slc1, slc2, limit, mask, cmap):
     return ax1, ax2
 
 def plot_field_components(axes, gd_map, slc1, slc2, limit, mask, cmap=CMAP['distortion']):
-    axes[0].set_title('x Field')
-    axes[1].set_title('y Field')
-    axes[2].set_title('z Field')
+    axes[0].set_title('GD Map (in x)')
+    axes[1].set_title('GD Map (in y)')
+    axes[2].set_title('GD Map (in z)')
     ax1, ax2 = plot_field_component(axes[0], -gd_map[..., 0], slc1, slc2, limit, mask, cmap)
     label_encode_dirs(ax1)
     label_encode_dirs(ax2, x_label='z')
@@ -57,8 +57,8 @@ if __name__ == '__main__':
     init_mask = np.logical_and(plastic_mask, metal_mask)
     result_mask = np.logical_and(result != 0, metal_mask)
 
-    fig = plt.figure(figsize=(FIG_WIDTH[2], FIG_WIDTH[2]*0.6))
-    subfigs = fig.subfigures(1, 2, width_ratios=[2.25, 1], wspace=0.04)
+    fig = plt.figure(figsize=(FIG_WIDTH[2], FIG_WIDTH[2]*0.65))
+    subfigs = fig.subfigures(1, 2, width_ratios=[2, 1], wspace=0.04)
     
     axes = subfigs[0].subplots(3, 3, gridspec_kw={'wspace': 0.03, 'hspace': 0.03, 'left': 0.03, 'right': 0.97, 'bottom': 0.03})
     axes[0, 0].set_title('Metal')
@@ -88,7 +88,7 @@ if __name__ == '__main__':
     imshow2(axes[1, 2], args.error_scale * np.abs(result - metal), slc1, slc2, mask=~result_mask)
     imshow2(axes[2, 2], args.error_scale * np.abs(result - metal / (1 + ia_map)), slc1, slc2, mask=~result_mask)
 
-    axes = subfigs[1].subplots(3, 1, gridspec_kw={'left': 0.03, 'right': 0.8, 'bottom': 0.03})
+    axes = subfigs[1].subplots(3, 1, gridspec_kw={'left': 0.03, 'right': 0.75, 'bottom': 0.03, 'hspace': 0.25, 'top': 0.92})
     plot_field_components(axes, -gd_map, slc1, slc2, args.limit, ~result_mask)
 
     # print('Max X distortion: ', np.max(np.abs(gd_map[..., 0])))
