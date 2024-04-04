@@ -263,7 +263,7 @@ def label_panels(subfigs, trans_x=0.035, trans_y=-0.13):
         trans = mtransforms.ScaledTranslation(trans_x, trans_y, subfig.dpi_scale_trans)
         plt.text(0, 1, label, transform=subfig.transSubfigure + trans)
 
-def label_slice_pos(ax, idx, slc1, slc2, height=0.05, top=False, bottom=True, inside=True):
+def label_slice_pos(ax, idx, slc1, slc2, height=0.05, top=False, bottom=True, inside=True, label=None):
     if slc2[idx].start is not None:
         pos = slc1[idx] - slc2[idx].start
     else:
@@ -273,6 +273,8 @@ def label_slice_pos(ax, idx, slc1, slc2, height=0.05, top=False, bottom=True, in
             ax.plot([pos, pos], [1, 1-height], color='black', linewidth=1, linestyle='solid', transform=ax.get_xaxis_transform())
         if bottom:
             ax.plot([pos, pos], [0, height], color='black', linewidth=1, linestyle='solid', transform=ax.get_xaxis_transform())
+            if label is not None:
+                ax.annotate(label, (pos, slc1[0].stop - slc1[0].start-7), ha='center', va='bottom', color='black', fontsize=SMALL_SIZE)
     else:
         ax.set_xticks([pos])
         ax.set_xticklabels([""])
