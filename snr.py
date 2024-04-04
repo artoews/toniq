@@ -8,7 +8,7 @@ from skimage import morphology
 from plot import colorbar_axis, overlay_mask
 from plot_params import *
 
-def get_map(image1, image2, mask, filter_size=10, min_coverage=0.25):
+def get_map(image1, image2, mask, filter_size=10, min_coverage=0.5):
     # "Difference Method" from Reeder et al 2005, extended to include a mask reducing signal bias from lattice
     footprint = morphology.cube(filter_size)
     image_sum = np.abs(image2) + np.abs(image1)
@@ -21,7 +21,7 @@ def get_map(image1, image2, mask, filter_size=10, min_coverage=0.25):
     snr[~mask] = 0
     return snr, signal, noise
 
-def plot_map(ax, snr_map, mask, show_cbar=True, ticks=[0, 100, 200]):
+def plot_map(ax, snr_map, mask, show_cbar=True, ticks=[0, 80, 160], tick_labels=None):
     # lim = np.round(np.max(snr_map)+4.99, -1)
     im = ax.imshow(snr_map, cmap=CMAP['snr'], vmin=ticks[0], vmax=ticks[-1])
     if mask is not None:
@@ -29,6 +29,8 @@ def plot_map(ax, snr_map, mask, show_cbar=True, ticks=[0, 100, 200]):
     if show_cbar:
         cbar = plt.colorbar(im, cax=colorbar_axis(ax), ticks=ticks)
         cbar.set_label('SNR', size=SMALL_SIZE)
+        if tick_labels is not None:
+            cbar.ax.set_yticklabels(tick_labels)
         cbar.ax.tick_params(labelsize=SMALLER_SIZE)
         return cbar
 
