@@ -119,7 +119,7 @@ def find_root(x1, y1, x2, y2):
         print('find_root division by zero')
     return x1 - y1 * (x2 - x1) / (y2 - y1)
 
-def plot_map(ax, res_map, mask, vmin=1, vmax=4, show_cbar=True):
+def plot_map(ax, res_map, mask, vmin=1.2, vmax=3.6, show_cbar=True):
     im = ax.imshow(res_map, cmap=CMAP['resolution'], vmin=vmin, vmax=vmax)
     if mask is not None:
         overlay_mask(ax, ~mask)
