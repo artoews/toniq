@@ -22,8 +22,8 @@ p.add_argument('--gd', action='store_true', help='do geometric distortion map')
 p.add_argument('--snr', action='store_true', help='do SNR map')
 p.add_argument('--res', action='store_true', help='do resolution map')
 p.add_argument('--plastic', action='store_true', help='use only plastic inputs where possible (snr, res)')
-p.add_argument('--ia_thresh', type=float, default=0.3, help='threshold for IA mask, with relative units; default=0.3')
-p.add_argument('--gd_thresh', type=float, default=1.0, help='threshold for GD mask, with units pixels; default=1')
+p.add_argument('--ia_thresh', type=float, default=0.5, help='threshold for IA mask, with relative units; default=0.5')
+p.add_argument('--gd_thresh', type=float, default=1.5, help='threshold for GD mask, with units pixels; default=1.5')
 p.add_argument('--psf_window_size', type=int, nargs=3, default=[14, 14, 10], help='size of window used for SR mapping; default=[14, 14, 10]')
 p.add_argument('--psf_shape', type=int, nargs=3, default=[5, 5, 1], help='size of PSF used for SR mapping; default=[5, 5, 1]')
 p.add_argument('--psf_stride', type=int, default=1, help='stride used for SR mapping; default=1')
@@ -139,6 +139,7 @@ if __name__ == '__main__':
         else:
             image_blurred = images['structured-metal'].data
             gd_masks = [get_artifact_mask(gd_map[..., i], args.gd_thresh) for i in range(3)]
+            # mask = get_signal_mask(implant_mask)
             mask = get_signal_mask(implant_mask, artifact_masks=[ia_mask] + gd_masks)
             # mask = get_signal_mask(implant_mask, artifact_masks=[ia_mask]) # ignores GD mask; good for MSL protocols
         image_ref = np.abs(sp.ifft(sp.resize(sp.fft(image_ref), image_blurred.shape)))
