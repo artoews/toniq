@@ -1,5 +1,6 @@
 root: '/Users/artoews/root/data/mri/240304/14660_dicom/'
-slice: [[38, 158], [66, 186], [12, 48]]
+# slice: [[38, 158], [66, 186], [12, 48]]
+slice: [[30, 163], [61, 194], [14, 48]]
 dicom-series:
   structured-plastic-reference: 'Series2'
   structured-plastic: 'Series5'
