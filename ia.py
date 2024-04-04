@@ -19,7 +19,7 @@ def get_signal_reference(plastic_image, implant_mask, filter_size=3):
         reference[..., i][implant_mask[..., i]] = np.nanmedian(plastic_image[..., i])
     return reference
 
-def colorbar(ax, im, lim=1, offset=0):
+def colorbar(ax, im, lim=0.8, offset=0):
     # cbar = plt.colorbar(im, cax=colorbar_axis(ax, offset=offset), ticks=[-lim, -lim/2, 0, lim/2, lim], extend='both')
     # cbar.ax.set_yticklabels(['-{:.0f}'.format(lim*100), '-{:.0f}'.format(lim*50), '0', '{:.0f}'.format(lim*50), '{:.0f}'.format(lim*100)])
     cbar = plt.colorbar(im, cax=colorbar_axis(ax, offset=offset), ticks=[-lim, -lim/2, 0, lim/2, lim], extend='both')
@@ -28,7 +28,7 @@ def colorbar(ax, im, lim=1, offset=0):
     cbar.ax.tick_params(labelsize=SMALLER_SIZE)
     return cbar
 
-def plot_map(ax, ia_map, mask, lim=1, show_cbar=True):
+def plot_map(ax, ia_map, mask, lim=0.8, show_cbar=True):
     im = ax.imshow(ia_map, cmap=CMAP['artifact'], vmin=-lim, vmax=lim)
     if mask is not None:
         overlay_mask(ax, ~mask)
