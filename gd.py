@@ -123,7 +123,7 @@ def setup_nonrigid(verbose=True):
     default_bspline_parameter_map['ImageSampler'] = ['Full']
     default_bspline_parameter_map['ErodeMask'] = ['true']
     del default_bspline_parameter_map['FinalGridSpacingInPhysicalUnits']
-    default_bspline_parameter_map['FinalGridSpacingInVoxels'] = ['15'] # was 20
+    default_bspline_parameter_map['FinalGridSpacingInVoxels'] = ['20']
     # default_bspline_parameter_map['NumberOfResolutions'] = ['1']
     # default_bspline_parameter_map['GridSpacingSchedule'] = ['1.0', '1.0', '1.0'] # this number times final grid spacing is the b-spline grid size for each dim at each pyramid level
     # default_bspline_parameter_map['ImagePyramidSchedule'] = ['2', '2', '2'] # this number over 2 is the sigma of gaussian blurring applied to each dim at each pyramid level
