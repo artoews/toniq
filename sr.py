@@ -40,6 +40,7 @@ def deconvolve_by_model(psf_shape, patch_pair, verbose=False):
     # A_inv = np.linalg.pinv(A_mat) # direct solve takes about 4 times longer than iterative solve using a random matrix as a proxy for A. If you call get_matrix and actually construct A by brute force it takes 10x instead of 4x.
     # soln = np.reshape(A_inv.dot(y.ravel()), psf_shape)
     app = sp.app.LinearLeastSquares(A, y, x=np.zeros(A.ishape, dtype=np.complex128), tol=1e-10, max_iter=1e10, show_pbar=verbose, lamda=0)
+    # app = sp.app.LinearLeastSquares(A, y, x=np.zeros(A.ishape, dtype=np.float64), tol=1e-10, max_iter=1e10, show_pbar=verbose, lamda=0)
     soln = app.run()
     psf = np.abs(soln)
     return psf

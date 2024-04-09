@@ -10,5 +10,5 @@ python scripts/figure4.py $1 -c config/mar4-fse125.yml
 python scripts/figure6.py $1 --out1 out/apr4/mar4-fse125 --out2 out/apr4/mar4-msl125
 python scripts/figure7.py $1 --out out/apr4/mar4-fse125
 python scripts/figure8.py $1 
-# python scripts/figure9.py $1 -c config/mar4-fse125.yml -l # very slow without load argument (-l)
+python scripts/figure9.py $1 -c config/mar4-fse125.yml -l # very slow without load argument (-l)
 python scripts/figure10.py $1 --out1 out/apr4/mar4-msl125 --out2 out/apr4/mar4-msl63

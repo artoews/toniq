@@ -106,6 +106,7 @@ if __name__ == '__main__':
                                      titles=('X (pixels)', 'Y (pixels)', 'Z (pixels)', '(X / Z) - 1'),
                                      cmap=CMAP['distortion'], vmin=-2, vmax=2, cbar=True)
         fig3.suptitle('Geometric Distortion Maps (Masked)')
+        print('max GD in Y (pixels)', np.max(gd_map[..., 1]))
 
     # SNR mapping
     if args.snr or map_all:
