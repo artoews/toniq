@@ -8,11 +8,18 @@ import ia
 from plot import imshow2, remove_ticks, label_encode_dirs, label_slice_pos
 from plot_params import *
 
+fse_arrow_start = (4, 77)
+fse_arrow_stop = (19, 77)
+
+def plot_arrow(ax, arrow, color='black'):
+    start, stop = arrow
+    ax.annotate("", xy=stop, xytext=start, arrowprops=dict(facecolor=color, edgecolor=color, width=2, headwidth=8, headlength=8))
+
 def plot_panel(ax, image, cmap=CMAP['image'], vmin=0, vmax=1.5):
     ax.imshow(image, cmap=cmap, vmin=vmin, vmax=vmax)
     remove_ticks(ax)
 
-def plot_row(axes, plastic, metal, ia_map, slc1, slc2, lim=0.8, pad=0):
+def plot_row(axes, plastic, metal, ia_map, slc1, slc2, lim=0.8, pad=0, arrow=None):
     _, _, ax1, ax2 = imshow2(axes[0], plastic, slc1, slc2, pad=pad)
     label_slice_pos(ax1, 1, slc2, slc1)
     label_slice_pos(ax2, -1, slc1, slc2)
@@ -21,15 +28,19 @@ def plot_row(axes, plastic, metal, ia_map, slc1, slc2, lim=0.8, pad=0):
     _, _, ax1, ax2 = imshow2(axes[1], metal, slc1, slc2, pad=pad)
     label_slice_pos(ax1, 1, slc2, slc1)
     label_slice_pos(ax2, -1, slc1, slc2)
+    if arrow is not None:
+        plot_arrow(ax1, arrow)
     im, _, ax1, ax2 = imshow2(axes[2], ia_map, slc1, slc2, vmin=-lim, vmax=lim, cmap=CMAP['artifact'], pad=pad)
     label_slice_pos(ax1, 1, slc2, slc1)
+    if arrow is not None:
+        plot_arrow(ax1, arrow)
     label_slice_pos(ax2, -1, slc1, slc2)
     ia.colorbar(axes[2], im, lim=lim, offset=0.35)
 
 p = argparse.ArgumentParser(description='Make figure 6')
 p.add_argument('save_dir', type=str, help='path where figure is saved')
-p.add_argument('--out1', type=str, default='out/apr3/mar4-fse125', help='path to main.py output folder 1')
-p.add_argument('--out2', type=str, default='out/apr3/mar4-msl125', help='path to main.py output folder 2')
+p.add_argument('--out1', type=str, default='out/apr4/mar4-fse125', help='path to main.py output folder 1')
+p.add_argument('--out2', type=str, default='out/apr4/mar4-msl125', help='path to main.py output folder 2')
 p.add_argument('-y', '--y_slice', type=int, default=66, help='relative position of z slice (after crop); default=66')
 p.add_argument('-z', '--z_slice', type=int, default=15, help='relative position of z slice (after crop); default=15')
 p.add_argument('-p', '--plot', action='store_true', help='show plots')
@@ -49,15 +60,20 @@ if __name__ == '__main__':
                              )
     axes[0, 0].set_title('Plastic')
     axes[0, 1].set_title('Metal')
-    axes[0, 2].set_title('Intensity Artifact')
+    axes[0, 2].set_title('Intensity Artifact (IA)')
     axes[0, 0].set_ylabel('2D FSE')
     axes[1, 0].set_ylabel('MAVRIC-SL')
 
-    for ax, root in zip(axes, (args.out1, args.out2)):
+    for i in range(2):
+        root = (args.out1, args.out2)[i]
         plastic = np.load(path.join(root, 'ia-plastic.npy'))
         metal = np.load(path.join(root, 'ia-metal.npy'))
         ia_map = np.load(path.join(root, 'ia-map.npy'))
-        plot_row(ax, plastic, metal, ia_map, slc1, slc2)
+        if i == 0:
+            arrow = (fse_arrow_start, fse_arrow_stop)
+        else:
+            arrow = None
+        plot_row(axes[i], plastic, metal, ia_map, slc1, slc2, arrow=arrow)
 
     plt.savefig(path.join(args.save_dir, 'figure6.png'), dpi=DPI, pad_inches=0)
 
