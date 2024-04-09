@@ -17,9 +17,22 @@ def label_config(ax, name, loc='interior'):
     elif loc == 'side':
         ax.set_ylabel(name, rotation='horizontal', va='center', ha='right')
 
+def outline(ax, config, linewidth=3):
+    if config[0] == 'U':
+        linestyle = 'solid'
+    else:
+        linestyle = 'dotted'
+    if config[1] == 'P':
+        color = 'steelblue'
+    else:
+        color = 'maroon'
+    ax.patch.set_edgecolor(color)
+    ax.patch.set_linestyle(linestyle)
+    ax.patch.set_linewidth(linewidth)
+
 def plot_inputs_panel(fig, up, um, sp, sm):
     kwargs = {'vmin': 0, 'vmax': 1, 'cmap': CMAP['image']}
-    axes = fig.subplots(2, 2, gridspec_kw={'wspace': 0.05, 'hspace': 0.05, 'bottom': 0.03, 'top': 0.93, 'left': 0.1, 'right': 0.95})
+    axes = fig.subplots(2, 2, gridspec_kw={'wspace': 0.1, 'hspace': 0.1, 'bottom': 0.03, 'top': 0.93, 'left': 0.1, 'right': 0.95})
     images = (up, um, sp, sm)
     for ax, im in zip(axes.flat, images):
         ax.imshow(im, **kwargs)
@@ -27,10 +40,10 @@ def plot_inputs_panel(fig, up, um, sp, sm):
     axes[0, 1].set_title('Metal')
     axes[0, 0].set_ylabel('Uniform')
     axes[1, 0].set_ylabel('Structured')
-    label_config(axes[0, 0], 'UP')
-    label_config(axes[0, 1], 'UM')
-    label_config(axes[1, 0], 'SP')
-    label_config(axes[1, 1], 'SM')
+    outline(axes[0, 0], 'UP')
+    outline(axes[0, 1], 'UM')
+    outline(axes[1, 0], 'SP')
+    outline(axes[1, 1], 'SM')
     # for ax in (axes[0, 1], axes[1, 0]):
     #     plt.text(0.77, 0.05, '2x', transform=ax.transAxes, color='white', fontsize=LARGE_SIZE) # , bbox=dict(facecolor='black', alpha=0.5))
     # axes[0, 0].annotate("readout",
@@ -50,8 +63,8 @@ def plot_output_panel(fig, input1, input2, map, mask, map_plotter, title, input1
     ax3 = fig.add_subplot(gs[:, 1:3])
     ax1.imshow(input1, **kwargs)
     ax2.imshow(input2, **kwargs)
-    label_config(ax1, input1_name)
-    label_config(ax2, input2_name)
+    outline(ax1, input1_name)
+    outline(ax2, input2_name)
     ax3.set_title(title)
     cbar = map_plotter(ax3, map, mask)
     ax3.annotate("",
