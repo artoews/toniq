@@ -28,7 +28,7 @@ def plot_fwhm_maps(maps):
 def plot_distribution(ax, targets, maps, major_grid=True, minor_grid=True):
     maps = [maps[i][maps[i]>0] for i in range(len(maps))]
     ax.violinplot(maps, showmedians=True)
-    ax.set_xlabel('Retrospective Trials')
+    ax.set_xlabel('Simulation Trials')
     # ax.set_xticks(range(1, len(maps)+1))
     ax.set_xticks([])
     ax.set_ylabel('FWHM (pixels)')
@@ -85,10 +85,9 @@ if __name__ == '__main__':
     if not args.load:
 
         # load reference image
-        image = load_volume(config, 'structured-plastic-reference').data
+        reference_image = load_volume(config, 'structured-plastic-reference').data
         # resolution_mm = image.meta.resolution_mm
         resolution_mm = [1.2, 1.2, 1.2]
-        reference_image = image.data
         reference_image = np.abs(sp.ifft(sp.resize(sp.fft(reference_image), (256, 256, 64))))
         reference_image = normalize(reference_image)
         print('loaded reference image with shape', reference_image.shape)
@@ -97,13 +96,13 @@ if __name__ == '__main__':
         target_images = []
         target_psfs = []
         for sigma in args.sigma:
-            target_images += [sr.gaussian_blur(reference_image, sigma, args.psf_radius)]
-            target_psfs += [sr.gaussian_psf(reference_image.shape, sigma, args.psf_radius)]
+            target_images += [sr.gaussian_blur(reference_image, sigma, args.blur_radius)]
+            target_psfs += [sr.gaussian_psf(reference_image.shape, sigma, args.blur_radius)]
 
         # reduce image to target slice of interest
         reference_image = reference_image[slc]
         target_images = [image[slc] for image in target_images]
-        target_psfs = [sp.resize(psf, (args.psf_radius, args.psf_radius, 1)) for psf in target_psfs]
+        target_psfs = [sp.resize(psf, (args.blur_radius, args.blur_radius, 1)) for psf in target_psfs]
 
         # measured correct FWHM
         measured_fwhms = []
@@ -168,7 +167,7 @@ if __name__ == '__main__':
 
     fig = plt.figure(figsize=(FIG_WIDTH[2], FIG_WIDTH[2] * 0.8))
     subfigs = fig.subfigures(2, 1, hspace=0.03, height_ratios=[1.8, 1])
-    subfigs[0].suptitle('Retrospective Trials')
+    subfigs[0].suptitle('Simulation Trials')
 
     axes = subfigs[0].subplots(nrows=4, ncols=len(args.sigma), gridspec_kw={'wspace': 0, 'hspace': 0, 'bottom': 0.05, 'right': 0.94})
     inset = (slice(args.x, args.x + args.psf_window_size[0]),
@@ -177,8 +176,8 @@ if __name__ == '__main__':
     plot_row(axes[0, :], target_psfs, shape=args.psf_shape[:2], normalize=True)
     plot_row(axes[1, :], target_images, slc=inset)
     plot_row(axes[2, :], psf_maps, slc=(inset[0].start, inset[1].start, inset[2]), normalize=True)
-    ims = plot_row(axes[3, :], fwhm_maps / resolution_mm[0], slc=(slice(None), slice(None), 18, 0), vmin=0.75, vmax=3.25)
-    for ax, label in zip(axes[:, 0], ('Retrospective\nPSF', 'Target\nPatch', 'Local PSF\nEstimate', 'Up/Down\nResolution\nMap')):
+    ims = plot_row(axes[3, :], fwhm_maps / resolution_mm[0], slc=(slice(None), slice(None), 18, 0), vmin=0.75, vmax=3.25, cmap=CMAP['resolution'])
+    for ax, label in zip(axes[:, 0], ('Simulated\nPSF', 'Target\nPatch', 'Local PSF\nEstimate', 'Up/Down\nResolution\nMap')):
         ax.set_ylabel(label, rotation='horizontal', va='center', ha='center', labelpad=30)
     for ax, title in zip(axes[0, 1:], ['{:.2f}'.format(i) for i in np.arange(1.25, 3.1, 0.25)]):
         ax.set_title(title)
