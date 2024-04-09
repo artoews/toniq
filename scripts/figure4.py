@@ -39,7 +39,8 @@ def plot_model(fig, target, reference, psf):
         kspace = np.log(kspace + 1) * 2
         axes[1, i].imshow(kspace, **kwargs)
     axes[1, 0].set_ylabel('2D DFT')
-    symbols = ('=', r'$\circledast$', '=', r'$\odot$')
+    # symbols = ('=', r'$\circledast$', '=', r'$\odot$')
+    symbols = ('=', r'$*$', '=', r'$\odot$')
     for ax, symbol in zip(axes[:, :2].flat, symbols):
         ax.text(1.1, 0.49, symbol, horizontalalignment='center', verticalalignment='center', transform=ax.transAxes, size=20)
     remove_ticks(axes)
