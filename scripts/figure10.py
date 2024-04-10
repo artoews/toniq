@@ -101,7 +101,7 @@ p = argparse.ArgumentParser(description='Make figure 10')
 p.add_argument('save_dir', type=str, help='path where figure is saved')
 p.add_argument('--out1', type=str, default='out/apr3/mar4-msl125', help='path to main.py output folder')
 p.add_argument('--out2', type=str, default='out/apr3/mar4-msl63', help='path to main.py output folder')
-p.add_argument('-z', '--z_slice', type=int, default=15, help='relative position of z slice (after crop); default=15')
+p.add_argument('-z', '--z_slice', type=int, default=18, help='relative position of z slice (after crop); default=18')
 p.add_argument('-p', '--plot', action='store_true', help='show plots')
 
 

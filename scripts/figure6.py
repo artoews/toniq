@@ -42,7 +42,7 @@ p.add_argument('save_dir', type=str, help='path where figure is saved')
 p.add_argument('--out1', type=str, default='out/apr4/mar4-fse125', help='path to main.py output folder 1')
 p.add_argument('--out2', type=str, default='out/apr4/mar4-msl125', help='path to main.py output folder 2')
 p.add_argument('-y', '--y_slice', type=int, default=66, help='relative position of z slice (after crop); default=66')
-p.add_argument('-z', '--z_slice', type=int, default=15, help='relative position of z slice (after crop); default=15')
+p.add_argument('-z', '--z_slice', type=int, default=18, help='relative position of z slice (after crop); default=18')
 p.add_argument('-p', '--plot', action='store_true', help='show plots')
 
 if __name__ == '__main__':
