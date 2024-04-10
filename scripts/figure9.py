@@ -25,6 +25,13 @@ def plot_fwhm_maps(maps):
     fig, tracker = plotVolumes(volumes, figsize=(12, 4), nrows=2, ncols=len(maps), vmin=1, vmax=3, cmap=CMAP['resolution'], cbar=True)
     return fig, tracker
 
+def print_statistics(fwhm_maps, targets):
+    for i in range(len(fwhm_maps)):
+        distr = fwhm_maps[i]
+        distr = distr[distr > 0]
+        print('Trial {}: mean bias {:.2f}, std {:.2f}, max error {:.2f}'.format(
+            i, np.mean(distr)-targets[i], np.std(distr), np.max(np.abs(distr-targets[i]))))
+
 def plot_distribution(ax, targets, maps, major_grid=True, minor_grid=True):
     maps = [maps[i][maps[i]>0] for i in range(len(maps))]
     ax.violinplot(maps, showmedians=True)
@@ -62,6 +69,7 @@ p.add_argument('-l', '--load', action='store_true', help='load inputs from save_
 p.add_argument('-p', '--plot', action='store_true', help='show plots')
 p.add_argument('-x', type=int, default=100, help='x coordinate of inset location; default=100')
 p.add_argument('-y', type=int, default=92, help='x coordinate of inset location; default=92')
+p.add_argument('-z', '--z_slice', type=int, default=18, help='relative position of FWHM z slice (after crop); default=18')
 p.add_argument('--psf_window_size', type=int, nargs=3, default=[14, 14, 10], help='size of window used for SR mapping; default=[14, 14, 10]')
 p.add_argument('--psf_shape', type=int, nargs=3, default=[5, 5, 1], help='size of PSF used for SR mapping; default=[5, 5, 1]')
 p.add_argument('--psf_stride', type=int, default=1, help='stride used for SR mapping; default=1')
@@ -164,6 +172,7 @@ if __name__ == '__main__':
     # fig1, tracker1 = plotVolumes(volumes)
     # fig2, tracker2 = plotVolumes(target_psfs)
     # fig, tracker = plot_fwhm_maps(fwhm_maps / resolution_mm[0])
+    # fig, tracker = plotVolumes((fwhm_maps[-1][..., 0] / resolution_mm[0],), vmin=2.875, vmax=3.125)
 
     fig = plt.figure(figsize=(FIG_WIDTH[2], FIG_WIDTH[2] * 0.8))
     subfigs = fig.subfigures(2, 1, hspace=0.03, height_ratios=[1.8, 1])
@@ -176,7 +185,7 @@ if __name__ == '__main__':
     plot_row(axes[0, :], target_psfs, shape=args.psf_shape[:2], normalize=True)
     plot_row(axes[1, :], target_images, slc=inset)
     plot_row(axes[2, :], psf_maps, slc=(inset[0].start, inset[1].start, inset[2]), normalize=True)
-    ims = plot_row(axes[3, :], fwhm_maps / resolution_mm[0], slc=(slice(None), slice(None), 18, 0), vmin=0.75, vmax=3.25, cmap=CMAP['resolution'])
+    ims = plot_row(axes[3, :], fwhm_maps / resolution_mm[0], slc=(slice(None), slice(None), args.z_slice, 0), vmin=0.75, vmax=3.25, cmap=CMAP['resolution'])
     for ax, label in zip(axes[:, 0], ('Simulated\nPSF', 'Target\nPatch', 'Local PSF\nEstimate', 'Up/Down\nResolution\nMap')):
         ax.set_ylabel(label, rotation='horizontal', va='center', ha='center', labelpad=30)
     for ax, title in zip(axes[0, 1:], ['{:.2f}'.format(i) for i in np.arange(1.25, 3.1, 0.25)]):
@@ -191,6 +200,9 @@ if __name__ == '__main__':
     plot_distribution(axes[1], (1.00,), [maps[..., 1] / resolution_mm[1] for maps in fwhm_maps])
     axes[0].set_title('x Resolution')
     axes[1].set_title('y Resolution')
+
+    print_statistics(fwhm_maps[..., 0] / resolution_mm[0], np.arange(1, 3.1, 0.25))
+    print_statistics(fwhm_maps[..., 1] / resolution_mm[1], np.ones(9))
 
     color_panels(subfigs.flat)
     label_panels(subfigs.flat)
