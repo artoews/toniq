@@ -57,10 +57,10 @@ if __name__ == '__main__':
     init_mask = np.logical_and(plastic_mask, metal_mask)
     result_mask = np.logical_and(result != 0, metal_mask)
 
-    fig = plt.figure(figsize=(FIG_WIDTH[2], FIG_WIDTH[2]*0.65))
+    fig = plt.figure(figsize=(FIG_WIDTH[2], FIG_WIDTH[2]*0.6))
     subfigs = fig.subfigures(1, 2, width_ratios=[2, 1], wspace=0.04)
     
-    axes = subfigs[0].subplots(3, 3, gridspec_kw={'wspace': 0.03, 'hspace': 0.03, 'left': 0.03, 'right': 0.97, 'bottom': 0.03})
+    axes = subfigs[0].subplots(3, 3, gridspec_kw={'wspace': 0.03, 'hspace': 0.25, 'left': 0.03, 'right': 0.97, 'bottom': 0.03, 'top': 0.92})
     axes[0, 0].set_title('Metal')
     axes[0, 1].set_title('Plastic')
     axes[0, 2].set_title('Plastic, Registered')
@@ -88,7 +88,7 @@ if __name__ == '__main__':
     imshow2(axes[1, 2], args.error_scale * np.abs(result - metal), slc1, slc2, mask=~result_mask)
     imshow2(axes[2, 2], args.error_scale * np.abs(result - metal / (1 + ia_map)), slc1, slc2, mask=~result_mask)
 
-    axes = subfigs[1].subplots(3, 1, gridspec_kw={'left': 0.03, 'right': 0.75, 'bottom': 0.03, 'hspace': 0.25, 'top': 0.92})
+    axes = subfigs[1].subplots(3, 1, gridspec_kw={'hspace': 0.25, 'left': 0.03, 'right': 0.75, 'bottom': 0.03, 'top': 0.92})
     plot_field_components(axes, -gd_map, slc1, slc2, args.limit, ~result_mask)
 
     # print('Max X distortion: ', np.max(np.abs(gd_map[..., 0])))
