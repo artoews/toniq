@@ -37,6 +37,10 @@ def plot_row(axes, plastic, metal, ia_map, slc1, slc2, lim=0.8, pad=0, arrow=Non
     label_slice_pos(ax2, -1, slc1, slc2)
     ia.colorbar(axes[2], im, lim=lim, offset=0.35)
 
+def print_statistics(ia_map, threshold=0.4):
+    ia_mask = np.abs(ia_map) > threshold
+    print('IA Mask size (in voxels): {} out of {}'.format(np.sum(ia_mask), ia_mask.size))
+
 p = argparse.ArgumentParser(description='Make figure 6')
 p.add_argument('save_dir', type=str, help='path where figure is saved')
 p.add_argument('--out1', type=str, default='out/apr4/mar4-fse125', help='path to main.py output folder 1')
@@ -74,8 +78,10 @@ if __name__ == '__main__':
         else:
             arrow = None
         plot_row(axes[i], plastic, metal, ia_map, slc1, slc2, arrow=arrow)
+        print_statistics(ia_map)
 
     plt.savefig(path.join(args.save_dir, 'figure6.png'), dpi=DPI, pad_inches=0)
+
 
     if args.plot:
         plt.show()
