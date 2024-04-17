@@ -1,0 +1,12 @@
+root: '240304'
+slice: [[38, 158], [66, 186], [12, 48]]
+dicom-series:
+  structured-plastic-reference: 'Series2'
+  structured-plastic: 'Series3'
+  structured-metal: 'Series6'
+  uniform-plastic: 'Series11'
+  uniform-plastic-2: 'Series12'
+  uniform-metal: 'Series17'
+  uniform-metal-2: 'Series18'
+  first-scan: 'Series3'
+  last-scan: 'Series23'
