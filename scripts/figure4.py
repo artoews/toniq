@@ -28,14 +28,14 @@ def plot_inputs(fig, target, reference, inset):
         rect = patches.Rectangle(inset_start, *inset_size, linewidth=1, edgecolor='r', facecolor='none')
         ax.add_patch(rect)
 
-def plot_model(fig, target, reference, psf):
+def plot_model(fig, target, reference, psf, cell_size):
     axes = fig.subplots(2, 3, gridspec_kw={'left': 0.05, 'right': 0.95, 'bottom': 0.05, 'top': 0.92})
     titles = ('Target Patch', 'Reference Patch', 'Local PSF')
     images = (target, reference, psf)
     for i in range(3):
         axes[0, i].imshow(images[i], **kwargs)
         axes[0, i].set_title(titles[i])
-        kspace = np.abs(sp.fft(images[i]))
+        kspace = np.abs(sp.fft(sp.resize(images[i], (cell_size, cell_size))))
         kspace = np.log(kspace + 1) * 2
         axes[1, i].imshow(kspace, **kwargs)
     axes[1, 0].set_ylabel('2D DFT')
@@ -50,7 +50,8 @@ p.add_argument('save_dir', type=str, help='path where figure is saved')
 p.add_argument('-c', '--config', type=str, default='config/mar4-fse125.yml', help='data config file')
 p.add_argument('-x', type=int, default=100, help='x coordinate of inset location')
 p.add_argument('-y', type=int, default=92, help='x coordinate of inset location')
-p.add_argument('-w', '--window_size', type=int, default=10, help='window size in pixels')
+p.add_argument('--psf_window_size', type=int, default=14, help='psf window size in pixels')
+p.add_argument('--unit_cell_size', type=int, default=10, help='unit cell size in pixels')
 p.add_argument('-p', '--plot', action='store_true', help='show plots')
 p.add_argument('-s', '--sigma', type=float, nargs='+', default=[1, 0.5], help='sigmas for gaussian PSF')
 p.add_argument('--psf_size', type=int, default=5, help='psf size (std) in pixels')
@@ -69,8 +70,8 @@ if __name__ == '__main__':
     slc = parse_slice(config)
     slc = (slc[0], slc[1], (slc[2].stop - slc[2].start)//2+10)
 
-    inset = (slice(args.x, args.x + args.window_size),
-             slice(args.y, args.y + args.window_size))
+    inset = (slice(args.x, args.x + args.psf_window_size),
+             slice(args.y, args.y + args.psf_window_size))
 
     image = load_volume(config, 'structured-plastic-reference')
     resolution_mm = image.meta.resolution_mm
@@ -79,14 +80,14 @@ if __name__ == '__main__':
     reference = normalize(reference[slc], pct=100)
     target = sr.gaussian_blur(reference, args.sigma, args.psf_radius, axes=(0, 1))
     psf = sr.gaussian_psf(reference.shape, args.sigma, args.psf_radius, axes=(0, 1))
-    psf = sp.resize(psf, (args.window_size, args.window_size))
+    psf = sp.resize(psf, (args.psf_window_size, args.psf_window_size))
     psf = psf / np.max(psf)
 
     fig = plt.figure(figsize=(FIG_WIDTH[2], FIG_WIDTH[2]*0.5))
     subfigs = fig.subfigures(1, 2, width_ratios=[1, 3], wspace=0.04)
 
     plot_inputs(subfigs[0], target, reference, inset)
-    plot_model(subfigs[1], target[inset], reference[inset], psf)
+    plot_model(subfigs[1], target[inset], reference[inset], psf, args.unit_cell_size)
 
     label_panels(subfigs)
     color_panels(subfigs)
