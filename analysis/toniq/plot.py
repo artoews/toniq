@@ -118,6 +118,16 @@ def plotVolumes(volumes, nrows=None, ncols=None, vmin=0, vmax=1, cmap='gray', ti
     return fig, tracker
 
 def overlay_mask(ax, mask, color=[255, 255, 255], alpha=255, hatch=True):
+    """
+    Overlay binary mask on an existing plot.
+    
+    ax - Axes of existing plot
+    mask - binary mask to overlay
+    color - color for plotting mask 
+    alpha - transparency 
+    hatch - whether to apply hatching pattern to mask
+    
+    """
     color_mask = np.zeros(mask.shape + (4,), dtype=np.uint8)
     color_mask[mask, :] = np.array(color + [alpha], dtype=np.uint8)
     ax.imshow(color_mask)

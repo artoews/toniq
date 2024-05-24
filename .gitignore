@@ -165,7 +165,7 @@ cython_debug/
 # misc project stuff
 deliverables/
 out/
-figures/
+old-figures/
 test/
 *.stl
 *.cfg

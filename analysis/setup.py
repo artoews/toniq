@@ -4,6 +4,4 @@ setup(
     name = "toniq",
     version = "0.0.1",
     author = "Alexander R. Toews",
-    packages=['toniq'],
-    install_requires=['numpy'],
 )

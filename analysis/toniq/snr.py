@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt 
 import numpy as np
 import scipy.ndimage as ndi
-import seaborn as sns
 
 from os import path
 from skimage import morphology
@@ -54,13 +53,4 @@ def plot_map(ax, snr_map, mask, show_cbar=True, ticks=[0, 80, 160], tick_labels=
 #     ax.scatter(snrs[0], snrs[1], s=0.01, marker='.')
 #     if save_dir is not None:
 #         fig.savefig(path.join(save_dir, 'snr_pixel_cloud.png'), dpi=300)
-#     return fig, ax
-# 
-# def lines(snrs, rbw, save_dir=None, figsize=(8, 5), fontsize=20):
-#     fig, ax = plt.subplots(figsize=figsize)
-#     plt.subplots_adjust(bottom=0.2)
-#     setup_axes(ax, rbw[0], rbw[1], fontsize*0.8)
-#     sns.lineplot(x=np.round(snrs[0]).ravel(), y=snrs[1].ravel(), ax=ax)
-#     if save_dir is not None:
-#         fig.savefig(path.join(save_dir, 'validation_snr.png'), dpi=300)
 #     return fig, ax

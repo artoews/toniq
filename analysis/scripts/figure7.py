@@ -1,7 +1,6 @@
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 
 from os import path, makedirs
 
@@ -100,20 +99,6 @@ if __name__ == '__main__':
 
     plt.savefig(path.join(args.save_dir, 'figure7.png'), dpi=DPI, pad_inches=0)
     plt.savefig(path.join(args.save_dir, 'figure7.pdf'), dpi=DPI, pad_inches=0)
-
-    # ax = axes[1]
-    # slope = 1/1.28
-    # loosely_dashed = (0, (5, 10))
-    # gx = -gd_map[..., 0][slc1]
-    # gz = gd_map[..., 2][slc1]
-    # mask = ~result_mask[slc1]
-    # gx_bins = np.round(gx*50)/50
-    # gz_bins = np.round(gz*50)/50
-    # sns.lineplot(x=(gx_bins * mask).ravel(), y=(gz_bins * mask).ravel(), ax=ax)
-    # ax.scatter((gx * mask).ravel(), (gz * mask).ravel(), s=0.1, marker='.')
-    # ax.axline((-1, -slope), (1, slope), linestyle=loosely_dashed)
-    # ax.set_xlabel('Off-Resonance (kHz)')
-    # ax.set_ylabel('Displacement (pixels)')
 
     if args.plot:
         plt.show()

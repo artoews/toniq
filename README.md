@@ -1,39 +1,37 @@
-# Toolbox for Non-uniform Image Quality Analysis
+# TONIQ: Toolbox for Non-uniform Image Quality
 
 ## Overview
 
-The **To**olbox for **N**on-uniform **I**mage **Q**uality Analysis (TONIQ) provides an ensemble of tools & resources for benchmarking Magnetic Resonance Imaging techniques. TONIQ was initially released in support of [this paper](https://github.com/artoews/metal-phantom) (TODO update link when published). If you use any materials from this toolbox please acknowledge our work with the following citation.
+The TONIQ repository provides an ensemble of tools & resources for benchmarking the image quality performance of MRI techniques. TONIQ was initially released in support of [this paper](https://github.com/artoews/metal-phantom) (TODO update link when published). If you use any materials from this repository please acknowledge our work with the following citation.
 
-> Toews AR, Lee PK, Nayak KS, Hargreaves BA. Comprehensive assessment of non-uniform image quality:
-application to imaging near metal. (TODO finish citation when published).
+> Toews AR, Lee PK, Nayak KS, Hargreaves BA. Comprehensive assessment of non-uniform image quality: application to imaging near metal. (TODO finish citation when published).
 
 ## Features
 
-The toolbox currently supports the reproduction, replication, and adaptation of methods presented in the above paper. In particular, the toolbox can allow you to do any of the following.
-- Reproduce all paper figures from the provided image data
-- Generate quantitative maps of non-uniform image quality in terms of intensity artifact, geometric distortion, signal-to-noise ratio, and spatial resolution using the TONIQ Python package
-- Build your own modular phantom and use it to benchmark a Magnetic Resonance Imaging technique of your choice
+The TONIQ repository supports the reproduction and adaptation of work described in the above paper. In particular, the toolbox can allow you to:
+- Reproduce all paper figures from the same image data
+- use the TONIQ analysis Python package to generate quantitative maps of non-uniform image quality, including:
+  - intensity artifact
+  - geometric distortion
+  - signal-to-noise ratio
+  - spatial resolution
+- Build your own modular phantom and use it to benchmark non-uniform image quality
 
-## Organization
+## Orientation
 
-Here's where to find everything you might be looking for.
+The [scans](scans) folder contains all image data used in the paper, along with practical advice for scanning your own modular phantom.
 
-phantom/
-- phantom design files & product links
-- fabrication instructions
-- guidance for adapting the modular phantom design
-
-scans/
-- all image data used in the paper
-- practical advice for scanning the modular phantom
-
-analysis/
-- TONIQ Python package
+The [analysis](analysis) folder has everything you need to analyze the image data, including:
 - installation guide
+- TONIQ Python package
 - Python scripts for reproducing each figure in the paper
 
-figures/
-- all paper figures
+The [figures](figures) folder contains all figures from the paper.
+
+The [phantom](phantom) folder has everything you need to develop your own modular phantom, including:
+- phantom design files & product links
+- guidance for adapting the design to another implant
+- fabrication instructions (e.g. print settings)
 
 ## Correspondence
 

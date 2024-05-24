@@ -37,7 +37,7 @@ python figure8.py $1
 
 # very slow without load argument (-l)
 echo 'Making figure 9...' 
-python figure9.py $1 -c fse125.yml # -l 
+python figure9.py $1 -c fse125.yml # -l
 
 echo 'Making figure 10...'
 python figure10.py $1 "$1/msl125" "$1/msl63"

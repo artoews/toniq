@@ -1,0 +1,13 @@
+name: toniq
+channels:
+  - conda-forge
+dependencies:
+  - numpy=1.23
+  - sigpy
+  - matplotlib
+  - scikit-image
+  - pydicom
+  - pyyaml
+  - pip
+  - pip:
+    - itk-elastix

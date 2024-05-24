@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from os import path
 import scipy.ndimage as ndi
-import seaborn as sns
 from skimage import morphology
 from time import time
 

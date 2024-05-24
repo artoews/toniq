@@ -1,9 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import sigpy as sp
-import scipy.ndimage as ndi
-from skimage import morphology
-from sklearn.neighbors import NearestNeighbors
 
 from toniq.linop import get_matrix
 from toniq.plot import plotVolumes
@@ -30,30 +27,6 @@ def cubic_unit_cell(size, resolution, line_width):
     cell = np.roll(cell, -half_width, axis=1)
     cell = np.roll(cell, -half_width, axis=2)
     return cell
-
-def largest_hole(mask):
-    radius = 0
-    prev_hole_mask = mask
-    while True:
-        radius += 1
-        footprint = morphology.ball(radius)
-        hole_mask = morphology.binary_dilation(mask, footprint=footprint)
-        if hole_mask.all():
-            break
-        else:
-            prev_hole_mask = hole_mask
-    return radius, prev_hole_mask
-
-def largest_hole_2(mask):
-    nbrs = NearestNeighbors(n_neighbors=1).fit(np.argwhere(mask))
-    distances, indices = nbrs.kneighbors(np.argwhere(~mask))
-    hole_index = np.argmax(distances)
-    return distances[hole_index], indices[hole_index]
-
-def min_of_max(arr, filter_radius):
-    footprint = morphology.cube(filter_radius)
-    max_arr = ndi.maximum_filter(arr, footprint=footprint, mode='nearest')
-    return np.min(max_arr)
 
 def make_lattice(type, shape=(1, 1, 1), resolution=1):
     size = 120
@@ -87,49 +60,7 @@ def get_kspace_center(lattice, init_shape, final_shape=None):
 
 
 if __name__ == '__main__':
-    patch_shape = (10, 10, 10)
-    # psf_shape = (3, 3, 5)
-    # psf_shape = (5, 5, 5)
-    psf_shape = (10, 10, 5)
-        
     lattice = make_lattice('gyroid')
     # lattice = make_lattice('cubic')
-    print('lattice shape', lattice.shape)
     fig1, tracker1 = plotVolumes((lattice,))
-
-    kspace = get_kspace(lattice, patch_shape)
-    c = get_condition(kspace, psf_shape)
-    print('condition number', c)
-    # quit()
-
-    origin = np.unravel_index(np.argmax(np.abs(kspace)), kspace.shape)
-    origin_val = kspace[origin]
-    kspace[origin] = 0
-    next_max = np.max(np.abs(kspace))
-    # mask = np.abs(kspace) > 0.1 * next_max
-    kspace[origin] = origin_val
-    # mask = np.abs(kspace) < 0.1 * next_max
-    # mask = np.abs(kspace) / np.max(np.abs(kspace)) > 0.02
-    # print(np.max(np.abs(kspace)) * 0.2)
-    mask = np.abs(kspace) > 10
-    filtered_kspace = kspace.copy()
-    filtered_kspace[~mask] = 0
-    filtered_image = np.abs(sp.ifft(filtered_kspace))
-    # print(np.sum(mask))
-
-    # hole_size, hole_mask = largest_hole(mask[24:36, 24:36, 24:36])
-    # hole_size, hole_index = largest_hole_2(mask[20:40, 20:40, 20:40])
-    # hole_size, hole_index = largest_hole_2(mask)
-    # score = min_of_max(np.abs(kspace), 40)
-    # score = condition(cell_solid, (10, 10, 10))
-    # print(score)
-
-    lattice = np.abs(sp.ifft(kspace))
-    lattice = lattice / np.max(np.abs(lattice))
-    fig2, tracker2 = plotVolumes((lattice, np.abs(kspace) / next_max, mask, np.abs(filtered_kspace) / next_max, filtered_image))
-    fig4, tracker4 = plotVolumes((lattice, np.abs(kspace) / 20, mask))
-
-    fig3 = plt.figure()
-    ax3 = fig3.add_subplot(projection='3d')
-    ax3.scatter(*np.nonzero(mask))
     plt.show()
