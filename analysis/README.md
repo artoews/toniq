@@ -1,6 +1,6 @@
 # Image Quality Analysis Software
 
-This page contains all code used in the paper. The [scripts](scripts) folder contains routines to reproduce results from the paper. The [toniq](toniq) folder is a package containing general-purpose tooling for image quality analysis studies. This is where the functions for quantitative mapping of non-uniform image quality are implemented, including: intensity artifact, geometric distortion, signal-to-noise ratio, and spatial resolution.
+This page contains all code used in the paper. The [scripts](scripts) folder contains routines to reproduce results from the paper. The [toniq](toniq) folder is a Python package containing general-purpose tooling for image quality analysis studies. This is where the functions for quantitative mapping of non-uniform image quality are implemented, including: intensity artifact, geometric distortion, signal-to-noise ratio, and spatial resolution.
 
 ## Installation
 
