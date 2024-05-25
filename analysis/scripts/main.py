@@ -119,7 +119,7 @@ if __name__ == '__main__':
         else:
             image_1, image_2 = prepare_inputs((images['uniform-metal'].data, images['uniform-metal-2'].data), slc)
             snr_mask = get_signal_mask(implant_mask, artifact_masks=[ia_mask])
-        snr_map, signal, noise_std = snr.get_map(image_1, image_2, snr_mask)
+        snr_map = snr.get_map(image_1, image_2, snr_mask)
         np.save(path.join(save_dir, 'snr-image-1.npy'), image_1)
         np.save(path.join(save_dir, 'snr-image-2.npy'), image_2)
         np.save(path.join(save_dir, 'snr-mask.npy'), snr_mask)

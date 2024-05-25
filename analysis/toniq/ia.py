@@ -18,7 +18,7 @@ def get_map(
         implant_mask: npt.NDArray[np.bool],
         filter_size: int = 3
         ) -> npt.NDArray[np.float64]:
-    """Get IA map.
+    """Compute IA map.
 
     The IA map is computed as the normalized difference between images with and without IA (i.e. with and without metal).
     The difference is normalized by a signal reference representing the expected signal for a uniform phantom lacking IA.
@@ -94,7 +94,7 @@ def plot_map(
     """Plot IA map.
 
     Args:
-        ax (plt.Axes): where map will be plotted
+        ax (plt.Axes): target plot 
         ia_map (npt.NDArray[np.float64]): IA map
         mask (npt.NDArray[np.bool]): mask identifying areas where map is valid
         lim (float, optional): +/- limit for color range. Defaults to 0.8.
