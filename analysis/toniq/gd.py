@@ -209,8 +209,11 @@ def get_map(
         itk_parameters: itk.ParameterObject = None,
         inverse: bool = True,
         rigid_prep: bool = False
-        ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDarray[np.float64]]:
+        ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
     """Compute GD map.
+
+    The GD map is computed as the deformation field resulting from an image-based non-rigid 3D registration.
+    Each image is masked to exclude regions for which no spatial correspondence can or should be made due to the severity of intensity artifact or lack of structure.
 
     Args:
         plastic_image (npt.NDArray[np.float64]): image with no GD (no metal)
@@ -256,6 +259,9 @@ def get_masks(
         threshold: float
         ) -> tuple[npt.NDArray[np.bool], npt.NDArray[np.bool]]:
     """Get masks for registration.
+
+    Both masks exclude the implant region for its lack of signal/structure.
+    The metal mask additionally excludes areas with intensity artifact above a given threshold.
 
     Args:
         implant_mask (npt.NDArray[np.bool]): mask identifying implant region
