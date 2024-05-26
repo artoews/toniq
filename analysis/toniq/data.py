@@ -1,3 +1,6 @@
+"""Classes for representing scan data. 
+
+"""
 from dataclasses import dataclass, field
 import numpy as np
 from typing import ClassVar

@@ -5,12 +5,14 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
+import scipy.ndimage as ndi
+import warnings
 from skimage import morphology
 
 from toniq.filter import nanmean_filter
 from toniq.plot import colorbar_axis, overlay_mask
 from toniq.plot_params import *
-from toniq.util import safe_divide
+from toniq.util import safe_divide, masked_copy
 
 def get_map(
         plastic_image: npt.NDArray[np.float64],
@@ -55,7 +57,11 @@ def get_signal_reference(
     Returns:
         npt.NDArray[np.float64]: processed image
     """
-    reference = nanmean_filter(image, ~mask, morphology.cube(filter_size))
+    with warnings.catch_warnings():
+        # suppress warning "RuntimeWarning: Mean of empty slice" when footprint covers entirely nan values
+        warnings.filterwarnings("ignore", category=RuntimeWarning)
+        masked_image = masked_copy(image, ~mask, fill_val=np.nan)
+        reference = ndi.generic_filter(masked_image, np.nanmean, footprint=morphology.cube(filter_size))
     for i in range(image.shape[2]):
         reference[..., i][mask[..., i]] = np.nanmedian(image[..., i])
     return reference
