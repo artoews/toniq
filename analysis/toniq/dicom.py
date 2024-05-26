@@ -1,11 +1,17 @@
+"""Functions for loading & parsing DICOM data.
+
+"""
+import numpy.typing as npt
 import numpy as np
+
+from pathlib import Path
 from pydicom import dcmread
 from os import path
 
 from toniq.data import Metadata, ImageVolume
 
-def load_series(files, dtype=float):
-    """ Initialize an ImageVolume from a slice series of DICOM files """
+def load_series(files: list[str], dtype=float) -> ImageVolume:
+    """ Load DICOM series a list of files. """
     data = []
     slice_indices = []
     meta = None
@@ -23,12 +29,18 @@ def load_series(files, dtype=float):
     data = data.astype(dtype)
     return ImageVolume(data, meta)
 
-def read_data(file):
-    """ Read image data from DICOM file """
+def load_series_from_path(series_path: str) -> ImageVolume:
+    """ Load DICOM series located on a given path. """
+    files = Path(series_path).glob('*MRDC*')
+    image = load_series(files)
+    return image
+
+def read_data(file: str) -> npt.NDArray:
+    """ Read image data from DICOM file. """
     return dcmread(file).pixel_array
 
-def read_meta(file):
-    """ Read metadata from DICOM file """
+def read_meta(file: str) -> tuple[Metadata, int]:
+    """ Read metadata from DICOM file. """
     dicom = dcmread(file)
     acqMatrix = np.array(dicom.AcquisitionMatrix)
     inplaneMatrixSize = acqMatrix[np.nonzero(acqMatrix)]
