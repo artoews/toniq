@@ -60,7 +60,6 @@ def get_signal_reference(
         reference[..., i][mask[..., i]] = np.nanmedian(image[..., i])
     return reference
 
-
 def colorbar(
         ax: plt.Axes,
         im: mpl.image.AxesImage,

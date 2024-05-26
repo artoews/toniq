@@ -1,7 +1,5 @@
 """Functions for geometric distortion (GD) mapping & plotting.
 
-TODO add an extra few lines to explain the more important functions
-
 """
 import itk
 import matplotlib as mpl
