@@ -7,7 +7,6 @@ import numpy as np
 import numpy.typing as npt
 import scipy.ndimage as ndi
 
-from os import path
 from skimage import morphology
 
 from toniq.plot import colorbar_axis, overlay_mask
@@ -58,7 +57,7 @@ def plot_map(
         show_cbar: bool = True,
         ticks: list[int] = [0, 80, 160],
         tick_labels: list[str] = None
-        ) -> mpl.colorbar:
+        ) -> mpl.colorbar.Colorbar | None:
     """Plot SNR map.
 
     Args:
@@ -70,7 +69,7 @@ def plot_map(
         tick_labels (list[str], optional): custom labels corresponding to colorbar ticks. Defaults to None.
 
     Returns:
-        mpl.colorbar: _description_
+        mpl.colorbar.Colorbar: colorbar
     """
     im = ax.imshow(snr_map, cmap=CMAP['snr'], vmin=ticks[0], vmax=ticks[-1])
     if mask is not None:
@@ -82,3 +81,5 @@ def plot_map(
             cbar.ax.set_yticklabels(tick_labels)
         cbar.ax.tick_params(labelsize=SMALLER_SIZE)
         return cbar
+    else:
+        return None

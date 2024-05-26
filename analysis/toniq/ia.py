@@ -63,20 +63,20 @@ def get_signal_reference(
 
 def colorbar(
         ax: plt.Axes,
-        im: plt.AxesImage,
+        im: mpl.image.AxesImage,
         lim: float = 0.8,
-        offset: float =0
-        ) -> mpl.colorbar:
+        offset: float = 0
+        ) -> mpl.colorbar.Colorbar:
     """Plot colorbar for IA map.
 
     Args:
         ax (plt.Axes): where map is plotted
-        im (plt.AxesImage): mappable image from IA plot
+        im (mpl.image.AxesImage): mappable image from IA plot
         lim (float, optional): +/- limit for colorbar range. Defaults to 0.8.
         offset (float, optional): positional offset of colorbar from IA map. Defaults to 0.
 
     Returns:
-        mpl.colorbar: colorbar object
+        mpl.colorbar.Colorbar: colorbar
     """
     cbar = plt.colorbar(im, cax=colorbar_axis(ax, offset=offset), ticks=[-lim, -lim/2, 0, lim/2, lim], extend='both')
     cbar.ax.set_yticklabels(['-{:.0f}'.format(lim*100), '-{:.0f}'.format(lim*50), '0', '{:.0f}'.format(lim*50), '{:.0f}'.format(lim*100)])
@@ -89,8 +89,8 @@ def plot_map(
         ia_map: npt.NDArray[np.float64],
         mask: npt.NDArray[np.bool],
         lim: float = 0.8,
-        show_cbar: np.bool = True
-        ) -> mpl.colorbar:
+        show_cbar: bool = True
+        ) -> mpl.colorbar.Colorbar | None:
     """Plot IA map.
 
     Args:
@@ -101,11 +101,13 @@ def plot_map(
         show_cbar (np.bool, optional): whether to include a colorbar. Defaults to True.
 
     Returns:
-        mpl.colorbar: colorbar object
+        mpl.colorbar.Colorbar: colorbar
     """
     im = ax.imshow(ia_map, cmap=CMAP['artifact'], vmin=-lim, vmax=lim)
     if mask is not None:
         overlay_mask(ax, ~mask)
     if show_cbar:
-        cbar =colorbar(ax, im, lim=lim)
+        cbar = colorbar(ax, im, lim=lim)
         return cbar
+    else:
+        return None
