@@ -1,3 +1,6 @@
+"""Make Figure 8 for paper.
+
+"""
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt

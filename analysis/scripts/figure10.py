@@ -1,5 +1,8 @@
 import argparse
 import numpy as np
+"""Make Figure 10 for paper.
+
+"""
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D

@@ -1,3 +1,6 @@
+"""Make Figure 4 for paper.
+
+"""
 import argparse
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
