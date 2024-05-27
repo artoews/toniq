@@ -1,8 +1,11 @@
+""" Functions extending the sigpy Linop module.
+
+"""
 import numpy as np
 import sigpy as sp
 
-def get_matrix(op, verify=False, x=None):
-    """ returns the matrix equivalent of a sigpy linop """
+def get_matrix(op: sp.linop.Linop, verify=False, x=None):
+    """ Returns the matrix equivalent of a sigpy Linop. """
     output_size = np.prod(op.oshape)
     input_size = np.prod(op.ishape)
     if input_size != np.max(op.ishape):

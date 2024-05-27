@@ -1,3 +1,7 @@
+"""Plotting functions.
+
+"""
+
 import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -135,12 +139,6 @@ def overlay_mask(ax, mask, color=[255, 255, 255], alpha=255, hatch=True):
         ax.contourf(mask, 1, hatches=['', '/////////'], alpha=0)
     return
 
-def letter_annotation(ax, xoffset, yoffset, letter):
-    try:
-        ax.text(xoffset, yoffset, letter, transform=ax.transAxes, size=18, weight='bold')
-    except:
-        ax.text2D(xoffset, yoffset, letter, transform=ax.transAxes, size=18, weight='bold') # works when ax is Axes3D
-
 def imshow2(ax, im, slc1, slc2, vmin=0, vmax=1, cmap='gray', mask=None, y_label=None, x1_label=None, x2_label=None, pad=0):
     divider = make_axes_locatable(ax)
     im1 = im[slc1]
@@ -179,7 +177,6 @@ def readout_arrow_annotation(ax, xy=(0.5, 0.7), xytext=(0.5, 0.1), color='black'
         arrowprops=dict(width=2, headwidth=8, headlength=8, color=color)
     )
 
-
 def label_encode_dirs(ax, offset=0.06, length=0.16, color='black', x_label='y', y_label='x', loc='top-left', buffer_text=False):
     if buffer_text:
         buffer = [pe.withStroke(linewidth=0.7, foreground="white")]
@@ -206,37 +203,6 @@ def label_encode_dirs(ax, offset=0.06, length=0.16, color='black', x_label='y', 
     ax.annotate("",
                 xy=(x1, y1), xycoords=transform,
                 xytext=(x2, y2), textcoords=transform,
-                arrowprops=dict(arrowstyle="<->", color=color,
-                                shrinkA=0, shrinkB=0,
-                                patchA=None, patchB=None,
-                                connectionstyle=connectionstyle,
-                                ),
-                )
-
-def label_encode_dirs_old_scale_variant(ax, offset=6, length=14, color='black', x_label='y', y_label='x', loc='top-left', buffer_text=False):
-    if buffer_text:
-        buffer = [pe.withStroke(linewidth=0.7, foreground="white")]
-    else:
-        buffer = None
-    if loc == 'top-left':
-        connectionstyle="angle,angleA=180,angleB=-90,rad=0"
-        x1, y1 = offset, offset + length
-        x2, y2 = offset + length, offset
-        y_verticalalignment = 'top'
-        x_horizontalalignment = 'left'
-    elif loc == 'bottom-right':
-        connectionstyle="angle,angleA=180,angleB=-90,rad=0"
-        xlim = np.max(ax.get_xlim())
-        ylim = np.max(ax.get_ylim())
-        x1, y1 = xlim - offset, ylim - offset - length
-        x2, y2 = xlim - offset - length, ylim - offset
-        y_verticalalignment = 'bottom'
-        x_horizontalalignment = 'right'
-    ax.text(x1, y1, y_label, verticalalignment=y_verticalalignment, horizontalalignment='center', size=SMALL_SIZE, weight='extra bold', color=color, path_effects=buffer)
-    ax.text(x2, y2, x_label, verticalalignment='center', horizontalalignment=x_horizontalalignment, size=SMALL_SIZE, weight='extra bold', color=color, path_effects=buffer)
-    ax.annotate("",
-                xy=(x1, y1), xycoords='data',
-                xytext=(x2, y2), textcoords='data',
                 arrowprops=dict(arrowstyle="<->", color=color,
                                 shrinkA=0, shrinkB=0,
                                 patchA=None, patchB=None,

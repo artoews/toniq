@@ -4,7 +4,7 @@
 import yaml
 from os import path
 
-from data import ImageVolume
+from toniq.data import ImageVolume
 from toniq.dicom import load_series_from_path
 
 def read_config(file: str) -> dict:

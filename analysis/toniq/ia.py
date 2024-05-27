@@ -9,7 +9,6 @@ import scipy.ndimage as ndi
 import warnings
 from skimage import morphology
 
-from toniq.filter import nanmean_filter
 from toniq.plot import colorbar_axis, overlay_mask
 from toniq.plot_params import *
 from toniq.util import safe_divide, masked_copy

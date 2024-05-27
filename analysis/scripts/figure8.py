@@ -4,11 +4,24 @@
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
+import sigpy as sp
 
 from os import path, makedirs
 
-from toniq.lattice import make_lattice, get_kspace_center, get_condition
+from toniq.lattice import make_lattice
+from toniq.linop import get_matrix
+from toniq.sr import forward_model
 from toniq.plot_params import *
+
+def get_condition(kspace, psf_shape, lamda=0):
+    A_op = forward_model(kspace, psf_shape)
+    # A_op = forward_model_conv(kspace, psf_shape)
+    # print(A_op)
+    A_mtx = get_matrix(A_op, verify=True)
+    # print(A_mtx.shape)
+    if lamda != 0:
+        A_mtx = np.vstack((A_mtx, np.eye(A_mtx.shape[-1]) * np.sqrt(lamda)))
+    return np.linalg.cond(A_mtx)
 
 def plot_condition(ax, psf_sizes, cubic, gyroid):
     ax.scatter(psf_sizes, cubic, label=r'Cubic Lattice', marker='s')
@@ -21,6 +34,13 @@ def plot_condition(ax, psf_sizes, cubic, gyroid):
     ax.set_ylim([0, 100])
     # plt.grid()
     return ax
+
+def get_kspace_center(lattice, init_shape, final_shape=None):
+    kspace = sp.ifft(sp.resize(sp.fft(lattice), init_shape), axes=(2,))
+    if final_shape is not None:
+        kspace = sp.fft(sp.resize(sp.ifft(kspace, axes=(0, 1)), final_shape), axes=(0, 1))
+    # kspace = sp.ifft(sp.resize(sp.fft(lattice), shape), axes=(0, 1, 2)) # temp fix for conv model
+    return kspace
 
 p = argparse.ArgumentParser(description='Make figure 8')
 p.add_argument('save_dir', type=str, help='path where figure is saved')
