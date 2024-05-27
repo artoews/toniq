@@ -9,7 +9,7 @@ The TONIQ repository provides an ensemble of tools & resources for benchmarking 
 ## Features
 
 The TONIQ repository supports the reproduction and adaptation of work described in the above paper. In particular, the toolbox can allow you to:
-- Reproduce all paper figures from the same image data
+- Reproduce all paper figures from the provided image data
 - use the TONIQ analysis Python package to generate quantitative maps of non-uniform image quality, including:
   - intensity artifact
   - geometric distortion
