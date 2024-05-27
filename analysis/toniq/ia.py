@@ -27,7 +27,7 @@ def get_map(
     Args:
         plastic_image (npt.NDArray): image with no IA (no metal)
         metal_image (npt.NDArray): image with IA (from metal)
-        implant_mask (npt.NDArray): image mask identifying implant region
+        implant_mask (npt.NDArray): image mask excluding the implant region
         filter_size (int, optional): size of filter used for computing the signal reference. Defaults to 3.
 
     Returns:
@@ -50,7 +50,7 @@ def get_signal_reference(
 
     Args:
         image (npt.NDArray[np.float64]): image with no IA (i.e. no metal)
-        mask (npt.NDArray[np.bool]): mask identifying areas to apply in-filling
+        mask (npt.NDArray[np.bool]): mask excluding areas where in-filling will be used
         filter_size (int, optional): size of cube-shaped footprint used for mean filter. Defaults to 3.
 
     Returns:
@@ -59,10 +59,10 @@ def get_signal_reference(
     with warnings.catch_warnings():
         # suppress warning "RuntimeWarning: Mean of empty slice" when footprint covers entirely nan values
         warnings.filterwarnings("ignore", category=RuntimeWarning)
-        masked_image = masked_copy(image, ~mask, fill_val=np.nan)
+        masked_image = masked_copy(image, mask, fill_val=np.nan)
         reference = ndi.generic_filter(masked_image, np.nanmean, footprint=morphology.cube(filter_size))
     for i in range(image.shape[2]):
-        reference[..., i][mask[..., i]] = np.nanmedian(image[..., i])
+        reference[..., i][~mask[..., i]] = np.nanmedian(image[..., i])
     return reference
 
 def colorbar(

@@ -262,7 +262,7 @@ def get_masks(
     The metal mask additionally excludes areas with intensity artifact above a given threshold.
 
     Args:
-        implant_mask (npt.NDArray[np.bool]): mask identifying implant region
+        implant_mask (npt.NDArray[np.bool]): mask excluding the implant region
         ia_map (npt.NDArray[np.float64]): map of intensity artifact
         threshold (float): intensity artifact threshold
 
