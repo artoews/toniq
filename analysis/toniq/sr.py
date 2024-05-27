@@ -213,37 +213,38 @@ def measure_fwhm_1d(
     Returns:
         float: FWHM
     """
+    
     if i_max is None:
         i_max = np.argmax(x)
-    half_max = x[i_max] / 2
-    if i_max < 1 or i_max >= len(x) - 1:
-        return 0
-    i_half_max = i_max - np.argmin(x[i_max::-1] > half_max)  # just left of half-max
-    if i_half_max == i_max:
-        i_half_max_1 = None
-    else:
-        i_half_max_1 = find_root(i_half_max,
-                                 x[i_half_max] - half_max,
-                                 i_half_max + 1,
-                                 x[i_half_max + 1] - half_max)
-    i_half_max = i_max + np.argmin(x[i_max::1] > half_max)  # just right of half-max
-    if i_half_max == i_max:
-        i_half_max_2 = None
-    else:
-        i_half_max_2 = find_root(i_half_max - 1,
-                                 x[i_half_max - 1] - half_max,
-                                 i_half_max,
-                                 x[i_half_max] - half_max)
-    if i_half_max_1 is None or i_half_max_2 is None:
-        print('Warning: PSF half-max extent exceeds window')
+
+    i_half_max_1 = get_half_max_position(x[:i_max+1])
+    i_half_max_2 = len(x) - 1 - get_half_max_position(x[i_max:][::-1])
+
     if i_half_max_1 is not None and i_half_max_2 is not None:
         return i_half_max_2 - i_half_max_1
-    if i_half_max_1 is None and i_half_max_2 is not None:
-        return 2 * (i_half_max_2 - i_max)
-    if i_half_max_1 is not None and i_half_max_2 is None:
-        return 2 * (i_max - i_half_max_1)
-    if i_half_max_1 is None and i_half_max_2 is None:
-        return 0
+    else:
+        if i_half_max_1 is None and i_half_max_2 is not None:
+            print('Warning: FWHM extent exceeds window on left side')
+            return 2 * (i_half_max_2 - i_max)
+        if i_half_max_1 is not None and i_half_max_2 is None:
+            print('Warning: FWHM extent exceeds window on right side')
+            return 2 * (i_max - i_half_max_1)
+        if i_half_max_1 is None and i_half_max_2 is None:
+            print('Warning: FWHM extent exceeds window on both sides')
+            return 0
+
+def get_half_max_position(x: npt.NDArray[np.float64]) -> float:
+    """ Find the (linearly interpolated) position of half max for a monotonically increasing sequence. """
+    half_max_val = x[-1] / 2 
+    min_val = np.min(x)
+    if min_val > half_max_val:
+        return None
+    elif min_val == half_max_val:
+        return np.argmin(x)
+    else:
+        i_sup = np.argmax(x > half_max_val)
+        i_inf = i_sup - 1 
+        return find_root(i_inf, x[i_inf] - half_max_val, i_sup, x[i_sup] - half_max_val)
 
 def find_root(x1: int, y1: float, x2: int, y2: float) -> float:
     """ Find zero-crossing of line through points (x1, y1) and (x2, y2). """
