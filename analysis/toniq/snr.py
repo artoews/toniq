@@ -1,15 +1,44 @@
+"""Functions for signal-to-noise ratio (SNR) mapping & plotting.
+
+""" 
+import matplotlib as mpl
 import matplotlib.pyplot as plt 
 import numpy as np
+import numpy.typing as npt
 import scipy.ndimage as ndi
 
-from os import path
 from skimage import morphology
 
 from toniq.plot import colorbar_axis, overlay_mask
 from toniq.plot_params import *
 
-def get_map(image1, image2, mask, filter_size=10, min_coverage=0.5):
-    # "Difference Method" from Reeder et al 2005, extended to include a mask reducing signal bias from lattice
+def get_map(
+        image1: npt.NDArray[np.float64],
+        image2: npt.NDArray[np.float64],
+        mask: npt.NDArray[np.bool],
+        filter_size: int = 10,
+        min_coverage: float = 0.5
+        ) -> npt.NDArray[np.float64]:
+    """Compute SNR map.
+
+    Implements the "Difference Method" from the paper referenced below.
+    The method is extended to use a mask removing signal bias from areas lacking signal (as in plastic).
+
+    Reeder SB, Wintersperger BJ, Dietrich O, et al.
+    Practical approaches to the evaluation of signal-to-noise ratio performance with parallel imaging:
+    Application with cardiac imaging and a 32-channel cardiac coil.
+    Magnetic Resonance in Medicine. 2005;54(3):748-754. doi:10.1002/mrm.20636
+
+    Args:
+        image1 (npt.NDArray[np.float64]): one of two images in the analysis pair
+        image2 (npt.NDArray[np.float64]): other one of two images in the analysis pair
+        mask (npt.NDArray[np.bool]): mask excluding image regions lacking signal (as in plastic)
+        filter_size (int, optional): size of cube-shaped footprint used for local signal statistics. Defaults to 10.
+        min_coverage (float, optional): minimum fraction of pixels in footprint for computing SNR, below which zero is returned. Defaults to 0.5.
+
+    Returns:
+        npt.NDArray[np.float64]: SNR map
+    """
     footprint = morphology.cube(filter_size)
     image_sum = np.abs(image2) + np.abs(image1)
     image_diff = np.abs(image2) - np.abs(image1)
@@ -19,10 +48,29 @@ def get_map(image1, image2, mask, filter_size=10, min_coverage=0.5):
     noise = ndi.generic_filter(image_diff, np.std, footprint=footprint) / np.sqrt(2)
     snr = np.divide(signal, noise, out=np.zeros_like(signal), where=noise > 0)
     snr[~mask] = 0
-    return snr, signal, noise
+    return snr
 
-def plot_map(ax, snr_map, mask, show_cbar=True, ticks=[0, 80, 160], tick_labels=None):
-    # lim = np.round(np.max(snr_map)+4.99, -1)
+def plot_map(
+        ax: plt.Axes,
+        snr_map: npt.NDArray[np.float64],
+        mask: npt.NDArray[np.bool],
+        show_cbar: bool = True,
+        ticks: list[int] = [0, 80, 160],
+        tick_labels: list[str] = None
+        ) -> mpl.colorbar.Colorbar | None:
+    """Plot SNR map.
+
+    Args:
+        ax (plt.Axes): target plot
+        snr_map (npt.NDArray[np.float64]): SNR map
+        mask (npt.NDArray[np.bool]): mask identifying areas where map is valid
+        show_cbar (bool, optional): whether to include a colorbar. Defaults to True.
+        ticks (list[int], optional): colorbar ticks; min/max values are also used to set the color range of plot. Defaults to [0, 80, 160].
+        tick_labels (list[str], optional): custom labels corresponding to colorbar ticks. Defaults to None.
+
+    Returns:
+        mpl.colorbar.Colorbar: colorbar
+    """
     im = ax.imshow(snr_map, cmap=CMAP['snr'], vmin=ticks[0], vmax=ticks[-1])
     if mask is not None:
         overlay_mask(ax, ~mask)
@@ -33,24 +81,5 @@ def plot_map(ax, snr_map, mask, show_cbar=True, ticks=[0, 80, 160], tick_labels=
             cbar.ax.set_yticklabels(tick_labels)
         cbar.ax.tick_params(labelsize=SMALLER_SIZE)
         return cbar
-
-# def setup_axes(ax, rbw1, rbw2, fontsize):
-#     loosely_dashed = (0, (5, 10))
-#     ax.axline((0, 0), (1, np.sqrt(rbw1 / rbw2)), color='k', linestyle=loosely_dashed)
-#     # ax.set_xlim([40, 80])
-#     # ax.set_ylim([20, 60])
-#     # ax.set_xticks(range(10, 51, 10))
-#     # ax.set_yticks(range(10, 51, 10))
-#     ax.set_xlabel('SNR at RBW={}kHz'.format(rbw1), fontsize=fontsize)
-#     ax.set_ylabel('SNR at RBW={}kHz'.format(rbw2), fontsize=fontsize)
-#     ax.tick_params(labelsize=fontsize)
-#     ax.grid()
-# 
-# def scatter(snrs, rbw, save_dir=None, figsize=(8, 5), fontsize=20):
-#     fig, ax = plt.subplots(figsize=figsize)
-#     plt.subplots_adjust(bottom=0.2)
-#     setup_axes(ax, rbw[0], rbw[1], fontsize*0.8)
-#     ax.scatter(snrs[0], snrs[1], s=0.01, marker='.')
-#     if save_dir is not None:
-#         fig.savefig(path.join(save_dir, 'snr_pixel_cloud.png'), dpi=300)
-#     return fig, ax
+    else:
+        return None

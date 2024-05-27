@@ -1,5 +1,8 @@
 import argparse
 import numpy as np
+"""Make Figure 6 for paper.
+
+"""
 import matplotlib.pyplot as plt
 
 from os import path, makedirs

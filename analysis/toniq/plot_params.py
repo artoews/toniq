@@ -1,3 +1,7 @@
+"""Global parameters used for plotting.
+
+"""
+
 import matplotlib.pyplot as plt
 
 SMALLER_SIZE = 6

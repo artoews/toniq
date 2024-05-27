@@ -1,3 +1,6 @@
+"""Make Figure 9 for paper.
+
+"""
 import argparse
 import matplotlib.pyplot as plt
 import numpy as np
@@ -134,7 +137,7 @@ if __name__ == '__main__':
         # check SNR
         snr_maps = []
         for i in range(len(target_images)):
-            snr_i, _, _ = snr.get_map(target_images[i], target_images_2[i], mask)
+            snr_i = snr.get_map(target_images[i], target_images_2[i], mask)
             snr_maps += [snr_i]
             print('Trial {} has SNR stats: (min {:.2f}, mean {:.2f}, median {:.2f}, max {:.2f})'.format(i, np.min(snr_i), np.mean(snr_i), np.median(snr_i), np.max(snr_i)))
 

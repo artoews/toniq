@@ -1,3 +1,6 @@
+"""Plotting functions.
+
+"""
 import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -10,7 +13,11 @@ import matplotlib.transforms as mtransforms
 from toniq.plot_params import *
 
 class MultiIndexTracker:
-    """ Scroll through a collection of volumes in lock step """
+    """ Scroll through multiple image volumes together. 
+    
+    Adapted from the following matplotlib example.
+    https://matplotlib.org/stable/gallery/event_handling/image_slices_viewer.html
+    """
     def __init__(self, fig, axes, volumes, plot_args, cbar=False):
         for vol in volumes:
             if vol.shape != volumes[0].shape:
@@ -92,6 +99,7 @@ class MultiIndexTracker:
         self.fig.canvas.draw()
 
 def plotVolumes(volumes, nrows=None, ncols=None, vmin=0, vmax=1, cmap='gray', titles=None, figsize=None, cbar=False):
+    """ GUI for visual analysis of multiple image volumes. """
     if nrows is None or ncols is None:
         nrows = 1
         ncols = len(volumes)
@@ -118,16 +126,7 @@ def plotVolumes(volumes, nrows=None, ncols=None, vmin=0, vmax=1, cmap='gray', ti
     return fig, tracker
 
 def overlay_mask(ax, mask, color=[255, 255, 255], alpha=255, hatch=True):
-    """
-    Overlay binary mask on an existing plot.
-    
-    ax - Axes of existing plot
-    mask - binary mask to overlay
-    color - color for plotting mask 
-    alpha - transparency 
-    hatch - whether to apply hatching pattern to mask
-    
-    """
+    """ Overlay binary mask on an existing plot. """
     color_mask = np.zeros(mask.shape + (4,), dtype=np.uint8)
     color_mask[mask, :] = np.array(color + [alpha], dtype=np.uint8)
     ax.imshow(color_mask)
@@ -135,13 +134,8 @@ def overlay_mask(ax, mask, color=[255, 255, 255], alpha=255, hatch=True):
         ax.contourf(mask, 1, hatches=['', '/////////'], alpha=0)
     return
 
-def letter_annotation(ax, xoffset, yoffset, letter):
-    try:
-        ax.text(xoffset, yoffset, letter, transform=ax.transAxes, size=18, weight='bold')
-    except:
-        ax.text2D(xoffset, yoffset, letter, transform=ax.transAxes, size=18, weight='bold') # works when ax is Axes3D
-
 def imshow2(ax, im, slc1, slc2, vmin=0, vmax=1, cmap='gray', mask=None, y_label=None, x1_label=None, x2_label=None, pad=0):
+    """ Show two slices of image together. """
     divider = make_axes_locatable(ax)
     im1 = im[slc1]
     im2 = im[slc2]
@@ -168,6 +162,7 @@ def imshow2(ax, im, slc1, slc2, vmin=0, vmax=1, cmap='gray', mask=None, y_label=
     return im1, im2, ax, ax2
 
 def readout_arrow_annotation(ax, xy=(0.5, 0.7), xytext=(0.5, 0.1), color='black'):
+    """ Draw arrow with 'readout' label. """
     ax.annotate(
         "readout",
         color='black',
@@ -179,8 +174,8 @@ def readout_arrow_annotation(ax, xy=(0.5, 0.7), xytext=(0.5, 0.1), color='black'
         arrowprops=dict(width=2, headwidth=8, headlength=8, color=color)
     )
 
-
 def label_encode_dirs(ax, offset=0.06, length=0.16, color='black', x_label='y', y_label='x', loc='top-left', buffer_text=False):
+    """ Add coordinate axes to corner of plot. """
     if buffer_text:
         buffer = [pe.withStroke(linewidth=0.7, foreground="white")]
     else:
@@ -213,38 +208,8 @@ def label_encode_dirs(ax, offset=0.06, length=0.16, color='black', x_label='y', 
                                 ),
                 )
 
-def label_encode_dirs_old_scale_variant(ax, offset=6, length=14, color='black', x_label='y', y_label='x', loc='top-left', buffer_text=False):
-    if buffer_text:
-        buffer = [pe.withStroke(linewidth=0.7, foreground="white")]
-    else:
-        buffer = None
-    if loc == 'top-left':
-        connectionstyle="angle,angleA=180,angleB=-90,rad=0"
-        x1, y1 = offset, offset + length
-        x2, y2 = offset + length, offset
-        y_verticalalignment = 'top'
-        x_horizontalalignment = 'left'
-    elif loc == 'bottom-right':
-        connectionstyle="angle,angleA=180,angleB=-90,rad=0"
-        xlim = np.max(ax.get_xlim())
-        ylim = np.max(ax.get_ylim())
-        x1, y1 = xlim - offset, ylim - offset - length
-        x2, y2 = xlim - offset - length, ylim - offset
-        y_verticalalignment = 'bottom'
-        x_horizontalalignment = 'right'
-    ax.text(x1, y1, y_label, verticalalignment=y_verticalalignment, horizontalalignment='center', size=SMALL_SIZE, weight='extra bold', color=color, path_effects=buffer)
-    ax.text(x2, y2, x_label, verticalalignment='center', horizontalalignment=x_horizontalalignment, size=SMALL_SIZE, weight='extra bold', color=color, path_effects=buffer)
-    ax.annotate("",
-                xy=(x1, y1), xycoords='data',
-                xytext=(x2, y2), textcoords='data',
-                arrowprops=dict(arrowstyle="<->", color=color,
-                                shrinkA=0, shrinkB=0,
-                                patchA=None, patchB=None,
-                                connectionstyle=connectionstyle,
-                                ),
-                )
-
 def remove_ticks(ax):
+    """ Remove ticks from x and y axes. """
     if type(ax) is np.ndarray:
         for a in ax.flat: 
             remove_ticks(a)
@@ -253,6 +218,7 @@ def remove_ticks(ax):
         ax.set_yticks([])
 
 def colorbar_axis(ax, offset=0):
+    """ Return inset axes for plotting a colorbar. """
     return inset_axes(
         ax,
         width="5%",
@@ -264,20 +230,23 @@ def colorbar_axis(ax, offset=0):
     )
 
 def color_panels(subfigs):
+    """ Shade the background of each subfigure. """
     for panel in subfigs:
          panel.set_facecolor('0.9')
 
 def label_panels(subfigs, trans_x=0.035, trans_y=-0.13):
+    """ Annotate each subfigure with a letter. """
     labels = ('({})'.format(letter) for letter in ascii_uppercase[:len(subfigs)])
     for label, subfig in zip(labels, subfigs):
         trans = mtransforms.ScaledTranslation(trans_x, trans_y, subfig.dpi_scale_trans)
         plt.text(0, 1, label, transform=subfig.transSubfigure + trans)
 
-def label_slice_pos(ax, idx, slc1, slc2, height=0.05, top=False, bottom=True, inside=True, label=None):
-    if slc2[idx].start is not None:
-        pos = slc1[idx] - slc2[idx].start
+def label_slice_pos(ax, dir, slc1, slc2, height=0.05, top=False, bottom=True, inside=True, label=None):
+    """ Annotate the position of one slice (slc1) in the plot of a another slice (slc2). Slices must be in different planes. """
+    if slc2[dir].start is not None:
+        pos = slc1[dir] - slc2[dir].start
     else:
-        pos = slc1[idx]
+        pos = slc1[dir]
     if inside:
         if top:
             ax.plot([pos, pos], [1, 1-height], color='black', linewidth=1, linestyle='solid', transform=ax.get_xaxis_transform())
