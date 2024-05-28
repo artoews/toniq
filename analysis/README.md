@@ -10,7 +10,9 @@ After installing conda, navigate to the TONIQ analysis folder and run the `setup
 
 ```
 cd path/to/toniq/analysis
-bash setup.sh
+conda env create -f environment.yml
+conda activate toniq
+pip install -e .
 ```
 
 ## Getting Started
