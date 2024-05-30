@@ -24,7 +24,7 @@ cd path/to/toniq/analysis/scripts
 bash demo.sh
 ```
 
-The script `make_figures.sh` runs all requisite analyses to generate the complete set of figures from the paper. It also serves to provide example commands for generating individual figures, e.g. `python figure5.py save_dir`. Note that Figures 5 & 9 are very slow to generate from scratch, and take up the bulk of the long runtime for this script (about 1 hour on a modern laptop). It is recommended to comment out those lines if they are not of interest. To run `make_figures.sh` you must provide a directory to save outputs and a 0/1 indicating whether to run all analyses from scratch or re-use outputs in the provided directory.
+The script `make_figures.sh` runs all requisite analyses to generate the complete set of figures from the paper. It also serves to provide example commands for generating individual figures, e.g. `python figure5.py save_dir`. Note that Figures 5 & 9 are very slow to generate from scratch, and take up the bulk of the long runtime for this script (about 1 hour on a modern laptop). It is recommended to comment out those lines if they are not of interest. To run `make_figures.sh` you must provide a directory to save outputs and a 0/1 indicating whether to run all analyses from scratch (1) or re-use outputs in the provided directory (0).
 
 ```
 cd path/to/toniq/analysis/scripts
