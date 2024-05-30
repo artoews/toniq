@@ -41,3 +41,5 @@ python figure9.py $1 -c fse125.yml # -l
 
 echo 'Making figure 10...'
 python figure10.py $1 "$1/msl125" "$1/msl63"
+
+echo 'Done making all figures.'

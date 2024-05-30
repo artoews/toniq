@@ -65,7 +65,8 @@ def elastix_registration(
             moving_mask=moving_mask,
             log_to_console=verbose,
             initial_transform_parameter_object=initial_transform)
-    print('registration time elapsed (s): {:.1f}'.format(time() - t0))
+    if verbose:
+        print('registration time elapsed (s): {:.1f}'.format(time() - t0))
     return np.asarray(result_image), result_transform_parameters
 
 def transform(
