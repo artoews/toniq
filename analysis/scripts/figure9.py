@@ -114,7 +114,7 @@ if __name__ == '__main__':
         # measured correct FWHM
         measured_fwhms = []
         for target_psf in target_psfs:
-            measured_fwhm = sr.get_FWHM_from_pixel(target_psf)
+            measured_fwhm = sr.measure_fwhm(target_psf)
             measured_fwhms += [measured_fwhm[0]]
         # print('Measured FWHM', measured_fwhms)
         # quit()
