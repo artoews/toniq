@@ -157,7 +157,7 @@ if __name__ == '__main__':
         ax.set_ylabel(label, rotation='horizontal', va='center', ha='center', labelpad=25)
 
     axes = subfigs[1].subplots(nrows=5, ncols=1, gridspec_kw={'hspace': 0.6, 'left': 0.1, 'right': 0.9, 'bottom': 0.06, 'top': 0.96})
-    plot_summary(axes[1], ia1*100, ia2*100, np.linspace(0, 80, 50), slc, roi)
+    plot_summary(axes[1], ia1*100, ia2*100, np.linspace(20, 80, 50), slc, roi)
     plot_summary(axes[2], gd1, gd2, np.linspace(0, 2, 50), slc, roi)
     plot_summary(axes[3], snr1, snr2, np.linspace(0, 160, 50), slc, roi, thresh=0)
     lines, labels = plot_summary(axes[4], res1, res2, np.linspace(1.2, 3.6, 50), slc, roi_hr, thresh=0)
