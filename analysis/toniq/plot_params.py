@@ -16,7 +16,7 @@ plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the y tick labels
 plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
 plt.rc('figure', titlesize=MEDIUM_SIZE)   # fontsize of the figure title
 
-plt.rc('lines', linewidth=1.0)
+plt.rc('lines', linewidth=0.7)
 plt.rc('axes', linewidth=0.7)
 plt.rcParams['hatch.linewidth'] = 0.2
 
