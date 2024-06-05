@@ -174,7 +174,7 @@ def readout_arrow_annotation(ax, xy=(0.5, 0.7), xytext=(0.5, 0.1), color='black'
         arrowprops=dict(width=2, headwidth=8, headlength=8, color=color)
     )
 
-def label_encode_dirs(ax, offset=0.06, length=0.16, color='black', x_label='y', y_label='x', loc='top-left', buffer_text=False):
+def label_encode_dirs(ax, offset=0.05, length=0.15, color='black', x_label='y', y_label='x', loc='top-left', buffer_text=False):
     """ Add coordinate axes to corner of plot. """
     if buffer_text:
         buffer = [pe.withStroke(linewidth=0.7, foreground="white")]
