@@ -10,15 +10,16 @@ The following instructions describe how to modify the phantom design to fit a di
 3. Refine the STL surface model.
     * Install free mesh processing software [Autodesk Meshmixer](https://meshmixer.com/download.html).
     * Open STL in Meshmixer.
+    * Check the model scaling is correct via "Analysis→Units/Dimensions". Update units as necessary (choosing option to preserve XYZ coordinates).
     * Align model with cardinal planes via “Edit→Align” and “Edit→Transform”, as needed.
     * Repair model by erasing nuisance features (e.g. holes) via “Select→Delete” and “Analysis→Inspector→Auto Repair All”.
-5. Generate a toleranced copy of the surface model.
+4. Generate a toleranced copy of the surface model.
     * In Meshmixer, use “Select→Edit→Offset” with a reasonably small offset (e.g. 0.5 mm). This will create a second, slightly larger solid body in the same file as the original one. These two overlapping solid bodies will be separated in a later step. The original solid body ("implant surface") is for printing the plastic replica implant. The larger solid body ("implant surface offset") is for making the implant cavity feature in the block assembly.
-6. Compress surface models.
+5. Compress surface models.
     * In Meshmixer, “Select→Edit→Reduce” with 0.25 mm Max Deviation (shape preserving).
     * Save as a new file in STL format.
-7. Separate the two surface models.
-    * Open the new STL file in SolidWorks.
+6. Separate the two surface models.
+    * Open the new STL file in SolidWorks. In the Open File window, click Options to ensure the STL will be imported as a Solid Body with the correct units. The Options button will appear when you select an STL file.
     * Create separate part files for each one of the two surfaces by deleting the other solid body and saving as a new *.SLDPRT file.
 
 ## B. Update design files
