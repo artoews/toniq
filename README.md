@@ -2,9 +2,9 @@
 
 ## Overview
 
-The TONIQ repository provides an ensemble of tools & resources for benchmarking the image quality performance of MRI techniques. TONIQ was initially released in support of [this paper](https://github.com/artoews/toniq) (paper link TBA when published). If you use any materials from this repository please acknowledge our work with the following citation.
+The TONIQ repository provides an ensemble of tools & resources for benchmarking the image quality performance of MRI techniques. TONIQ was initially released in support of [this paper](https://doi.org/10.1002/mrm.30222). If you use any materials from this repository please acknowledge our work with the following citation.
 
-> Toews AR, Lee PK, Nayak KS, Hargreaves BA. Comprehensive assessment of non-uniform image quality: application to imaging near metal. _Magnetic Resonance in Medicine_. 2024. (In review).
+> Toews AR, Lee PK, Nayak KS, Hargreaves BA. Comprehensive assessment of nonuniform image quality: Application to imaging near metal. Magn Reson Med. 2024;1-15. doi: 10.1002/mrm.30222
 
 ## Features
 
@@ -26,7 +26,7 @@ The [analysis](analysis) folder has everything you need to analyze the image dat
 - TONIQ Python package
 - Python scripts for reproducing each figure in the paper
 
-The [figures](figures) folder contains all figures from the paper (pending decision on licensing/access agreements).
+The [figures](figures) folder contains all figures from the paper.
 
 The [phantom](phantom) folder has everything you need to develop your own modular phantom, including:
 - phantom design files & product links
