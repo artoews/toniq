@@ -33,7 +33,7 @@ In this section *italics* are used to indicate the names of SolidWorks Global Va
     * Set gyroid cell size, as needed (*cell-size*).
     * Set block dimensions in units of cells, as needed (*nx*, *ny*, *nz*).
 3. Update frame (frame.sldprt).
-    * Match lengths of fixation arms to new container dimensions (*box_length*, *box_height*).
+    * Match lengths of fixation arms to new container dimensions (*box_length*, *box_width*).
     * Adjust relative position of block on frame, as needed (*offset_SI*).
 
 ## C. Generate files for printing
