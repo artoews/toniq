@@ -176,7 +176,7 @@ def get_deformation_field(
     """
     moving_image = itk.image_from_array(moving_image)
     field = itk.transformix_deformation_field(moving_image, transform)
-    return np.asarray(field).astype(np.float)[..., ::-1]
+    return np.asarray(field).astype(np.float64)[..., ::-1]
 
 def get_jacobian(
         moving_image: npt.NDArray[np.float64],
@@ -196,8 +196,8 @@ def get_jacobian(
     """
     moving_image = itk.image_from_array(moving_image)
     jacobians = itk.transformix_jacobian(moving_image, transform)
-    spatial_jacobian = np.asarray(jacobians[0]).astype(np.float)
-    det_spatial_jacobian = np.asarray(jacobians[1]).astype(np.float)
+    spatial_jacobian = np.asarray(jacobians[0]).astype(np.float64)
+    det_spatial_jacobian = np.asarray(jacobians[1]).astype(np.float64)
     return spatial_jacobian, det_spatial_jacobian
 
 def get_map(

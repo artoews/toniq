@@ -19,9 +19,9 @@ def gyroid_unit_cell(size: int, resolution: int) -> npt.NDArray:
 def cubic_unit_cell(size: int, resolution: int, line_width: int) -> npt.NDArray:
     pts = np.arange(0, size, resolution)
     x, y, z = np.meshgrid(pts, pts, pts, indexing='ij')
-    g = (np.mod(x, size / 2) < line_width).astype(np.int) + \
-        (np.mod(y, size / 2) < line_width).astype(np.int) + \
-        (np.mod(z, size / 2) < line_width).astype(np.int)
+    g = (np.mod(x, size / 2) < line_width).astype(int) + \
+        (np.mod(y, size / 2) < line_width).astype(int) + \
+        (np.mod(z, size / 2) < line_width).astype(int)
     cell = g > 1
     half_width = int(line_width / resolution / 2)
     cell = np.roll(cell, -half_width, axis=0)
