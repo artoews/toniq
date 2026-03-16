@@ -60,7 +60,8 @@ def get_signal_reference(
         # suppress warning "RuntimeWarning: Mean of empty slice" when footprint covers entirely nan values
         warnings.filterwarnings("ignore", category=RuntimeWarning)
         masked_image = masked_copy(image, mask, fill_val=np.nan)
-        reference = ndi.generic_filter(masked_image, np.nanmean, footprint=morphology.cube(filter_size))
+        footprint = morphology.footprint_rectangle((filter_size,)*3) # cube
+        reference = ndi.generic_filter(masked_image, np.nanmean, footprint=footprint)
     for i in range(image.shape[2]):
         reference[..., i][~mask[..., i]] = np.nanmedian(image[..., i])
     return reference

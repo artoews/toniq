@@ -39,7 +39,7 @@ def get_map(
     Returns:
         npt.NDArray[np.float64]: SNR map
     """
-    footprint = morphology.cube(filter_size)
+    footprint = morphology.footprint_rectangle((filter_size,)*3) # cube
     image_sum = np.abs(image2) + np.abs(image1)
     image_diff = np.abs(image2) - np.abs(image1)
     filter_sum = ndi.generic_filter(image_sum * mask, np.sum, footprint=footprint)
