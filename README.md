@@ -28,10 +28,10 @@ The [analysis](analysis) folder has everything you need to analyze the image dat
 
 The [figures](figures) folder contains all figures from the paper.
 
-The [phantom](phantom) folder has everything you need to develop your own modular phantom, including:
+The [phantoms](phantoms) folder has everything you need to build your own TONIQ phantom, including:
 - phantom design files & product links
-- guidance for adapting the design to another implant
-- fabrication instructions (e.g. print settings)
+- guidance for adapting the designs to different metal components
+- fabrication instructions
 
 ## Correspondence
 
