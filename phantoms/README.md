@@ -4,7 +4,7 @@ Here are resources for developing modular implant phantoms like the one presente
 
 In each design folder you will find:
 - product-links.md, listing all commercial products used in the phantom
-- a printing folder, containing all printing targets needed for fabrication
+- a printing folder, containing all printing targets needed to fabricate a copy
 - a solidworks folder, containing all source design files needed to adapt the design, e.g. for different metal components
 
 Stanford users may also find useful an (incomplete) summary of [campus resources](stanford-resources.md) for phantom developement.
