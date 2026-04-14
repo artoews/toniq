@@ -1,0 +1,6 @@
+"box-size"= 126mm
+"block-base"= 100mm
+"block-height"= 50mm
+"rod-1-diameter"= 3.18mm
+"rod-2-diameter"= 6.35mm
+"hole-separation"= 50mm
