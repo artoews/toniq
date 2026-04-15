@@ -18,7 +18,7 @@ This design improves upon the usability of the THA design in several ways:
 
 ## Materials
 
-We use 6" long metal rods in two diameters: 1/4" (~6mm) and 1/8" (~3mm).
+We use 6" long metal rods in two diameters: 1/4" (~6mm) and 1/8" (~3mm). Commercial product links are collected [here](product-links.md).
 
 Three materials are recommended to cover the range of magnetic susceptibility values found in orthopedic implants.
 - Ceramic Alumina (-10 ppm)
