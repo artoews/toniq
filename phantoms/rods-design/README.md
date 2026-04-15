@@ -1,6 +1,6 @@
 # Rods Design
 
-This design was introduced after the original [TONIQ paper](https://onlinelibrary.wiley.com/doi/10.1002/mrm.30222) to improve usability. The metal rods are intended to imitate various orthopedic implants like intramedullary nails, pedicle screws, and spinal fixation rods. The total cost of materials is less than 100 USD.
+This design was introduced after the original [TONIQ paper](https://onlinelibrary.wiley.com/doi/10.1002/mrm.30222) to improve usability. The metal rods are intended to imitate various orthopedic implants like intramedullary nails, pedicle screws, and spinal fixation rods.
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/07d056fb-9a8c-4d7a-b57e-21729ca6ed77" width="48%" />
@@ -18,14 +18,14 @@ This design improves upon the usability of the THA design in several ways:
 
 ## Materials
 
-We use 6" long metal rods in two diameters: 1/4" (~6mm) and 1/8" (~3mm). Commercial product links are collected [here](product-links.md).
-
-Three materials are recommended to cover the range of magnetic susceptibility values found in orthopedic implants.
+We use 6" long metal rods in two diameters: 1/4" (~6mm) and 1/8" (~3mm). Three materials are recommended to cover the range of magnetic susceptibility values found in orthopedic implants.
 - Ceramic Alumina (-10 ppm)
 - Grade 5 Titanium (+200 ppm)
 - 316L Stainless Steel (+4000 ppm)
 
 *All magnetic susceptibility values are approximate - actual values will depend on the exact alloy blend and preparation.*
+
+Commercial product links are collected [here](product-links.md). As of April 2026, the total cost of materials is less than 100 USD, or less than 50 USD excluding the ceramic rods.
 
 ## Tips & Tricks
 
