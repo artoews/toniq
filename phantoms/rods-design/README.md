@@ -1,6 +1,6 @@
 # Rods Design
 
-This design was introduced after the original [TONIQ paper](https://onlinelibrary.wiley.com/doi/10.1002/mrm.30222) to improve usability. The metal rods are intended to imitate various orthopedic implants like intramedullary nails, pedicle screws, and spinal fixation rods.
+This design was introduced after the original [TONIQ paper](https://onlinelibrary.wiley.com/doi/10.1002/mrm.30222) to improve usability. The metal rods are intended to imitate various orthopedic implants like intramedullary nails, pedicle screws, and spinal fixation rods. The total cost of materials is less than 100 USD.
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/07d056fb-9a8c-4d7a-b57e-21729ca6ed77" width="48%" />
