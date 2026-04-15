@@ -12,4 +12,8 @@ The above images depict two of the four configurations needed for TONIQ analysis
   <img src="https://github.com/user-attachments/assets/c0aeec65-cfd0-423c-9bd8-7bc7f6e496c8" width="50%" />
 </p>
 
-The large size of this phantom can result in standing EM wave artifacts depending on the signal medium. We have found that water works fine at low field strengths (e.g. 0.5T), but for 3T and above we recommend using mineral oil instead.
+## Tips & Tricks
+
+The large size of this phantom can result in standing EM wave artifacts depending on the signal medium and field strength. We find that water works fine at lower field strengths (e.g. 0.5T), but for 3T we recommend mineral oil.
+
+To minimize bubble formation inside the gyroid lattice, fill the container with your signal medium of choice *before* installing the lattice. This way you can ensure the lattice fills from the bottom up, preventing trapped air.
