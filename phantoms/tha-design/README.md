@@ -1,6 +1,6 @@
 # Total Hip Arthroplasty (THA) Design
 
-This design was introduced in the original TONIQ paper to benchmark image quality near a total hip arthroplasty (THA) device. Instructions are provided for [adapting the design](adapting-the-design.md) to a different THA device and/or container.
+This design was introduced in the original [TONIQ paper](https://onlinelibrary.wiley.com/doi/10.1002/mrm.30222) to benchmark image quality near a total hip arthroplasty (THA) device. Instructions are provided for [adapting the design](adapting-the-design.md) to a different THA device and/or container.
 
 | Uniform Configuration | Structured Configuration | Structured Configuration<br>(Top Block Removed) |
 |---------|---------|---------|
