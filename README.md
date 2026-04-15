@@ -1,4 +1,4 @@
-# TONIQ: Toolbox for Non-uniform Image Quality
+# TONIQ: Toolbox for Non-uniform Image Quality Analysis
 
 ## Overview
 
@@ -28,10 +28,10 @@ The [analysis](analysis) folder has everything you need to analyze the image dat
 
 The [figures](figures) folder contains all figures from the paper.
 
-The [phantoms](phantoms) folder has everything you need to build your own TONIQ phantom, including:
+The [phantoms](phantoms) folder has everything you need to get started with building your own TONIQ phantom, including:
 - phantom design files & product links
-- guidance for adapting the designs to different metal components
-- fabrication instructions
+- fabrication guidance
+- tips for adapting the designs to fit other implants and containers
 
 ## Correspondence
 
