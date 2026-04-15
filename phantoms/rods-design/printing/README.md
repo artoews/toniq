@@ -5,8 +5,8 @@
 PLA is recommended for several reasons:
 - low signal intensity
 - low cost
-- non-toxic
-- negative bouyancy in water
+- low toxicity
+- negative buoyancy in water
 
 ## 3D Printer
 
@@ -20,12 +20,12 @@ We use [Bambu Studio](https://bambulab.com/en/download/studio) for open-source s
 
 We recommend the following custom settings based on our experience using Bambu Studio with a [Bambu Lab X1E 3D Printer](https://bambulab.com/en-us/x1e). You may observe small differences in parameter names with other slicing software but the general ideas should still apply.
 
-#### Frame ([frame.stl](frame.stl))
+#### Frame ([frame.STL](frame.STL))
 
 - Infill density: 100%
 - Outer brim
 
-#### Lattice Blocks ([lattice-hole-1.stl](lattice-hole-1.stl), [lattice-hole-2.stl](lattice-hole-2.stl), [lattice-hole-array.stl](lattice-hole-array.stl))
+#### Lattice Blocks ([lattice-hole-1.STL](lattice-hole-1.STL), [lattice-hole-2.STL](lattice-hole-2.STL), [lattice-hole-array.STL](lattice-hole-array.STL))
 
 - Wall loops: 1
 - Top shell layers: 0
