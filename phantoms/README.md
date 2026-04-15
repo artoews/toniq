@@ -1,6 +1,6 @@
 # Phantom Designs
 
-Here are resources for developing modular implant phantoms like the one presented in the TONIQ paper.
+Here are resources for developing modular implant phantoms like the one presented in the [TONIQ paper](https://onlinelibrary.wiley.com/doi/10.1002/mrm.30222).
 
 In each design folder you will find:
 - product-links.md, listing all commercial products used in the phantom
